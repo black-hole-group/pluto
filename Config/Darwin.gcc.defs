@@ -1,0 +1,38 @@
+########################################################################
+#                                                
+# Configuration file for Mac Os X (Darwin, serial)
+#             
+########################################################################
+
+CC       = gcc
+CFLAGS   = -c -fast -finline-functions -Winline -Wundef
+LDFLAGS  = -bind_at_load -lm 
+
+PARALLEL = FALSE
+USE_HDF5 = TRUE
+USE_PNG  = FALSE
+
+#######################################
+# MPI additional spefications
+#######################################
+
+ifeq ($(strip $(PARALLEL)), TRUE)
+endif
+
+#######################################
+#    HDF5 library options
+#######################################
+
+ifeq ($(strip $(USE_HDF5)), TRUE)
+ HDF5_LIB = /usr/local/lib/HDF5-1.6.10-serial
+ INCLUDE_DIRS += -I$(HDF5_LIB)/include
+ LDFLAGS      += -L$(HDF5_LIB)/lib -lhdf5 -lz
+endif
+
+#######################################
+#     PNG library options
+#######################################
+
+ifeq ($(strip $(USE_PNG)), TRUE)
+ LDFLAGS += -lpng
+endif

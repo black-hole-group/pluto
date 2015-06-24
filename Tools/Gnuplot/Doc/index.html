@@ -1,0 +1,415 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+<head>
+<title>PLUTO data Visualization with Gnuplot</title>
+<meta name="keywords" content="PLUTO tabulated binary data files gnuplot visualization">
+<meta http-equiv="content-type" content="text/html; charset=ISO-8859-1">
+<meta name="author" content="A. Mignon">
+<meta name="generator" content="Web Page Maker">
+<style type="text/css">
+/*----------Text Styles----------*/
+.ws6 {font-size: 8px;}
+.ws7 {font-size: 9.3px;}
+.ws8 {font-size: 11px;}
+.ws9 {font-size: 12px;}
+.ws10 {font-size: 13px;}
+.ws11 {font-size: 15px;}
+.ws12 {font-size: 16px;}
+.ws14 {font-size: 19px;}
+.ws16 {font-size: 21px;}
+.ws18 {font-size: 24px;}
+.ws20 {font-size: 27px;}
+.ws22 {font-size: 29px;}
+.ws24 {font-size: 32px;}
+.ws26 {font-size: 35px;}
+.ws28 {font-size: 37px;}
+.ws36 {font-size: 48px;}
+.ws48 {font-size: 64px;}
+.ws72 {font-size: 96px;}
+.wpmd {font-size: 13px;font-family: Arial,Helvetica,Sans-Serif;font-style: normal;font-weight: normal;}
+/*----------Para Styles----------*/
+DIV,UL,OL /* Left */
+{
+ margin-top: 0px;
+ margin-bottom: 0px;
+}
+</style>
+
+<style type="text/css">
+div#container
+{
+	position:relative;
+	width: 1048px;
+	margin-top: 0px;
+	margin-left: auto;
+	margin-right: auto;
+	text-align:left; 
+}
+body {text-align:center;margin:0}
+</style>
+
+</head>
+<body>
+<div id="container">
+<div id="image1" style="position:absolute; overflow:hidden; left:730px; top:80px; width:10px; height:785px; z-index:0"><img src="images/riga2.jpg" alt="" title="" border=0 width=10 height=785></div>
+
+<div id="hr1" style="position:absolute; overflow:hidden; left:15px; top:45px; width:690px; height:17px; z-index:1">
+<hr size=2 width=690 color="#3366FF">
+</div>
+
+<div id="image4" style="position:absolute; overflow:hidden; left:730px; top:880px; width:12px; height:785px; z-index:2"><img src="images/riga2.jpg" alt="" title="" border=0 width=12 height=785></div>
+
+<div id="image6" style="position:absolute; overflow:hidden; left:750px; top:1980px; width:135px; height:176px; z-index:3"><a href="images/toroidal_jet_pm3d.PNG" target="_blank"><img src="images/toroidal_jet_pm3d.PNG" alt="" title="" border=0 width=135 height=176></a></div>
+
+<div id="image7" style="position:absolute; overflow:hidden; left:730px; top:1680px; width:12px; height:785px; z-index:4"><img src="images/riga2.jpg" alt="" title="" border=0 width=12 height=785></div>
+
+<div id="table1" style="position:absolute; overflow:hidden; left:15px; top:90px; width:1018px; height:4026px; z-index:5">
+<div class="wpmd">
+<div><TABLE bgcolor="#FFFFFF" border=0 bordercolorlight="#000000" bordercolordark="#969696" cellspacing=1>
+<TR valign=top>
+<TD width=680><div class="wpmd">
+<div align=justify><font face="Verdana">PLUTO data files written with the tabulated (</font><font face="Terminal">.tab</font><font face="Verdana">) or binary data formats (</font><font face="Terminal">.dbl</font><font face="Verdana"> or </font><font face="Terminal">.flt</font><font face="Verdana">) can be visualized with Gnuplot. At present, visualization capabilities apply to 1D or moderately-sized&nbsp; 2D datasets. </font></div>
+<div align=justify><font face="Verdana">Tabulated (Ascii) data files have the advantage of incorporating grid information although they tend to rapidly increase in size for large numbers of grid points and cannot be used in parallel computations.</font></div>
+<div align=justify><font face="Verdana">Binary data files do not embed grid information and extra information must be given at the command line. They are, however, a more efficient format for larger amount of data.</font></div>
+<div align=justify><font face="Verdana"><BR></font></div>
+</div>
+</TD>
+<TD width=323><BR>
+</TD>
+</TR>
+<TR valign=top>
+<TD width=680><div class="wpmd">
+<div><font face="Verdana"><B><U>Ascii Data Files (.tab)</U></B></font></div>
+<div><font face="Verdana"><BR></font></div>
+<div align=justify><font face="Verdana">One-dimensional tabulated ascii data files can be plotted using the </font><font color="#0000FF" face="Terminal">plot</font><font face="Verdana"> command. </font></div>
+</div>
+</TD>
+<TD width=323><div class="wpmd">
+<div><BR></div>
+<div><BR></div>
+</div>
+</TD>
+</TR>
+<TR valign=top>
+<TD width=680><div class="wpmd">
+<div align=justify><font face="Verdana">If you enabled the </font><font face="Terminal">.tab</font><font face="Verdana"> output format in </font><font face="Terminal">pluto.ini</font><font face="Verdana">, you can plot 1D data from, e.g., the first output file by typing</font></div>
+<div align=justify><font color="#0000FF" face="Terminal"><BR></font></div>
+<div><font color="#0000FF" face="Terminal">&nbsp; gnuplot&gt; plot&nbsp;&nbsp; "data.0001.tab" u 1:3 title "Density"</font></div>
+<div><font color="#0000FF" face="Terminal">&nbsp; gnuplot&gt; replot "data.0001.tab" u 1:5 title "Pressure"&nbsp; # overplot </font></div>
+<div><font color="#0000FF" face="Terminal"><BR></font></div>
+</div>
+</TD>
+<TD width=323><div class="wpmd">
+<div align=center><a href="files/sod_plot.PNG" title=""><IMG border=0 width=192 height=114 src="images/sod_plot.PNG"></a></div>
+</div>
+</TD>
+</TR>
+<TR valign=top>
+<TD width=680><div class="wpmd">
+<div align=justify><font face="Verdana">Here the first column corresponds to the x coordinate, the second column to the y coordinate and flow data values start from the third column. The name and order of the variables is the same given in </font><font face="Terminal">tab.out </font><font face="Verdana">log file (e.g.&nbsp; rho = 3, vx1 = 4, prs = 5). The figure to the right shows the density and pressure profiles for the Sod shock tube problem (conf. #03 in </font><font face="Terminal">Test_Problems/HD/Sod</font><font face="Verdana">) and it has been obtained with the previous commands.</font></div>
+<div align=justify><font face="Verdana"><BR></font></div>
+<div align=justify><font face="Verdana">Two-dimensional ascii datafiles can be visualized using the </font><font color="#0000FF" face="Terminal">splot</font><font face="Verdana"> command. The figure to the right shows a simple contour drawing of density at the final time step of the Mach reflection test problem (remember to enable </font><font face="Terminal">.tab</font><font face="Verdana"> output in </font><font face="Terminal">pluto.ini</font><font face="Verdana">). Contour levels range from 0.1 to 20 and are spaced by 0.2. The following commands have been used:</font></div>
+</div>
+</TD>
+<TD width=323><BR>
+</TD>
+</TR>
+<TR valign=top>
+<TD width=680 height=140><div class="wpmd">
+<div><font face="Verdana"><BR></font></div>
+<div><font color="#0000FF" face="Terminal">&nbsp; gnuplot&gt; set contour&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; </font></div>
+<div><font color="#0000FF" face="Terminal">&nbsp; gnuplot&gt; set cntrparam level incremental 0.1,0.2,20 </font></div>
+<div><font color="#0000FF" face="Terminal">&nbsp; gnuplot&gt; set view map</font></div>
+<div><font color="#0000FF" face="Terminal">&nbsp; gnuplot&gt; unset surface</font></div>
+<div><font color="#0000FF" face="Terminal">&nbsp; gnuplot&gt; unset key</font></div>
+<div><font color="#0000FF" face="Terminal">&nbsp; gnuplot&gt; splot "data.0001.tab" u 1:2:3 w lines</font></div>
+<div><font face="Verdana"><BR></font></div>
+</div>
+</TD>
+<TD width=323 height=140><div class="wpmd">
+<div align=center><a href="files/dmr_contour.PNG" title=""><IMG border=0 width=255 height=109 src="images/dmr_contour.PNG"></a></div>
+</div>
+</TD>
+</TR>
+<TR valign=top>
+<TD width=680><div class="wpmd">
+<div align=justify><font face="Verdana">Here </font><font face="Terminal">using 1:2:3</font><font face="Verdana">&nbsp; tells gnuplot to take columns 1, 2 for x and y and the third column as the data value to be contoured (density in this case).</font></div>
+<div align=justify><font face="Verdana"><BR></font></div>
+<div align=justify><font face="Verdana">Instead of contour levels, the pm3d style can be employed to draw colored map. In this case the same data set can be displayed using</font></div>
+</div>
+</TD>
+<TD width=323><BR>
+</TD>
+</TR>
+<TR valign=top>
+<TD width=680><div class="wpmd">
+<div><font color="#0000FF" face="Terminal"><BR></font></div>
+<div><font color="#0000FF" face="Terminal">&nbsp; gnuplot&gt; reset</font></div>
+<div><font color="#0000FF" face="Terminal">&nbsp; gnuplot&gt; set pm3d map </font></div>
+<div><font color="#0000FF" face="Terminal">&nbsp; gnuplot&gt; set title "Double Mach Reflection"</font></div>
+<div><font color="#0000FF" face="Terminal">&nbsp; gnuplot&gt; splot "data.0001.tab" u 1:2:3&nbsp; </font></div>
+<div><font color="#0000FF" face="Terminal"><BR></font></div>
+<div><font face="Verdana">The result is shown in the figure to the right. </font></div>
+</div>
+</TD>
+<TD width=323><div class="wpmd">
+<div align=center><a href="files/dmr_pm3d.PNG" title=""><IMG border=0 width=262 height=101 src="images/dmr_pm3d.PNG"></a></div>
+</div>
+</TD>
+</TR>
+<TR valign=top>
+<TD width=680><div class="wpmd">
+<div><font face="Verdana">Different colortables may be constructed by specifying the colors directly, e.g.</font></div>
+<div><font color="#0000FF" face="Terminal"><BR></font></div>
+<div><font color="#0000FF" face="Terminal">&nbsp; gnuplot&gt; set palette defined (0 'black', 1 'blue', 2 'red')</font></div>
+<div><font color="#0000FF" face="Terminal">&nbsp; gnuplot&gt; replot</font></div>
+<div><font face="Verdana"><BR></font></div>
+<div align=justify><font face="Verdana">defines a colormap that linearly changes between black, blue and red (use </font><font color="#0000FF" face="Terminal">show palette colornames</font><font face="Verdana"> to list the available colormap names). Please refer to the Gnuplot documentation page, </font><font face="Verdana"><a href="http://gnuplot.sourceforge.net/demo/pm3dcolors.html" title="" target="_blank">http://gnuplot.sourceforge.net/demo/pm3dcolors.html</a></font><font face="Verdana">.</font></div>
+<div align=justify><font face="Verdana"><BR></font></div>
+</div>
+</TD>
+<TD width=323><div class="wpmd">
+<div align=center><BR></div>
+</div>
+</TD>
+</TR>
+<TR valign=top>
+<TD width=680><div class="wpmd">
+<div align=justify><font face="Verdana"><B><U>Binary Data Files (.flt and .dbl)</U></B></font></div>
+<div align=justify><font face="Verdana"><BR></font></div>
+<div align=justify><font face="Verdana">Starting with Gnuplot 4.2, raw binary files are also supported. However, grid information is not automatically included and must be supplied separately.</font></div>
+<div align=justify><font face="Verdana"><BR></font></div>
+<div align=justify><font face="Verdana">2D multiple data files (</font><font face="Terminal">multiple_files</font><font face="Verdana"> for </font><font face="Terminal">.dbl</font><font face="Verdana"> or </font><font face="Terminal">.flt</font><font face="Verdana"> output) can be plotted by specifying the array dimension and the data format to </font><font color="#0000FF" face="Terminal">splot</font><font face="Verdana">. This is done with the keyword </font><font color="#0000FF" face="Terminal">array</font><font face="Verdana"> and </font><font color="#0000FF" face="Terminal">format</font><font face="Verdana">. As an example, in order to display the y-component of velocity from a 2D array with </font><font face="Terminal">200x200 </font><font face="Verdana">points in double precision you can use</font></div>
+</div>
+</TD>
+<TD width=323><BR>
+</TD>
+</TR>
+<TR valign=top>
+<TD width=680><div class="wpmd">
+<div align=justify><font color="#0000FF" face="Terminal"><BR></font></div>
+<div align=justify><font color="#0000FF" face="Terminal">&nbsp; gnuplot&gt; set pm3d map</font></div>
+<div align=justify><font color="#0000FF" face="Terminal">&nbsp; gnuplot&gt; splot "vx2.0010.dbl" binary array=200x200 format="%double"</font></div>
+<div align=justify><font color="#0000FF" face="Terminal"><BR></font></div>
+</div>
+</TD>
+<TD width=323><BR>
+</TD>
+</TR>
+<TR valign=top>
+<TD width=680 height=34><div class="wpmd">
+<div align=justify><font face="Verdana">where </font><font color="#0000FF" face="Terminal">array=200x200</font><font face="Verdana"> means that the underlying array structure has </font><font face="Terminal">200x200</font><font face="Verdana"> points.</font></div>
+<div align=justify><font face="Verdana">If data have been saved as </font><font face="Terminal">single_file</font><font face="Verdana">, you can select the variable to display by skipping the appropriate number of bytes through the </font><font color="#0000FF" face="Terminal">skip=()</font><font face="Verdana">&nbsp; function:</font></div>
+</div>
+</TD>
+<TD width=323 height=34><BR>
+</TD>
+</TR>
+<TR valign=top>
+<TD width=680><div class="wpmd">
+<div align=justify><font color="#0000FF" face="Terminal"><BR></font></div>
+<div align=justify><font color="#0000FF" face="Terminal">&nbsp; gnuplot&gt; set pm3d map</font></div>
+<div align=justify><font color="#0000FF" face="Terminal">&nbsp; gnuplot&gt; nvar = 2&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; # 2 = y-velocity</font></div>
+<div align=justify><font color="#0000FF" face="Terminal">&nbsp; gnuplot&gt; splot "data.0010.dbl" bin array=200x200 format="%lf" skip=(200*200*8*nvar)</font></div>
+<div align=justify><font color="#0000FF" face="Terminal"><BR></font></div>
+</div>
+</TD>
+<TD width=323><BR>
+</TD>
+</TR>
+<TR valign=top>
+<TD width=680 height=43><div class="wpmd">
+<div align=justify><font face="Verdana">In this example, we skip by 200x200 (grid size) x 8 (bytes for double precision) x 2 (since vy is stored after density and x-velocity) bytes. The sequential order of variables can be deduced from the corresponding </font><font face="Terminal">dbl.out</font><font face="Verdana"> file.</font></div>
+<div align=justify><font face="Verdana"><BR></font></div>
+</div>
+</TD>
+<TD width=323 height=43><BR>
+</TD>
+</TR>
+<TR valign=top>
+<TD width=680 height=79><div class="wpmd">
+<div align=justify><font face="Verdana"><B>Using predefined scripts &amp; macros</B></font><font face="Verdana">. In the previous examples, the axis are scaled down to the number of points rather than to the actual coordinates since grid information is not included in PLUTO binary files but it is stored seprately (grid.out). For uniform grid spacing this problem can be fixed by taking advantage of the scripts provided with the PLUTO distribution under the </font><font face="Terminal">Tools/Gnuplot</font><font face="Verdana"> directory. To this end, you need to define the </font><font face="Terminal">GNUPLOT_LIB</font><font face="Verdana"> environment variable (in your shell) which will be appended to the loadpath of Gnuplot:</font></div>
+<div align=justify><font face="Verdana"><BR></font></div>
+<div align=justify><font face="Terminal">&nbsp; &gt; export GNUPLOT_LIB=$PLUTO_DIR/Tools/Gnuplot&nbsp; # use setenv for tcsh users</font></div>
+<div align=justify><font face="Terminal"><BR></font></div>
+<div align=justify><font face="Verdana">Alternatively, you can also change the loadpath directly from Gnuplot:</font></div>
+<div align=justify><font face="Verdana"><BR></font></div>
+<div align=justify><font color="#0000FF" face="Terminal">&nbsp; gnuplot&gt; set loadpath '&lt;pluto_full_path&gt;/Tools/Gnuplot'</font></div>
+<div align=justify><font color="#0000FF" face="Terminal"><BR></font></div>
+<div align=justify><font face="Verdana">You can then start a Gnuplot session as follows:</font></div>
+<div align=justify><font face="Verdana"><BR></font></div>
+<div align=justify><font color="#0000FF" face="Terminal">&nbsp; gnuplot&gt; load "grid.gp"&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; # read and store grid information</font></div>
+<div align=justify><font color="#0000FF" face="Terminal">&nbsp; gnuplot&gt; dsize=8; load "macros.gp"&nbsp;&nbsp; # set the display </font></div>
+<div align=justify><font color="#0000FF" face="Terminal">&nbsp; gnuplot&gt; load "pm3D_setting.gp"&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; # set the display canvas for pm3d plot style</font></div>
+<div align=justify><font color="#0000FF" face="Terminal"><BR></font></div>
+<div align=justify><font face="Verdana">The first line invokes the </font><font face="Terminal">grid.gp</font><font face="Verdana"> script that reads </font><font face="Terminal">grid.out</font><font face="Verdana"> and initializes variables such as grid spacing (</font><font face="Terminal">dx, dy</font><font face="Verdana">), domain range (</font><font face="Terminal">xb,xe</font><font face="Verdana"> and </font><font face="Terminal">yb,ye</font><font face="Verdana">) and length (</font><font face="Terminal">Lx=xe-xb,</font><font face="Verdana">and </font><font face="Terminal">Ly=ye-yb</font><font face="Verdana">), number of points (</font><font face="Terminal">nx,ny</font><font face="Verdana">). </font></div>
+<div align=justify><font face="Verdana">The second line sets the data size (</font><font face="Terminal">dsize=8</font><font face="Verdana"> or </font><font face="Terminal">dsize=4</font><font face="Verdana"> for double or single prcision) and then initializes some convenient macros (</font><font face="Terminal">@BINARR, @XSLICE</font><font face="Verdana"> and </font><font face="Terminal">@YSLICE</font><font face="Verdana">) used to pass command line options embedding grid and data-format specifications to </font><font color="#0000FF" face="Terminal">splot</font><font face="Verdana"> and </font><font color="#0000FF" face="Terminal">plot</font><font face="Verdana">. </font></div>
+<div align=justify><font face="Verdana">The third script, </font><font face="Terminal">pm3D_setting.gp</font><font face="Verdana">, sets a default environment for viewing binary data files using the </font><font face="Terminal">pm3d</font><font face="Verdana"> style of Gnuplot. </font></div>
+<div align=justify><font face="Verdana"><BR></font></div>
+<div align=justify><font face="Verdana">You may also call all of them at once using </font><font color="#0000FF" face="Terminal">load "pluto.gp"</font><font face="Verdana">.</font></div>
+<div align=justify><font face="Verdana"><BR></font></div>
+<div align=justify><font face="Verdana">Using these macros makes it a lot easier to replace the previous 2D plots of the y-velocity with</font></div>
+<div align=justify><font face="Verdana"><BR></font></div>
+<div align=justify><font color="#0000FF" face="Terminal">&nbsp; gnuplot&gt; splot "vx2.0010.dbl" @BINARR</font></div>
+<div align=justify><font color="#0000FF" face="Terminal"><BR></font></div>
+<div align=justify><font face="Verdana">or, in the case of a single data file, with</font></div>
+<div align=justify><font face="Verdana"><BR></font></div>
+<div align=justify><font color="#0000FF" face="Terminal">&nbsp; gnuplot&gt; nvar = 2; splot "data.0010.dbl" @BINARR</font></div>
+<div align=justify><font color="#0000FF" face="Terminal"><BR></font></div>
+<div align=justify><font face="Verdana">Here </font><font face="Terminal">nvar</font><font face="Verdana"> is used to select the variable to be plotted out of a single data set but must be 0 for multiple data files. </font></div>
+<div align=justify><font face="Verdana"><BR></font></div>
+<div align=justify><font face="Verdana">In the following we provide three visualization examples on the relativistic magnetized jet with toroidal magnetic field (conf # 01 in Test_Problems/RMHD/Toroidal_Jet, 200x420 zones).</font></div>
+<div align=justify><font face="Verdana"><BR></font></div>
+</div>
+</TD>
+<TD width=323 height=79><BR>
+</TD>
+</TR>
+<TR valign=top>
+<TD width=680><div class="wpmd">
+<UL>
+<li><font face="Verdana"><U>Example #1</U></font><font face="Verdana">. Display density (in log scale) for the last </font><font face="Terminal">.dbl</font><font face="Verdana"> output in </font></li>
+</UL>
+<div align=justify><font face="Verdana"><BR></font></div>
+<div align=justify style="margin-left:40px;"><font color="#0000FF" face="Terminal">gnuplot&gt; load "pluto.gp"</font></div>
+<div align=justify style="margin-left:40px;"><font color="#0000FF" face="Terminal">gnuplot&gt; set term window 0&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; </font></div>
+<div align=justify style="margin-left:40px;"><font color="#0000FF" face="Terminal">gnuplot&gt; set term window size 600,860&nbsp; # set window size</font></div>
+<div align=justify style="margin-left:40px;"><font color="#0000FF" face="Terminal"><BR></font></div>
+<div align=justify style="margin-left:40px;"><font color="#0000FF" face="Terminal">gnuplot&gt; set log cb&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; # set log scale</font></div>
+<div align=justify style="margin-left:40px;"><font color="#0000FF" face="Terminal">gnuplot&gt; set title "Log(density)"</font></div>
+<div align=justify style="margin-left:40px;"><font color="#0000FF" face="Terminal">gnuplot&gt; set xlabel "r"</font></div>
+<div align=justify style="margin-left:40px;"><font color="#0000FF" face="Terminal">gnuplot&gt; set ylabel "z"</font></div>
+<div align=justify style="margin-left:40px;"><font color="#0000FF" face="Terminal">gnuplot&gt; nvar=0; splot "data.0001.dbl" @BINARR </font></div>
+<div align=justify style="margin-left:40px;"><font color="#0000FF" face="Terminal"><BR></font></div>
+</div>
+</TD>
+<TD width=323><div class="wpmd">
+<div align=center><a href="files/rmhd_jet_pm3d_rho.PNG" title=""><IMG border=0 width=144 height=190 src="images/rmhd_jet_pm3d_rho.PNG"></a></div>
+</div>
+</TD>
+</TR>
+<TR valign=top>
+<TD width=680 height=263><div class="wpmd">
+<UL>
+<li style="margin-left: 0"><font face="Verdana"><U>Example #2</U></font><font face="Verdana">. Add a second window displaying a zoom-in of the longitudinal velocity in the region 0 &lt; x &lt; 4, 16.5 &lt; y &lt; 20.5 using a green colormap:</font></li>
+</UL>
+<div align=justify style="margin-left:40px;"><font face="Verdana"><BR></font></div>
+<div align=justify style="margin-left:40px;"><font color="#0000FF" face="Terminal">gnuplot&gt; set palette defined (0 'black', 1 'web-green', 2 'white')</font></div>
+<div align=justify style="margin-left:40px;"><font color="#0000FF" face="Terminal">gnuplot&gt; set term window 1&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; # set new window</font></div>
+<div align=justify style="margin-left:40px;"><font color="#0000FF" face="Terminal">gnuplot&gt; set term window size 640,640&nbsp;&nbsp; # set size</font></div>
+<div align=justify style="margin-left:40px;"><font color="#0000FF" face="Terminal">gnuplot&gt; unset log cb</font></div>
+<div align=justify style="margin-left:40px;"><font color="#0000FF" face="Terminal">gnuplot&gt; set bmargin at screen 0.15&nbsp;&nbsp;&nbsp;&nbsp; # adjust bottom margin</font></div>
+<div align=justify style="margin-left:40px;"><font color="#0000FF" face="Terminal">gnuplot&gt; set title " "</font></div>
+<div align=justify style="margin-left:40px;"><font color="#0000FF" face="Terminal">gnuplot&gt; nvar=2; splot [0:4] [16.5:20.5] "data.0001.dbl" @BINARR</font></div>
+</div>
+</TD>
+<TD width=323 height=263><div class="wpmd">
+<div align=center><BR></div>
+<div align=center><a href="files/rmhd_jet_pm3d_vz.PNG" title=""><IMG border=0 width=191 height=172 src="images/rmhd_jet_pm3d_vz.PNG"></a></div>
+</div>
+</TD>
+</TR>
+<TR valign=top>
+<TD width=680><div class="wpmd">
+<UL>
+<li><font face="Verdana"><U>Example #3</U></font><font face="Verdana">: In this example we show how to plot 1D profiles along a given row or column with the </font><font face="Terminal">@XSLICE </font><font face="Verdana">or&nbsp; </font><font face="Terminal">@YSLICE</font><font face="Verdana"> macros. Using these macro requires setting the constant slice indices&nbsp; </font><font face="Terminal">0 &lt;= jcut &lt;= ny-1</font><font face="Verdana"> and </font><font face="Terminal">0 &lt;= icut &lt;= nx-1</font><font face="Verdana"> before using the macros.&nbsp; The following set of instruction is used to produce a profile plot of the pressure along the jet axis&nbsp; at </font><font face="Terminal">r = r[0]</font><font face="Verdana">:</font></li>
+</UL>
+<div align=justify><font face="Verdana"><BR></font></div>
+<div align=justify style="margin-left:40px;"><font color="#0000FF" face="Terminal">gnuplot&gt; unset pm3d</font></div>
+<div align=justify style="margin-left:40px;"><font color="#0000FF" face="Terminal">gnuplot&gt; set term window 2</font></div>
+<div align=justify style="margin-left:40px;"><font color="#0000FF" face="Terminal">gnuplot&gt; set title "Pressure profile along axis"</font></div>
+<div align=justify style="margin-left:40px;"><font color="#0000FF" face="Terminal">gnuplot&gt; set tmargin at screen 0.85</font></div>
+<div align=justify style="margin-left:40px;"><font color="#0000FF" face="Terminal">gnuplot&gt; set xlabel "z"</font></div>
+<div align=justify style="margin-left:40px;"><font color="#0000FF" face="Terminal">gnuplot&gt; set ylabel "p"</font></div>
+<div align=justify style="margin-left:40px;"><font color="#0000FF" face="Terminal">gnuplot&gt; set log y</font></div>
+<div align=justify style="margin-left:40px;"><font color="#0000FF" face="Terminal">gnuplot&gt; nvar = 7; icut=0; plot "data.0001.dbl" @YSLICE</font></div>
+<div align=justify style="margin-left:40px;"><font color="#0000FF" face="Terminal"><BR></font></div>
+<div align=justify><font face="Verdana"><BR></font></div>
+</div>
+</TD>
+<TD width=323><div class="wpmd">
+<div align=center><BR></div>
+<div align=center><BR></div>
+<div align=center><a href="files/rmhd_jet_pm3d_prs_yslice.PNG" title=""><IMG border=0 width=251 height=125 src="images/rmhd_jet_pm3d_prs_yslice.PNG"></a></div>
+</div>
+</TD>
+</TR>
+<TR valign=top>
+<TD width=680><BR>
+</TD>
+<TD width=323><BR>
+</TD>
+</TR>
+<TR valign=top>
+<TD width=680><div class="wpmd">
+<div align=justify><font face="Verdana"><B><BR></B></font></div>
+</div>
+</TD>
+<TD width=323><BR>
+</TD>
+</TR>
+<TR valign=top>
+<TD width=680><div class="wpmd">
+<div align=justify><font face="Verdana"><BR></font></div>
+<div align=justify><font face="Verdana"><BR></font></div>
+</div>
+</TD>
+<TD width=323><BR>
+</TD>
+</TR>
+<TR valign=top>
+<TD width=680><div class="wpmd">
+<div align=justify><font color="#0000FF" face="Terminal"><BR></font></div>
+</div>
+</TD>
+<TD width=323><BR>
+</TD>
+</TR>
+<TR valign=top>
+<TD width=680><BR>
+</TD>
+<TD width=323><BR>
+</TD>
+</TR>
+<TR valign=top>
+<TD width=680><BR>
+</TD>
+<TD width=323><BR>
+</TD>
+</TR>
+<TR valign=top>
+<TD width=680><BR>
+</TD>
+<TD width=323><BR>
+</TD>
+</TR>
+<TR valign=top>
+<TD width=680><div class="wpmd">
+<div align=justify><font face="Verdana"><BR></font></div>
+<div align=justify><font face="Verdana"><BR></font></div>
+</div>
+</TD>
+<TD width=323><BR>
+</TD>
+</TR>
+</TABLE>
+</div>
+</div></div>
+
+<div id="text1" style="position:absolute; overflow:hidden; left:15px; top:15px; width:506px; height:38px; z-index:6">
+<div class="wpmd">
+<div><font face="Verdana" class="ws18">Data Visualization with Gnuplot</font></div>
+</div></div>
+
+<div id="image2" style="position:absolute; overflow:hidden; left:705px; top:90px; width:10px; height:785px; z-index:7"><img src="images/riga2.jpg" alt="" title="" border=0 width=10 height=785></div>
+
+<div id="image3" style="position:absolute; overflow:hidden; left:705px; top:889px; width:10px; height:785px; z-index:8"><img src="images/riga2.jpg" alt="" title="" border=0 width=10 height=785></div>
+
+<div id="image5" style="position:absolute; overflow:hidden; left:705px; top:1681px; width:10px; height:785px; z-index:9"><img src="images/riga2.jpg" alt="" title="" border=0 width=10 height=785></div>
+
+<div id="image8" style="position:absolute; overflow:hidden; left:705px; top:2485px; width:10px; height:785px; z-index:10"><img src="images/riga2.jpg" alt="" title="" border=0 width=10 height=785></div>
+
+</div>
+
+</body>
+</html>
