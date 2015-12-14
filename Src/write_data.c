@@ -465,7 +465,7 @@ void Async_BegWriteData (const Data *d, Output *output, Grid *grid)
 }
 
 /* ********************************************************************* */
-void Async_EndWriteData (Input *ini)
+void Async_EndWriteData (Runtime *ini)
 /*!
  *
  * PURPOSE:
@@ -582,7 +582,7 @@ void GetCGSUnits (double *u)
           u[BX2] = unit_mag;  ,
           u[BX3] = unit_mag;)
   #endif
-  #if HAVE_PRESSURE
+  #if HAVE_ENERGY
    u[PRS] = unit_pressure;
   #endif
 }

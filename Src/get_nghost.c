@@ -9,13 +9,13 @@
   Higher-order interpolation scheme may require more zones.
   
   \authors A. Mignone (mignone@ph.unito.it)
-  \date    Sep 20, 2012
+  \date    Aug 24, 2015
 */
 /* ///////////////////////////////////////////////////////////////////// */
 #include "pluto.h"
 
 /* ********************************************************************* */
-int GetNghost (Input *ini)
+int GetNghost (void)
 /*! 
  * Compute the number of ghost zones, depending on the selected
  * scheme.
@@ -25,23 +25,23 @@ int GetNghost (Input *ini)
   int nv, nghost ;
   Limiter *limiter[NVAR];
 
-  #if INTERPOLATION == FLAT
+  #if RECONSTRUCTION == FLAT
 
    nghost = 2;
 
-  #elif INTERPOLATION == LINEAR || INTERPOLATION == LimO3\
-                                || INTERPOLATION == WENO3
+  #elif RECONSTRUCTION == LINEAR || RECONSTRUCTION == LimO3\
+                                || RECONSTRUCTION == WENO3
    #if LIMITER == FOURTH_ORDER_LIM
     nghost = 3;
    #else
     nghost = 2;
    #endif
 
-  #elif INTERPOLATION == LINEAR_MULTID
+  #elif RECONSTRUCTION == LINEAR_MULTID
 
    nghost = 2;
 
-  #elif INTERPOLATION == PARABOLIC
+  #elif RECONSTRUCTION == PARABOLIC
 
    #if PHYSICS == HD || PHYSICS == RHD
     nghost = 4;   /* -- since HD makes use of contact steepener -- */
@@ -49,12 +49,12 @@ int GetNghost (Input *ini)
     nghost = 3;
    #endif
 
-  #elif INTERPOLATION == WENO3_FD || INTERPOLATION == LIMO3_FD
+  #elif RECONSTRUCTION == WENO3_FD || RECONSTRUCTION == LIMO3_FD
 
    nghost = 2;
 
-  #elif INTERPOLATION == WENOZ_FD  || \
-        INTERPOLATION == MP5_FD
+  #elif RECONSTRUCTION == WENOZ_FD  || \
+        RECONSTRUCTION == MP5_FD
 
    nghost = 3;
 

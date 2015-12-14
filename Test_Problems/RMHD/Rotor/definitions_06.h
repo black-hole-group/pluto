@@ -4,25 +4,28 @@
 #define  GEOMETRY                CARTESIAN
 #define  BODY_FORCE              NO
 #define  COOLING                 NO
-#define  INTERPOLATION           LimO3
-#define  TIME_STEPPING           RK3
-#define  DIMENSIONAL_SPLITTING   YES
+#define  RECONSTRUCTION          LINEAR
+#define  TIME_STEPPING           RK2
+#define  DIMENSIONAL_SPLITTING   NO
 #define  NTRACER                 0
 #define  USER_DEF_PARAMETERS     1
-#define  USER_DEF_CONSTANTS      0
 
 /* -- physics dependent declarations -- */
 
 #define  EOS                     IDEAL
 #define  ENTROPY_SWITCH          NO
-#define  MHD_FORMULATION         DIV_CLEANING
+#define  DIVB_CONTROL            DIV_CLEANING
 
 /* -- user-defined parameters (labels) -- */
 
 #define  VEL_0                   0
 
-/* -- user-defined symbolic constants -- */
+/* [Beg] user-defined constants (do not change this line) */
 
+#define  RMHD_FAST_EIGENVALUES   YES
+#define  RECONSTRUCT_4VEL        YES
+
+/* [End] user-defined constants (do not change this line) */
 
 /* -- supplementary constants (user editable) -- */ 
 
@@ -31,7 +34,6 @@
 #define  PRINT_TO_FILE             YES
 #define  INTERNAL_BOUNDARY         NO
 #define  SHOCK_FLATTENING          NO
-#define  ARTIFICIAL_VISCOSITY      NO
 #define  CHAR_LIMITING             NO
 #define  LIMITER                   VANLEER_LIM
 #define  ASSIGN_VECTOR_POTENTIAL   YES

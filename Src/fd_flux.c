@@ -14,7 +14,7 @@
 
   \authors A. Mignone (mignone@ph.unito.it)\n
            P. Tzeferacos (petros.tzeferacos@ph.unito.it)
-  \date   Sep 14, 2012
+  \date   April 02, 2015
 */
 /* ///////////////////////////////////////////////////////////////////// */
 #include "pluto.h"
@@ -56,7 +56,7 @@ void FD_Flux (const State_1D *state, int beg, int end,
            Check compatibility with other modules 
    ------------------------------------------------------------------ */
 
-  #if TIME_STEPPING != RK3
+  #if TIME_STEPPING != RK3 && TIME_STEPPING != SSP_RK4
    print1 ("! Finite Difference schemes work with RK3 only \n");
    QUIT_PLUTO(1);
   #endif
@@ -84,16 +84,16 @@ void FD_Flux (const State_1D *state, int beg, int end,
    -------------------------------------------------------------- */
 
   dx = grid[g_dir].dx[beg];
-  #if INTERPOLATION == WENO3_FD
+  #if RECONSTRUCTION == WENO3_FD
    REC = WENO3_Reconstruct;
    S   = 1;
-  #elif INTERPOLATION == LIMO3_FD
+  #elif RECONSTRUCTION == LIMO3_FD
    REC = LIMO3_Reconstruct;
    S   = 1;
-  #elif INTERPOLATION == WENOZ_FD
+  #elif RECONSTRUCTION == WENOZ_FD
    REC = WENOZ_Reconstruct;
    S   = 2;
-  #elif INTERPOLATION == MP5_FD
+  #elif RECONSTRUCTION == MP5_FD
    REC = MP5_Reconstruct;
    S   = 2;
   #endif
@@ -154,7 +154,7 @@ void FD_Flux (const State_1D *state, int beg, int end,
      fp = REC(Fp, dx, i); 
      fm = REC(Fm, dx, np_tot - i - 2); 
      #if SHOCK_FLATTENING == MULTID
-      if (CheckZone(i, FLAG_MINMOD)){
+      if (state->flag[i] & FLAG_MINMOD){
         fp = WENO3_Reconstruct(Fp, dx, i);
         fm = WENO3_Reconstruct(Fm, dx, np_tot - i - 2); 
       }
@@ -241,7 +241,7 @@ void FD_Flux (const State_1D *state, int beg, int end,
         }
       }
       #if SHOCK_FLATTENING == MULTID
-       if (CheckZone(i, FLAG_MINMOD) || CheckZone(i+1, FLAG_MINMOD)){
+       if ( (state->flag[i] & FLAG_MINMOD) || (state->flag[i+1] & FLAG_MINMOD)){
          fs = LIN_Reconstruct(Fp, dx, i) + LIN_Reconstruct(Fm, dx, i); 
        }else
       #endif
@@ -271,37 +271,21 @@ void FD_Flux (const State_1D *state, int beg, int end,
        original tracer bounds (e.g., 0<T<1).
       ------------------------------------------ */
 
-    #if NVAR != NFLX
-/*
-     for (k = NFLX; k < NVAR; k++){
-       fs = state->lmax[KENTRP];
-       for (j = i-S; j <= i+S; j++) {
-         Fp[j] = 0.5*u[j][k]      *(v[j][VXn]       + fs);
-         Fm[j] = 0.5*u[2*i-j+1][k]*(v[2*i-j+1][VXn] - fs);
-       }
-       fs = REC(Fp, dx, i) + REC(Fm, dx, i); 
-       flux[i][k] = fs;
-     }
-*/
-     if (flux[i][RHO] >= 0.0){
-       for (k = NFLX; k < NVAR; k++){
-         for (j = i-S; j <= i+S; j++) {
-           Fp[j] = v[j][k];
-         }
-         state->vL[i][k] = REC(Fp, dx, i);
-         state->vR[i][k] = v[i+1][k];
-       } 
-     }else{
-       for (k = NFLX; k < NVAR; k++){
-         for (j = i-S; j <= i+S; j++) {
-           Fm[j] = v[2*i-j+1][k];
-         }
-         state->vL[i][k] = v[i][k];
-         state->vR[i][k] = REC(Fm, dx, i);
-       } 
-     }
-
-    #endif
+#if NSCL > 0 
+    if (flux[i][RHO] >= 0.0){
+      NSCL_LOOP(k){
+        for (j = i-S; j <= i+S; j++) Fp[j] = v[j][k];
+        state->vL[i][k] = REC(Fp, dx, i);
+        state->vR[i][k] = v[i+1][k];
+      } 
+    }else{
+      NSCL_LOOP(k){
+        for (j = i-S; j <= i+S; j++) Fm[j] = v[2*i-j+1][k];
+        state->vL[i][k] = v[i][k];
+        state->vR[i][k] = REC(Fm, dx, i);
+      } 
+    }
+#endif
   }
 }
 

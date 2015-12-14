@@ -9,10 +9,9 @@
 
   \authors C. Zanni   (zanni@oato.inaf.it)\n
            A. Mignone (mignone@ph.unito.it)
-  \date   Sep 20, 2012
+  \date    June 25, 2015
 */
 /* ///////////////////////////////////////////////////////////////////// */
-
 #include <cstdio>
 #include <string>
 using std::string;
@@ -90,7 +89,7 @@ void PatchPluto::saveFluxes (const State_1D *state, int beg, int end,
         f[i][nv] *= area;
        #endif 
       }
-      #if (COMPONENTS == 3) && (CHOMBO_EN_SWITCH == YES)
+      #if (COMPONENTS == 3) && (ENTROPY_SWITCH)
        f[i][iMPHI] *= grid[IDIR].xr[i]*sin(grid[JDIR].x[g_j]);
       #endif
      }
@@ -107,7 +106,7 @@ void PatchPluto::saveFluxes (const State_1D *state, int beg, int end,
       for (nv = 0; nv < NVAR; nv++) {
         f[i][nv] *= grid[JDIR].A[i]*area;
       }
-      #if (COMPONENTS == 3) && (CHOMBO_EN_SWITCH == YES)
+      #if (COMPONENTS == 3) && (ENTROPY_SWITCH)
        f[i][iMPHI] *= grid[IDIR].x[g_i]*sin(grid[JDIR].xr[i]);
       #endif
      }
@@ -121,7 +120,7 @@ void PatchPluto::saveFluxes (const State_1D *state, int beg, int end,
       for (nv = 0; nv < NVAR; nv++) {
         f[i][nv] *= area;
       }
-      #if (COMPONENTS == 3) && (CHOMBO_EN_SWITCH == YES)
+      #if (COMPONENTS == 3) && (ENTROPY_SWITCH)
        f[i][iMPHI] *= grid[IDIR].x[g_i]*sin(grid[JDIR].x[g_j]);
       #endif
      }
@@ -140,7 +139,7 @@ void PatchPluto::saveFluxes (const State_1D *state, int beg, int end,
         f[i][nv] *= g_x3stretch;
        #endif
       }
-      #if (COMPONENTS > 1) && (CHOMBO_EN_SWITCH == YES)
+      #if (COMPONENTS > 1) && (ENTROPY_SWITCH)
        f[i][iMPHI] *= grid[IDIR].xr[i];
       #endif
      }
@@ -155,7 +154,7 @@ void PatchPluto::saveFluxes (const State_1D *state, int beg, int end,
       for (nv = 0; nv < NVAR; nv++) {
         f[i][nv] *= area;
      }}}
-     #if (COMPONENTS > 1) && (CHOMBO_EN_SWITCH == YES)
+     #if (COMPONENTS > 1) && (ENTROPY_SWITCH)
       for (i = beg; i <= end; i++) f[i][iMPHI] *= grid[IDIR].x[g_i];
      #endif
    }
@@ -168,36 +167,35 @@ void PatchPluto::saveFluxes (const State_1D *state, int beg, int end,
       for (nv = 0; nv < NVAR; nv++) {
         f[i][nv] *= area;
       }
-      #if (COMPONENTS > 1) && (CHOMBO_EN_SWITCH == YES)
+      #if (COMPONENTS > 1) && (ENTROPY_SWITCH)
        f[i][iMPHI] *= grid[IDIR].x[g_i];
       #endif
      }
    }
   #endif
 }
-#if DIMENSIONS > 1
 /* ********************************************************************* */
 void PatchPluto::getPrimitiveVars (Data_Arr U, Data *d, Grid *grid)
 /*!
  * - Recover primitive variables from the input conservative array \c U
  * - Set physical boundary conditions and convert
  *
+ * \date June 25, 2015
  *********************************************************************** */
 {
-  int i, j, k, nv, dir;
+  int i,j,k;
+  int dir, err;
   int nx, ny, nz;
-  int ibeg, jbeg, kbeg;
-  int iend, jend, kend;
-  int lft_side[3], rgt_side[3];
-  int err;
-  double cylr;
+  int lft_side[3] = {0,0,0}, rgt_side[3]={0,0,0};
+  static unsigned char ***flagEntr;
+  RBox cbox, *box;
 
   nx = grid[IDIR].np_tot;
   ny = grid[JDIR].np_tot;
   nz = grid[KDIR].np_tot;
 
 /* ------------------------------------------------------- 
-     check whether the patch touches a physical boundary
+     Check whether the patch touches a physical boundary
    ------------------------------------------------------- */
 
   for (dir = 0; dir < DIMENSIONS; dir++){
@@ -206,76 +204,99 @@ void PatchPluto::getPrimitiveVars (Data_Arr U, Data *d, Grid *grid)
   }
 
 /* ---------------------------------------------------
-     Extract the portion of the domain where U 
-     is defined (i.e. NOT in the physical boundary).
+    Extract the portion of the domain where U 
+    is defined (i.e. NOT in the physical boundary).
    --------------------------------------------------- */
 
-  ibeg = 0; iend = nx - 1;
-  jbeg = 0; jend = ny - 1;
-  kbeg = 0; kend = nz - 1;
+  cbox.ib = 0; cbox.ie = nx - 1;
+  cbox.jb = 0; cbox.je = ny - 1;
+  cbox.kb = 0; cbox.ke = nz - 1;
 
 /* -------------------------------------------------
-     exclude physical boundaries since the 
-     conservative vector U is not yet defined.    
+    Exclude physical boundaries since the 
+    conservative vector U is not yet defined.    
    ------------------------------------------------- */
 
-  D_EXPAND(if (lft_side[IDIR]) ibeg = IBEG;  ,
-           if (lft_side[JDIR]) jbeg = JBEG;  ,
-           if (lft_side[KDIR]) kbeg = KBEG;)
+  D_EXPAND(if (lft_side[IDIR]) cbox.ib = IBEG;  ,
+           if (lft_side[JDIR]) cbox.jb = JBEG;  ,
+           if (lft_side[KDIR]) cbox.kb = KBEG;)
 
-  D_EXPAND(if (rgt_side[IDIR]) iend = IEND;  ,
-           if (rgt_side[JDIR]) jend = JEND;  ,
-           if (rgt_side[KDIR]) kend = KEND;)
+  D_EXPAND(if (rgt_side[IDIR]) cbox.ie = IEND;  ,
+           if (rgt_side[JDIR]) cbox.je = JEND;  ,
+           if (rgt_side[KDIR]) cbox.ke = KEND;)
 
-/* ---------------------------------------------------
-            recover total energy 
-   --------------------------------------------------- */
+/* ----------------------------------------------------------
+    Convert conservative variables into primitive variables.
+    Normally this operation is performed by using total
+    energy density.
+    However, when the ENTROPY_SWITCH is enabled, we force
+    conversion to be done from the entropy by artificially
+    setting flagEntr.
+   ---------------------------------------------------------- */
 
-  #if CHOMBO_EN_SWITCH == YES
-   totEnergySwitch (U, ibeg, iend, jbeg, jend, kbeg, kend, +1);
-  #endif
-
-/* ----------------------------------------------
-     convert from conservative to primitive 
-   ---------------------------------------------- */
-
-  convertConsToPrim(U, d->Vc, ibeg, jbeg, kbeg, iend, jend, kend, grid);
-
-/* ----------------------------------------------
-         Assign boundary conditions 
-   ---------------------------------------------- */
-    
+#if ENTROPY_SWITCH
+  if (flagEntr == NULL) {
+    flagEntr = ARRAY_3D(NX3_MAX, NX2_MAX, NX1_MAX, unsigned char);
+    for (k = 0; k < NX3_MAX; k++){
+    for (j = 0; j < NX2_MAX; j++){
+    for (i = 0; i < NX1_MAX; i++){
+      flagEntr[k][j][i] = 0;
+      flagEntr[k][j][i] |= FLAG_ENTROPY;
+    }}}
+  }
+/*
+  BOX_LOOP(&cbox,k,j,i){
+    flagEntr[k][j][i]  = 0;
+    flagEntr[k][j][i] |= FLAG_ENTROPY;
+  }
+*/
+  ConsToPrim3D(U, d->Vc, flagEntr, &cbox);
+#else
+  ConsToPrim3D(U, d->Vc, d->flag, &cbox);
+#endif
   Boundary (d, ALL_DIR, grid);
 
 /* --------------------------------------------------------------
-    set boundary values on conservative variables by converting 
-    primitive variables in the corresponding regions.
+    Convert primitive variables to conservative in the ghost 
+    zones.
    -------------------------------------------------------------- */
 
-  #if INTERNAL_BOUNDARY == YES
-   convertPrimToCons(d->Vc, U, 0, 0, 0, NX1_TOT-1, NX2_TOT-1, NX3_TOT-1, grid);
-  #else
- 
-   if (lft_side[IDIR]) convertPrimToCons(d->Vc, U, 0, 0, 0, 
-                                         IBEG-1, NX2_TOT-1, NX3_TOT-1, grid);
-  
-   if (lft_side[JDIR]) convertPrimToCons(d->Vc, U, 0, 0, 0,
-                                         NX1_TOT-1, JBEG-1, NX3_TOT-1, grid);
-    
-   if (lft_side[KDIR]) convertPrimToCons(d->Vc, U, 0, 0, 0,
-                                         NX1_TOT-1, NX2_TOT-1, KBEG-1, grid);
+#if INTERNAL_BOUNDARY == YES
+  box = GetRBox(TOT, CENTER);
+  PrimToCons3D(d->Vc, U, box);
+#else
+  if (lft_side[IDIR]) {
+    box = GetRBox(X1_BEG, CENTER);
+    PrimToCons3D(d->Vc, U, box);
+  }
 
-   if (rgt_side[IDIR]) convertPrimToCons(d->Vc, U, IEND+1, 0, 0,
-                                         NX1_TOT-1, NX2_TOT-1, NX3_TOT-1, grid);
-  
-   if (rgt_side[JDIR]) convertPrimToCons(d->Vc, U, 0, JEND+1, 0,
-                                         NX1_TOT-1, NX2_TOT-1, NX3_TOT-1, grid);
-    
-   if (rgt_side[KDIR]) convertPrimToCons(d->Vc, U, 0, 0, KEND+1,
-                                         NX1_TOT-1, NX2_TOT-1, NX3_TOT-1, grid);
-  #endif
+  if (lft_side[JDIR]) {
+    box = GetRBox(X2_BEG, CENTER);
+    PrimToCons3D(d->Vc, U, box);
+  }
+
+  if (lft_side[KDIR]) {
+    box = GetRBox(X3_BEG, CENTER);
+    PrimToCons3D(d->Vc, U, box);
+  }
+
+  if (rgt_side[IDIR]) {
+    box = GetRBox(X1_END, CENTER);
+    PrimToCons3D(d->Vc, U, box);
+  }
+
+  if (rgt_side[JDIR]) {
+    box = GetRBox(X2_END, CENTER);
+    PrimToCons3D(d->Vc, U, box);
+  }
+
+  if (rgt_side[KDIR]) {
+    box = GetRBox(X3_END, CENTER);
+    PrimToCons3D(d->Vc, U, box);
+  }
+
+#endif
 }
-#endif /* DIMENSIONS > 1 */
 
 /* ************************************************************ */
 void PatchPluto::showPatch (Grid *grid)
@@ -306,109 +327,6 @@ void PatchPluto::showPatch (Grid *grid)
 
 }
 
-/* ************************************************************** */
-void PatchPluto::convertConsToPrim (Data_Arr U, Data_Arr V, 
-                               int ibeg, int jbeg, int kbeg,
-                               int iend, int jend, int kend, Grid *grid) 
-/*!
- *  Implements as simple wrapper to 1D functions in order to 
- *  convert U (conservative) into d->Vc (primitive).
- *
- *  Furthermore: during the first step (g_intStage = 1, this 
- *  function is being called from getPrimitiveVars only), 
- *  re-normalize ions when using the MINEq chemical network.
- * 
- **************************************************************** */
-{
-  int i, j, k, nv, err;
-  static double **u, **v;
-  static unsigned char *flag;
-  Index indx;
-
-  if (u == NULL){
-    u = ARRAY_2D(NMAX_POINT, NVAR, double);
-    v = ARRAY_2D(NMAX_POINT, NVAR, double);
-    flag = ARRAY_1D(NMAX_POINT, unsigned char);
-  }
-
-  g_dir = IDIR;
-  SetIndexes(&indx, grid);
-  for (k = kbeg; k <= kend; k++){ g_k = k;
-  for (j = jbeg; j <= jend; j++){ g_j = j;
-    for (i = ibeg; i <= iend; i++){
-    for (nv = NVAR; nv--;   ){
-      u[i][nv] = U[nv][k][j][i];
-    }}
-
-    #if COOLING == MINEq || COOLING == H2_COOL
-     if (g_intStage == 1) {
-       for (i = ibeg; i <= iend; i++) NormalizeIons(u[i]);
-     }
-    #endif
- 
-    err = ConsToPrim (u, v, ibeg, iend, flag);
-
-    if (err != 0) {
-      #if WARNING_MESSAGES == YES
-       print (">> from convertConsToPrim, t = %f, ", g_time);
-       for (i = ibeg; i <= iend; i++){ 
-       if (flag[i] != 0) {
-         #if DIMENSIONS == 2
-          print ("zone [%d %d], ",i,j);
-         #elif DIMENSIONS == 3
-          print ("zone [%d %d ], ",i,j,k);
-         #endif
-       }}
-       print("\n");
-       showPatch(grid);
-      #endif
-    }
-
-    for (i = ibeg; i <= iend; i++){
-    for (nv = NVAR; nv--;   ){
-      V[nv][k][j][i] = v[i][nv];
-    }}
-  }}
-}
-
-/* ************************************************************** */
-void PatchPluto::convertPrimToCons (Data_Arr V, Data_Arr U,
-                               int ibeg, int jbeg, int kbeg,
-                               int iend, int jend, int kend, Grid *grid) 
-/*
- *
- *  Convert d->Vc (primitive) into U (conservative).
- *  This is a simple wrapper to 1D functions.
- *
- *
- **************************************************************** */
-{
-  int i, j, k, nv, err;
-  static double **u, **v;
-  static unsigned char *flag;
-  Index indx;
-
-  if (u == NULL){
-    u = ARRAY_2D(NMAX_POINT, NVAR, double);
-    v = ARRAY_2D(NMAX_POINT, NVAR, double);
-    flag = ARRAY_1D(NMAX_POINT, unsigned char);
-  }
-
-  g_dir = IDIR;
-  SetIndexes(&indx, grid);
-  for (k = kbeg; k <= kend; k++){ g_k = k;
-  for (j = jbeg; j <= jend; j++){ g_j = j;
-    for (i = ibeg; i <= iend; i++){
-    for (nv = NVAR; nv--;   ){
-      v[i][nv] = V[nv][k][j][i];
-    }}
-    PrimToCons(v, u, ibeg, iend);
-    for (i = ibeg; i <= iend; i++){
-    for (nv = NVAR; nv--;   ){
-      U[nv][k][j][i] = u[i][nv];
-    }}
-  }}
-}
 /* ********************************************************************* */
 void PatchPluto::convertFArrayBox(FArrayBox&  U)
 /*!
@@ -425,7 +343,8 @@ void PatchPluto::convertFArrayBox(FArrayBox&  U)
   double ***UU[NVAR];
   static unsigned char *flag;
   static double **u, **v;
-
+  RBox box;
+  
   if (u == NULL){
     u    = ARRAY_2D(NMAX_POINT, NVAR, double);
     v    = ARRAY_2D(NMAX_POINT, NVAR, double);
@@ -444,24 +363,9 @@ void PatchPluto::convertFArrayBox(FArrayBox&  U)
     UU[nv] = ArrayBoxMap(kbeg,kend,jbeg,jend,ibeg,iend,U.dataPtr(nv));
   }
 
-/* ----------------------------------------------------------------
-    HOTIFX: set g_intStage to a negative value so that ConsToPrim
-    does not have to call CheckZone when writing HDF5 data 
-    to disk since d->flag is not defined or does not
-    overlap with U (which is an FArrayBox)
-   ---------------------------------------------------------------- */
-
-  g_intStage = -1;
-
-/* --------------------------------------------------------
-        Recover total energy if necessary.
-   -------------------------------------------------------- */
-
-  #if CHOMBO_EN_SWITCH == YES
-   totEnergySwitch (UU, ibeg+IOFFSET, iend-IOFFSET, 
-                        jbeg+JOFFSET, jend-JOFFSET, 
-                        kbeg+KOFFSET, kend-KOFFSET, +1);
-  #endif
+  box.ib = ibeg+IOFFSET; box.ie = iend-IOFFSET;
+  box.jb = jbeg+JOFFSET; box.je = jend-JOFFSET;
+  box.kb = kbeg+KOFFSET; box.ke = kend-KOFFSET;
 
 /* --------------------------------------------------------
     Conversion is done in the interior points only. 
@@ -472,190 +376,16 @@ void PatchPluto::convertFArrayBox(FArrayBox&  U)
   for (k = kbeg + KOFFSET; k <= kend - KOFFSET; k++){
   for (j = jbeg + JOFFSET; j <= jend - JOFFSET; j++){
     for (i = ibeg + IOFFSET; i <= iend - IOFFSET; i++){
-    for (nv=0; nv < NVAR; nv++){
-      u[i-ibeg][nv] = UU[nv][k][j][i];
-    }}
+      flag[i-ibeg] = 0;
+      NVAR_LOOP(nv) u[i-ibeg][nv] = UU[nv][k][j][i];
+    }
     ConsToPrim (u, v, IOFFSET, iend-ibeg-IOFFSET, flag);
     for (i = ibeg; i <= iend; i++){
-    for (nv=0 ; nv < NVAR; nv++){
-      UU[nv][k][j][i] = v[i-ibeg][nv];
-    }}
+      NVAR_LOOP(nv) UU[nv][k][j][i] = v[i-ibeg][nv];
+    }
   }}
 
   for (nv = 0; nv < NVAR; nv++) 
     FreeArrayBoxMap(UU[nv], kbeg, kend, jbeg, jend, ibeg, iend);
 }
 
-/* ********************************************************************* */
-void PatchPluto::totEnergySwitch(Data_Arr UU, int ibeg, int iend, 
-                 int jbeg, int jend, int kbeg, int kend, int s)
-/*! 
- *  Perform a number of opeations that involve replacing energy 
-*   with entropy or viceversa.
- *  In particular, 
- *
- *  - if s =  1, convert {D, m, B, sigma_c} -> {D, m, B, E}
- *  - if s = -1, convert {D, m, B,       E} -> {D, m, B, sigma_c}
- *  - if s =  0, there're two possible entropy values: one is obtained from 
- *               total energy sigma_c(E) (stored in UU[ENG]) and the other one 
- *               is the actual entropy variable sigma_c updated by enabling 
- *               ENTROPY_SWITCH.
- *               if FLAG_ENTROPY is true -> sigma_c(E) = sigma_c
- *               otherwise               -> sigma_c    = sigma_c(E)
- *
- *
- *********************************************************************** */
-{
-#if HAVE_ENERGY
-  int i,j,k;
-  double D, mx, my, mz, E, sigma_c;
-  double Bx, By, Bz;
-  double p, sigma, Kin;
-  #if PHYSICS == RMHD || PHYSICS == RHD
-   static double **v;
-   Map_param par;
-
-   if (v == NULL) v = ARRAY_2D(1, NVAR, double);
-  #endif
-
- /* -------------------------------------------------------------
-      s == 1: convert {D, m, B, sigma_c} -> {D, m, B, E}
-    ------------------------------------------------------------- */
-
-  if (s == 1){
-    for (k = kbeg; k <= kend; k++){
-    for (j = jbeg; j <= jend; j++){
-    for (i = ibeg; i <= iend; i++){
-      D       = UU[RHO][k][j][i];
-      sigma_c = UU[ENG][k][j][i];
-      EXPAND(mx = UU[MX1][k][j][i];  ,
-             my = UU[MX2][k][j][i];  ,
-             mz = UU[MX3][k][j][i];)
-
-      #if PHYSICS == MHD || PHYSICS == RMHD
-       EXPAND(Bx = UU[BX1][k][j][i];  ,
-              By = UU[BX2][k][j][i];  ,
-              Bz = UU[BX3][k][j][i];)
-      #endif
-
-      #if PHYSICS == RHD || PHYSICS == RMHD
-
-       par.D       = D;
-       par.sigma_c = sigma_c;
-       par.m2 = EXPAND(mx*mx, + my*my, + mz*mz);
-       #if PHYSICS == RMHD
-        par.S  = EXPAND(mx*Bx, + my*By, + mz*Bz);
-        par.B2 = EXPAND(Bx*Bx, + By*By, + Bz*Bz); 
-        par.S2 = par.S*par.S;
-       #endif
-       EntropySolve(&par);
-       UU[ENG][k][j][i] = par.E;
-
-      #else
-
-       Kin  = EXPAND(mx*mx, + my*my, + mz*mz);
-       Kin /= D;
-       #if PHYSICS == MHD
-        Kin += EXPAND(Bx*Bx, + By*By, + Bz*Bz);
-       #endif
-       #if EOS == IDEAL
-        p = sigma_c*pow(D,g_gamma-1.0);
-        UU[ENG][k][j][i] = p/(g_gamma - 1.0) + 0.5*Kin;
-       #else
-        print1 ("! totEnergySwitch: CHOMBO_EN_SWITCH only works with IDEAL EOS for MHD/HD\n");
-        QUIT_PLUTO(1);
-       #endif
-      #endif
-    }}}
-  }
- 
- /* -------------------------------------------------------------
-      s == -1: convert {D, m, B, E} -> {D, m, B, sigma_c}
-    ------------------------------------------------------------- */
-
-  if (s == -1){
-    for (k = kbeg; k <= kend; k++){
-    for (j = jbeg; j <= jend; j++){
-    for (i = ibeg; i <= iend; i++){
-      D = UU[RHO][k][j][i];
-      E = UU[ENG][k][j][i];
-      EXPAND(mx = UU[MX1][k][j][i];  ,
-             my = UU[MX2][k][j][i];  ,
-             mz = UU[MX3][k][j][i];)
-
-      #if PHYSICS == MHD || PHYSICS == RMHD
-       EXPAND(Bx = UU[BX1][k][j][i];  ,
-              By = UU[BX2][k][j][i];  ,
-              Bz = UU[BX3][k][j][i];)
-      #endif
-
-      #if PHYSICS == RHD || PHYSICS == RMHD
-
-       par.D  = D;
-       par.E  = E;
-       par.m2 = EXPAND(mx*mx, + my*my, + mz*mz);
-       #if PHYSICS == RMHD
-        par.S  = EXPAND(mx*Bx, + my*By, + mz*Bz);
-        par.B2 = EXPAND(Bx*Bx, + By*By, + Bz*Bz); 
-        par.S2 = par.S*par.S;
-       #endif
-       EnergySolve(&par);
-       v[0][RHO] = par.rho;  /* par.D/par.lor */
-       v[0][PRS] = par.prs;
-       Entropy (v, &sigma, 0, 0);
-       UU[ENG][k][j][i] = par.D*sigma;
-
-      #else
-
-       Kin  = EXPAND(mx*mx, + my*my, + mz*mz);
-       Kin /= D;
-       #if PHYSICS == MHD
-        Kin += EXPAND(Bx*Bx, + By*By, + Bz*Bz);
-       #endif
-       #if EOS == IDEAL
-        p = (g_gamma - 1.0)*(UU[ENG][k][j][i] - 0.5*Kin);
-        UU[ENG][k][j][i] = p/pow(D,g_gamma-1.0);
-       #else
-        print1 ("! totEnergySwitch: CHOMBO_EN_SWITCH only works with IDEAL EOS for MHD/HD\n");
-        QUIT_PLUTO(1);
-       #endif
-
-      #endif
-    }}}
-  }
-
- /* ----------------------------------------------------------------
-      s == 0: replace sigma_c(E) with sigma_c if FLAG_ENTROPY is on
-              otherwise sigma_c = sigma_c(E)
-              IMPORTANT: call this function with s=0 only after
-              energy has been converted into entropy!
-    ---------------------------------------------------------------- */
-
-  #if ENTROPY_SWITCH == YES
-   #if CHOMBO_EN_SWITCH == NO
-    #error CHOMBO_EN_SWITCH should be turned on when using ENTROPY_SWITCH
-   #endif
-   
-   if (s == 0){
-    #if (COOLING == NO) 
-     g_dir = IDIR; 
-     for (k = kbeg; k <= kend; k++){ g_k = k;
-     for (j = jbeg; j <= jend; j++){ g_j = j;
-     for (i = ibeg; i <= iend; i++){ g_i = i;
-       if (CheckZone(i, FLAG_ENTROPY)){
-         UU[ENG][k][j][i] = UU[ENTR][k][j][i];
-       }else{
-         UU[ENTR][k][j][i] = UU[ENG][k][j][i];
-       }      
-     }}}
-    #else
-     for (k = kbeg; k <= kend; k++){
-     for (j = jbeg; j <= jend; j++){
-     for (i = ibeg; i <= iend; i++){
-       UU[ENTR][k][j][i] = UU[ENG][k][j][i];
-     }}}
-    #endif
-   }
-  #endif
-#endif
-}

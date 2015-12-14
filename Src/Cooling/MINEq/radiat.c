@@ -11,7 +11,7 @@ double   elem_ab_est[] = {  0.93, 0.074, 3.0e-4,  5.e-5, 4.0e-4, 7.0e-5, 1.5e-5 
 double   elem_ab_lod[] = {  0.92,  0.08, 2.3e-4, 6.2e-5, 4.4e-4, 7.0e-5, 1.25e-5 }; /* Number densities, Solar, Lodders 2003 ApJ */
 double   elem_ab_sol[] = {  0.93, 0.074, 3.0e-4,  9.e-5,  7.e-4,  7.e-5, 1.e-5 };   /* Number fractions, Solar    */
 double   elem_ab_uni[] = {  0.93, 0.072, 5.0e-4,  9.e-5,  8.e-4,  8.e-5, 2.e-5 };   /* Number fractions, Universe */
-const double   elem_mass[]   = { 1.007, 4.002,  12.01,  14.01,  15.99,  20.18, 32.07, 55.845 };  /*   Atomic mass, in a.m.u.   */
+const double elem_mass[]   = { 1.007, 4.002,  12.01,  14.01,  15.99,  20.18, 32.07, 55.845 };  /*   Atomic mass, in a.m.u.   */
 
 const int elem_part[] = {0, 1, 1 
                    C_EXPAND(2, 2, 2, 2, 2) 
@@ -715,88 +715,6 @@ double find_N_rho ()
   }
   mu = mu1 / mu2;
   return (UNIT_DENSITY/mu*CONST_NA);  /* This is N/rho, with N the total number density of atoms and ions */
-}
-
-/* ********************************************************************* */
-double MeanMolecularWeight (double *V)
-/*
- *
- *
- * PURPOSE
- * 
- *   Compute the mean molecular weight as function of the 
- *   composition of the gas.
- *   The definition of the mean molecular weight \mu is 
- *   the standard one:
- *
- *     1     \sum_k f_k n_k
- *    --- = ----------------     (Clayton, pag 82-83)
- *    \mu    \sum_k f_k A_k
- * 
- *   where 
- *
- *    f_k   : is the fractional abundance (by number), 
-                f_k = N_k/N_tot
- *
- *    A_K   : is the atomic weight
- *
- *    n_k   : is the number of free particles 
- *            contributed to the gas by element k
- *
- *   The mean molecular weight satifies 
- *
- *               \rho = \mu m_{amu} N_{tot}
- *   
- *   where N_{tot} is the total number density of particles
- *
- * ARGUMENTS
- *
- *   V:   a set of primitive variables
- *
- *********************************************************************** */
-{
-  double mmw1, mmw2;
-  int    i, j;
-  
-  mmw1 = mmw2 = 0.0;
-  for (i = 0; i < NIONS; i++) {
-    if (V[NFLX+i] < 0.0) V[NFLX+i] = 0.0;
-    if (V[NFLX+i] > 1.0) V[NFLX+i] = 1.0;
-    CoolCoeffs.dmuN_dX[i] = elem_mass[elem_part[i]]*elem_ab[elem_part[i]];
-    CoolCoeffs.dmuD_dX[i] = elem_ab[elem_part[i]]  *rad_rec_z[i];
-    mmw1 += CoolCoeffs.dmuN_dX[i]*V[NFLX+i];  /*    Numerator part of mu    */
-    mmw2 += CoolCoeffs.dmuD_dX[i]*V[NFLX+i];  /*    Denominator part of mu  */    
-  }
-
-  /* --------------------------------------------------
-          add now contribution from ionized H  
-     --------------------------------------------------  */
-
-  CoolCoeffs.dmuN_dX[0] += -elem_mass[0]*elem_ab[el_H];
-  CoolCoeffs.dmuD_dX[0] += -2.0*elem_ab[el_H];
-
-  mmw1 += elem_mass[0]*elem_ab[el_H]*(1.0 - V[X_HI]); 
-  mmw2 += elem_ab[el_H]*(1.0 - V[X_HI])*2.;
-
-  CoolCoeffs.muN = mmw1;
-  CoolCoeffs.muD = mmw2;
-
-  if (mmw1 != mmw1) {
-    print(">>> Error!  MMW1  NaN! %ld\n",g_stepNumber);
-    for (i = 0; i < NIONS; i++) {
-       print ("%d   %10.4e\n",i,V[NFLX+i]);
-    }
-    QUIT_PLUTO(1);
-  }
-  if (mmw2 != mmw2) {
-    print(">>> Error!  MMW2  NaN!\n");
-    for (i = 0; i < NIONS; i++) {
-       print ("%d   %10.4e\n",i,V[NFLX+i]);
-    }
-    QUIT_PLUTO(1);
-  }
-  
-  return (mmw1/mmw2);
 }
 
 /* ********************************************************************* */

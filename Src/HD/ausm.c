@@ -3,11 +3,8 @@
 /* ********************************************************************** */
 void AUSMp_Solver (const State_1D *state, int beg, int end, 
             real *cmax, Grid *grid)
-/*
- *
- * PURPOSE
- *
- *   - Solve riemann problem for the Euler equations using the AUSM+ 
+/*!
+ * Solve Riemann problem for the Euler equations using the AUSM+ 
  *     scheme given in 
  *
  *  "A Sequel to AUSM: AUSM+"
@@ -16,7 +13,6 @@ void AUSMp_Solver (const State_1D *state, int beg, int end,
  * LAST_MODIFIED
  *
  *   July 17th 2006, by Andrea Mignone  (mignone@to.astro.it)
- *
  *
  ************************************************************************ */
 {
@@ -115,5 +111,8 @@ void AUSMp_Solver (const State_1D *state, int beg, int end,
     g_maxMach = MAX(fabs(MR), g_maxMach);
 
   }
+#else
+  print1 ("! AUSMp_Solver: not defined for this EOS\n");
+  QUIT_PLUTO(1);
 #endif /* EOS == IDEAL */
 }

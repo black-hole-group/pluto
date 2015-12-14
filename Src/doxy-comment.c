@@ -9,8 +9,19 @@
            C. Zanni   (zanni@oato.inaf.it)\n
            G. Muscianisi (g.muscianisi@cineca.it)
            P. Tzeferacos (petros.tzeferacos@ph.unito.it)
-           T. Matsakos  
-  \date   Aug 16, 2012
+           T. Matsakos
+
+ \b References
+    - "PLUTO: A Numerical Code for Computational Astrophysics." \n
+      Mignone et al, ApJS (2007) 170, 228
+    - "The PLUTO Code for Adaptive Mesh Computations in Astrophysical Fluid
+       Dynamics" \n
+      Mignone et al, ApJS (2012) 198, 7M
+    - "A conservative orbital advection scheme for simulations of magnetized
+       shear flows with the PLUTO code"\n
+      Mignone et al., A\&A (2012) 545A, 152M
+
+  \date   Aug 20, 2015
 */
 /* ///////////////////////////////////////////////////////////////////// */
 #include"pluto.h"

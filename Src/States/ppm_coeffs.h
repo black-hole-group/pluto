@@ -1,9 +1,6 @@
-#define PPM0  0
-#define PPM3  3
-#define PPM4  4
-#define PPM5  5
-
-#define PPM_VERSION  PPM4
+#ifndef PPM_ORDER
+  #define PPM_ORDER  4
+#endif
 
 #define POLY_2(a0,a1,a2,x)     \
         ( a0 + x*(a1 + x*a2) )

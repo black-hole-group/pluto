@@ -28,11 +28,11 @@
   - #05-06, on the other hand, show that STS suffers from some kind of
     unstable behavior due to the flux limiter switching from classical
     to saturated regimes. Only small CFL (0.1 or less) or larger values
-    of STS_nu (e.g 0.05) mitigate the problem.
-    Future improvement (RKC ?) should address this issue.
+    of STS_NU (e.g 0.05) mitigate the problem.
+    Future improvement (RKC/RKL ?) should address this issue.
 
   \author A. Mignone (mignone@ph.unito.it)
-  \date   July 09, 2014 
+  \date   Aug 27, 2015 
 
 */
 /* ///////////////////////////////////////////////////////////////////// */

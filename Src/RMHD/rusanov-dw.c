@@ -120,7 +120,7 @@ cR = MIN(fabs(cmax_R[i]), fabs(cmin_R[i]));
               initialize source term
    -------------------------------------------------------- */
  
-  #if MHD_FORMULATION == EIGHT_WAVES
+  #if DIVB_CONTROL == EIGHT_WAVES
    POWELL_DIVB_SOURCE (state, beg, end, grid);
   #endif
 }

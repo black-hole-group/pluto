@@ -189,7 +189,7 @@ double Pressure(double *v, double T)
  * \return Pressure in code units.                   
  *********************************************************************** */
 {
-#if PV_TEMPERATURE_TABLE == YES
+#if PV_TEMPERATURE_TABLE == YES 
 
   int    status;
   double rho, T1;
@@ -254,7 +254,9 @@ int GetPV_Temperature (double *v, double *T)
   status = Table2DInterpolate(&Ttab, T1, rho, T);
 
   if (status != 0){
-    print ("! GetPV_Temperature: table interpolation failure\n");
+    print ("! GetPV_Temperature: table interpolation failure ");
+    print ("[T1 = %8.3e, rho = %8.3e]\n",T1,rho);
+    
     if (status == -1) return 1;      /* hit lower x range (easy fix) */
     else              QUIT_PLUTO(1); /* not so easy to fix */
   }
@@ -262,7 +264,7 @@ int GetPV_Temperature (double *v, double *T)
   if (*T < T_CUT_RHOE) return 1;
   else                 return 0;
 
-#elif NIONS == 0 && PV_TEMPERATURE_TABLE == NO
+#elif NIONS == 0 && PV_TEMPERATURE_TABLE == NO 
 
   int    i,j;
   double Tmin, Tmax, lnx, lny, rho, prs;

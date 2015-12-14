@@ -26,7 +26,7 @@
   - AL_MPI_DECOMP   [todo]
 
   \author A. Mignone (mignone@ph.unito.it)
-  \date   June 21, 2014
+  \date   Aug 24, 2015
 */
 /* ///////////////////////////////////////////////////////////////////// */
 #include "pluto.h"
@@ -35,18 +35,18 @@ static int GetDecompMode (Cmd_Line *cmd_line, int procs[]);
 
 /* ********************************************************************* */
 void Initialize(int argc, char *argv[], Data *data, 
-                Input *input, Grid *grid, Cmd_Line *cmd_line)
+                Runtime *runtime, Grid *grid, Cmd_Line *cmd_line)
 /*!
  * Initialize computational grid, domain decomposition and memory
  * allocation. Also, set initial conditions and output attributes.
  *
- * \param [in]     argc   the number of command-line argument passed to 
- *                        the code 
- * \param [in]     argv   the argument value as a 1D array of char
- * \param [in,out] data   a pointer to the main PLUTO data structure
- * \param [in,out] input  a pointer to the Input structure
- * \param [in]      grid  pointer to an array of Grid structures
- * \param [in]     cmd_line pointer to the Cmd_Line structure
+ * \param [in]     argc       the number of command-line argument passed to 
+ *                            the code 
+ * \param [in]     argv       the argument value as a 1D array of char
+ * \param [in,out] data       a pointer to the main PLUTO data structure
+ * \param [in,out] runtime    a pointer to the Runtime structure
+ * \param [in]      grid      pointer to an array of Grid structures
+ * \param [in]     cmd_line   pointer to the Cmd_Line structure
  *
  * \return  This function has no return value.
  *********************************************************************** */
@@ -87,20 +87,20 @@ void Initialize(int argc, char *argv[], Data *data,
 
 /* -- read initialization file -- */
 
-   if (prank == 0) Setup (input, cmd_line, ini_file);
-   MPI_Bcast (input,  sizeof (struct INPUT) , MPI_BYTE, 0, MPI_COMM_WORLD);
+   if (prank == 0) RuntimeSetup (runtime, cmd_line, ini_file);
+   MPI_Bcast (runtime,  sizeof (struct RUNTIME) , MPI_BYTE, 0, MPI_COMM_WORLD);
 
 /* -- get number of ghost zones and set periodic boundaries -- */
 
-   nghost = GetNghost(input);
+   nghost = GetNghost();
    MPI_Allreduce (&nghost, &idim, 1, MPI_INT, MPI_MAX, MPI_COMM_WORLD);
    nghost = idim;
    
    for (idim = 0; idim < DIMENSIONS; idim++) {
-     gsize[idim]   = input->npoint[idim];
+     gsize[idim]   = runtime->npoint[idim];
      ghosts[idim]  = nghost;
-     periods[idim] =    (input->lft_bound_side[idim] == PERIODIC ? 1:0)
-                     || (input->lft_bound_side[idim] == SHEARING ? 1:0);
+     periods[idim] =    (runtime->left_bound[idim] == PERIODIC ? 1:0)
+                     || (runtime->left_bound[idim] == SHEARING ? 1:0);
      pardim[idim]  = cmd_line->parallel_dim[idim];
    }
 
@@ -187,16 +187,16 @@ void Initialize(int argc, char *argv[], Data *data,
      grid[idim].nghost      = nghost;
      grid[idim].np_tot      = lsize[idim] + 2*ghosts[idim];
      grid[idim].np_int      = lsize[idim];
-     grid[idim].np_tot_glob = input->npoint[idim] + 2*ghosts[idim];
-     grid[idim].np_int_glob = input->npoint[idim];
+     grid[idim].np_tot_glob = runtime->npoint[idim] + 2*ghosts[idim];
+     grid[idim].np_int_glob = runtime->npoint[idim];
      grid[idim].beg         = beg[idim];
      grid[idim].end         = end[idim];
      grid[idim].gbeg        = gbeg[idim];
      grid[idim].gend        = gend[idim];
      grid[idim].lbeg        = lbeg[idim];
      grid[idim].lend        = lend[idim];
-     grid[idim].lbound = input->lft_bound_side[idim]*is_gbeg[idim];
-     grid[idim].rbound = input->rgt_bound_side[idim]*is_gend[idim];
+     grid[idim].lbound = runtime->left_bound[idim]*is_gbeg[idim];
+     grid[idim].rbound = runtime->right_bound[idim]*is_gend[idim];
      grid[idim].nproc  = procs[idim];
    }
 
@@ -213,7 +213,7 @@ void Initialize(int argc, char *argv[], Data *data,
               stagdim[JDIR] = AL_FALSE; , 
               stagdim[KDIR] = AL_FALSE;)
 
-     DIM_LOOP(idim) gsize[idim] = input->npoint[idim];
+     DIM_LOOP(idim) gsize[idim] = runtime->npoint[idim];
      gsize[IDIR] += 1;
 
      #ifdef SHEARINGBOX
@@ -246,7 +246,7 @@ void Initialize(int argc, char *argv[], Data *data,
               stagdim[JDIR] = AL_TRUE;   , 
               stagdim[KDIR] = AL_FALSE;)
 
-     DIM_LOOP(idim) gsize[idim] = input->npoint[idim];
+     DIM_LOOP(idim) gsize[idim] = runtime->npoint[idim];
      gsize[JDIR] += 1;
 
      AL_Sz_init (MPI_COMM_WORLD, &SZ_stagy);
@@ -271,7 +271,7 @@ void Initialize(int argc, char *argv[], Data *data,
               stagdim[JDIR] = AL_FALSE;  , 
               stagdim[KDIR] = AL_TRUE;)
 
-     DIM_LOOP(idim) gsize[idim] = input->npoint[idim];
+     DIM_LOOP(idim) gsize[idim] = runtime->npoint[idim];
      gsize[KDIR] += 1;
 
      AL_Sz_init (MPI_COMM_WORLD, &SZ_stagz);
@@ -317,30 +317,31 @@ void Initialize(int argc, char *argv[], Data *data,
                Serial Initialization
    ----------------------------------------------------- */
 
-   Setup (input, cmd_line, ini_file);
-   nghost = GetNghost(input);
+   RuntimeSetup (runtime, cmd_line, ini_file);
+   nghost = GetNghost();
 
    for (idim = 0; idim < DIMENSIONS; idim++) {
      grid[idim].nghost  = nghost;
-     grid[idim].np_int  = grid[idim].np_int_glob = input->npoint[idim];
-     grid[idim].np_tot  = grid[idim].np_tot_glob = input->npoint[idim] + 2*nghost;
+     grid[idim].np_int  = grid[idim].np_int_glob = runtime->npoint[idim];
+     grid[idim].np_tot  = grid[idim].np_tot_glob = runtime->npoint[idim] + 2*nghost;
      grid[idim].beg     = grid[idim].gbeg = grid[idim].lbeg = nghost;
      grid[idim].end     = grid[idim].gend = grid[idim].lend 
                         = (grid[idim].lbeg - 1) + grid[idim].np_int;
-     grid[idim].lbound  = input->lft_bound_side[idim];
-     grid[idim].rbound  = input->rgt_bound_side[idim];
+     grid[idim].lbound  = runtime->left_bound[idim];
+     grid[idim].rbound  = runtime->right_bound[idim];
      grid[idim].nproc   = 1;
    }
    nprocs = 1;
 
   #endif
 
+  RuntimeSet (runtime);
+
 /* ----------------------------------------------------
     Set output directory and log file
    ---------------------------------------------------- */
 
-  SetOutputDir(input->output_dir);
-  SetLogFile  (ini_file, cmd_line);
+  SetLogFile  (runtime->output_dir, cmd_line);
   ShowConfig  (argc, argv, ini_file);
 
 /* ---------------------------------------------------
@@ -348,7 +349,7 @@ void Initialize(int argc, char *argv[], Data *data,
    --------------------------------------------------- */
 
   print1 ("\n> Generating grid...\n\n");
-  SetGrid (input, grid);
+  SetGrid (runtime, grid);
   Where (-1, grid);     /* -- store grid inside the "Where" 
                               function for subsequent calls -- */
   if (cmd_line->makegrid == YES) {
@@ -357,10 +358,10 @@ void Initialize(int argc, char *argv[], Data *data,
   }
 
 /* ------------------------------------------------
-         initialize global variables
+     Initialize global variables
    ------------------------------------------------ */
 
-  g_dt             = input->first_dt;
+  g_dt             = runtime->first_dt;
   g_time           = 0.0;
   g_maxMach        = 0.0;
   g_maxRiemannIter = 0;
@@ -379,15 +380,21 @@ void Initialize(int argc, char *argv[], Data *data,
   NX3_TOT = grid[KDIR].np_tot;
 
 /* ---------------------------------------
-     get the maximum number of points 
+     Get the maximum number of points 
      among all directions
    --------------------------------------- */
 
   NMAX_POINT = MAX(NX1_TOT, NX2_TOT);
   NMAX_POINT = MAX(NMAX_POINT, NX3_TOT);
 
+/* ---------------------------------------------
+    Define the RBox structures.
+   --------------------------------------------- */
+
+  SetRBox();
+
 /* --------------------------------------------------------------------
-        FIND THE MINUM PHYSICAL CELL LENGTH IN EACH DIMENSIONS
+     Find the minimum physical cell length for each direction
    -------------------------------------------------------------------- */
 
   for (idim = 0; idim < DIMENSIONS; idim++)  dxmin[idim] = 1.e30;
@@ -424,7 +431,7 @@ void Initialize(int argc, char *argv[], Data *data,
    
   PLM_CoefficientsSet (grid);   /* -- these may be needed by
                                       shock flattening algorithms */
-  #if INTERPOLATION == PARABOLIC
+  #if RECONSTRUCTION == PARABOLIC
    PPM_CoefficientsSet (grid);  
   #endif
 
@@ -432,7 +439,7 @@ void Initialize(int argc, char *argv[], Data *data,
     Copy user defined parameters into global array g_inputParam 
    -------------------------------------------------------------- */
 
-  for (nv = 0; nv < USER_DEF_PARAMETERS; nv++) g_inputParam[nv] = input->aux[nv];
+  for (nv = 0; nv < USER_DEF_PARAMETERS; nv++) g_inputParam[nv] = runtime->aux[nv];
 
 /* ------------------------------------------------------------
           Allocate memory for 3D data arrays
@@ -458,7 +465,7 @@ void Initialize(int argc, char *argv[], Data *data,
    )
   #endif
 
-  #if RESISTIVE_MHD != NO
+  #if RESISTIVITY != NO
    data->J = ARRAY_4D(3,NX3_TOT, NX2_TOT, NX1_TOT, double);
   #endif
 
@@ -487,7 +494,7 @@ void Initialize(int argc, char *argv[], Data *data,
     Set output attributes (names, images, number of outputs...)
    ------------------------------------------------------------ */
 
-  SetOutput (data, input);
+  SetOutput (data, runtime);
 
 /* -----------------------------------
       print normalization units

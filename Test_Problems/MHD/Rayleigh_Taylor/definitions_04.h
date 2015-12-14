@@ -4,12 +4,11 @@
 #define  GEOMETRY                CARTESIAN
 #define  BODY_FORCE              POTENTIAL
 #define  COOLING                 NO
-#define  INTERPOLATION           LINEAR
+#define  RECONSTRUCTION          LINEAR
 #define  TIME_STEPPING           RK2
 #define  DIMENSIONAL_SPLITTING   NO
 #define  NTRACER                 0
 #define  USER_DEF_PARAMETERS     3
-#define  USER_DEF_CONSTANTS      1
 
 /* -- physics dependent declarations -- */
 
@@ -25,20 +24,19 @@
 #define  GRAV                    1
 #define  CHI                     2
 
-/* -- user-defined symbolic constants -- */
+/* [Beg] user-defined constants (do not change this line) */
 
 #define  USE_RANDOM_PERTURBATION   NO
+#define  CHOMBO_REF_VAR          RHO
+
+/* [End] user-defined constants (do not change this line) */
 
 /* -- supplementary constants (user editable) -- */ 
 
-#define  INITIAL_SMOOTHING      NO
-#define  WARNING_MESSAGES       YES
-#define  PRINT_TO_FILE          YES
-#define  INTERNAL_BOUNDARY      NO
-#define  SHOCK_FLATTENING       NO
-#define  CHOMBO_EN_SWITCH       NO
-#define  CHOMBO_REF_VAR         RHO
-#define  CHOMBO_LOGR            NO
-#define  ARTIFICIAL_VISCOSITY   NO
-#define  CHAR_LIMITING          YES
-#define  LIMITER                MC_LIM
+#define  INITIAL_SMOOTHING   NO
+#define  WARNING_MESSAGES    YES
+#define  PRINT_TO_FILE       YES
+#define  INTERNAL_BOUNDARY   NO
+#define  SHOCK_FLATTENING    NO
+#define  CHAR_LIMITING       YES
+#define  LIMITER             MC_LIM

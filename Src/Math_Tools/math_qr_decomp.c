@@ -131,7 +131,6 @@ for (k=n-1;k>=0;k--){ /* Find largest k such that u[k] neq 0 */
  if (u[k]) break;
 } 
 
-//if (k < 1) k = 1;
 for (i = k-1; i>=0; i--){
  rotate(r,qt, n, i, u[i], -u[i+1]);
  if (u[i] == 0.0) u[i] = fabs(u[i+1]);

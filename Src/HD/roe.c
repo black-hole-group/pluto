@@ -104,7 +104,7 @@ void Roe_Solver (const State_1D *state, int beg, int end,
     uR = state->uR[i];
     uL = state->uL[i];
 
-    #if SHOCK_FLATTENING == MULTID   
+#if SHOCK_FLATTENING == MULTID   
 
     /* ---------------------------------------------
        HLL switching function as in Quirk (1994).
@@ -116,23 +116,23 @@ void Roe_Solver (const State_1D *state, int beg, int end,
        in the Mach reflection test.
       --------------------------------------------- */
 
-     if (CheckZone(i, FLAG_HLL) || CheckZone(i+1, FLAG_HLL)){
-       HLL_Speed (state->vL, state->vR, a2L, a2R, 
-                  &bmin - i, &bmax - i, i, i);
-       a     = MAX(fabs(bmin), fabs(bmax));
-       cmax[i] = a;
-       bmin  = MIN(0.0, bmin);
-       bmax  = MAX(0.0, bmax);
-       scrh  = 1.0/(bmax - bmin);
-       for (nv = NFLX; nv--; ){
-         state->flux[i][nv]  = bmin*bmax*(uR[nv] - uL[nv])
-                            +  bmax*fL[i][nv] - bmin*fR[i][nv];
-         state->flux[i][nv] *= scrh;
-       }
-       state->press[i] = (bmax*pL[i] - bmin*pR[i])*scrh;
-       continue;
-     }
-    #endif
+    if ((state->flag[i] & FLAG_HLL) || (state->flag[i+1] & FLAG_HLL)){        
+      HLL_Speed (state->vL, state->vR, a2L, a2R, 
+                 &bmin - i, &bmax - i, i, i);
+      a     = MAX(fabs(bmin), fabs(bmax));
+      cmax[i] = a;
+      bmin  = MIN(0.0, bmin);
+      bmax  = MAX(0.0, bmax);
+      scrh  = 1.0/(bmax - bmin);
+      for (nv = NFLX; nv--; ){
+        state->flux[i][nv]  = bmin*bmax*(uR[nv] - uL[nv])
+                           +  bmax*fL[i][nv] - bmin*fR[i][nv];
+        state->flux[i][nv] *= scrh;
+      }
+      state->press[i] = (bmax*pL[i] - bmin*pR[i])*scrh;
+      continue;
+    }
+#endif
 
     ql = state->vL[i];
     qr = state->vR[i];

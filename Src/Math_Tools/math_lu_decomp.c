@@ -124,3 +124,45 @@ void LUBackSubst (double **a, int n, int *indx, double b[])
     b[i] = sum / a[i][i];
   }
 }
+
+/* ********************************************************************* */
+void TridiagonalSolve(double *am, double *a0, double *ap, double *b,
+                      double *y, int n)
+/*!
+ *  Use recursion formula to solve a tridiagonal system of the type
+ *
+ *    am[i]*y[i-1] + a0[i]*y[i] + ap[i]*y[i+1] = b[i]
+ *
+ * from i = 1..n-1.
+ * Boundary coefficients must have been imposed at y[0] and y[n]
+ * On output y[] is replaced with the updated solution.
+ *********************************************************************** */
+{
+  int i;
+  double alpha[n], beta[n], gamma;
+
+  alpha[n-1] = 0.0;
+  beta[n-1]  = y[n];
+  for (i = n-1; i > 0; i--){
+    gamma      = -1.0/(a0[i] + ap[i]*alpha[i]);
+    alpha[i-1] = gamma*am[i];
+    beta[i-1]  = gamma*(ap[i]*beta[i] - b[i]);
+  }
+
+  for (i = 0; i < n-1; i++){
+    y[i+1] = alpha[i]*y[i] + beta[i];
+  }
+
+/* Verify solution of tridiagonal matrix */
+/*
+  double res;
+  for (i = 1; i < n; i++){
+    res = am[i]*phi[i-1] + a0[i]*phi[i] + ap[i]*phi[i+1] - b[i];
+    if (fabs(res) > 1.e-9){
+      cout << "! TridiagonalSolve: not correct" << endl;
+      exit(1);
+    }
+  }
+*/
+}
+

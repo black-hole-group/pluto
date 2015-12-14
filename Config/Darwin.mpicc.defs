@@ -5,11 +5,11 @@
 ########################################################################
 
 CC       = mpicc
-CFLAGS   = -c -fast -finline-functions -Winline -Wundef
-LDFLAGS  = -bind_at_load -lm 
+CFLAGS   = -c -O3
+LDFLAGS  = -lm 
 
 PARALLEL = TRUE   
-USE_HDF5 = TRUE
+USE_HDF5 = FALSE
 USE_PNG  = FALSE
 
 #######################################
@@ -25,9 +25,6 @@ endif
 #######################################
 
 ifeq ($(strip $(USE_HDF5)), TRUE)
- HDF5_LIB = /usr/local/lib/HDF5-1.6.10-parallel
- INCLUDE_DIRS += -I$(HDF5_LIB)/include
- LDFLAGS      += -L$(HDF5_LIB)/lib -lhdf5 -lz
 endif
 
 #######################################

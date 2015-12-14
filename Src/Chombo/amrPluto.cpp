@@ -78,21 +78,14 @@ int main(int a_argc, char* a_argv[])
 //  setChomboMPIErrorHandler();
 #endif
 
-  int rank, number_procs;
+  int rank;
 
 #ifdef CH_MPI
   MPI_Comm_rank(Chombo_MPI::comm, &rank);
-  MPI_Comm_size(Chombo_MPI::comm, &number_procs);
   prank = rank;
 #else
   rank = 0;
-  number_procs = 1;
 #endif
-
-  if (rank == 0)
-  {
-    pout() << "Number of procs = " << number_procs << endl;
-  }
 
   char ini_file[128];
   Cmd_Line cmd_line;
@@ -129,30 +122,30 @@ void amrPluto(int argc, char *argv[], char *ini_file, Cmd_Line *cmd_line)
   Real residentSetSize=0.0;
   Real size=0.0;
   
-  Input ini;
-  Grid grid[3];
-  Setup (&ini, cmd_line, ini_file);
-  SetOutputDir(ini.output_dir);
+  Runtime runtime;
+  Grid    grid[3];
+  RuntimeSetup  (&runtime, cmd_line, ini_file);
+  RuntimeSet (&runtime);
 
   std::string base_name = "pout";
-  base_name = ini.output_dir+string("/")+base_name;
+  base_name = runtime.output_dir+string("/")+base_name;
   setPoutBaseName(base_name);
 
   ShowConfig(argc, argv, ini_file);
  
   pout() << endl << "> Generating grid..." << endl << endl;
-  int nghost = GetNghost(NULL);
+  int nghost = GetNghost();
   for (int idim = 0; idim < DIMENSIONS; idim++) {
     grid[idim].nghost  = nghost;
-    grid[idim].np_int  = grid[idim].np_int_glob = ini.npoint[idim];
-    grid[idim].np_tot  = grid[idim].np_tot_glob = ini.npoint[idim] + 2*nghost;
+    grid[idim].np_int  = grid[idim].np_int_glob = runtime.npoint[idim];
+    grid[idim].np_tot  = grid[idim].np_tot_glob = runtime.npoint[idim] + 2*nghost;
     grid[idim].beg     = grid[idim].gbeg = grid[idim].lbeg = nghost;
     grid[idim].end     = grid[idim].gend = grid[idim].lend 
                        = (grid[idim].lbeg - 1) + grid[idim].np_int;
-    grid[idim].lbound  = ini.lft_bound_side[idim];
-    grid[idim].rbound  = ini.rgt_bound_side[idim];
+    grid[idim].lbound  = runtime.left_bound[idim];
+    grid[idim].rbound  = runtime.right_bound[idim];
   }
-  SetGrid (&ini, grid);
+  SetGrid (&runtime, grid);
   
   // VERBOSITY
   
@@ -169,33 +162,33 @@ void amrPluto(int argc, char *argv[], char *ini_file, Cmd_Line *cmd_line)
   g_x3stretch = 1.;
 
   for (int dir = 0; dir < DIMENSIONS; dir++){
-    xbeg[dir] = ini.patch_left_node[dir][1];
-    xend[dir] = ini.patch_left_node[dir][2];
+    xbeg[dir] = runtime.patch_left_node[dir][1];
+    xend[dir] = runtime.patch_left_node[dir][2];
     domainLength = MAX(domainLength, xend[dir] - xbeg[dir]);
   }
   domainLength = xend[IDIR] - xbeg[IDIR];
 
- #if (CHOMBO_LOGR == YES)
+#if (CHOMBO_LOGR == YES)
   domainLength =  log(xend[IDIR]/xbeg[IDIR]);
- #endif
+#endif
 
- #if CH_SPACEDIM > 1
-  g_x2stretch = (xend[JDIR] - xbeg[JDIR])/domainLength*(double)ini.npoint[IDIR]/(double)ini.npoint[JDIR];
- #endif
- #if CH_SPACEDIM == 3
-  g_x3stretch = (xend[KDIR] - xbeg[KDIR])/domainLength*(double)ini.npoint[IDIR]/(double)ini.npoint[KDIR];
- #endif
+#if CH_SPACEDIM > 1
+  g_x2stretch = (xend[JDIR] - xbeg[JDIR])/domainLength*(double)runtime.npoint[IDIR]/(double)runtime.npoint[JDIR];
+#endif
+#if CH_SPACEDIM == 3
+  g_x3stretch = (xend[KDIR] - xbeg[KDIR])/domainLength*(double)runtime.npoint[IDIR]/(double)runtime.npoint[KDIR];
+#endif
 
- #if GEOMETRY == CARTESIAN
+#if GEOMETRY == CARTESIAN
   g_stretch_fact = g_x2stretch*g_x3stretch;
- #endif
+#endif
 
   // Set the resolution of the coarsest level
   vector<int> numCells(SpaceDim);
 
-  D_EXPAND(numCells[0] = ini.patch_npoint[IDIR][1]; ,
-           numCells[1] = ini.patch_npoint[JDIR][1]; ,
-           numCells[2] = ini.patch_npoint[KDIR][1];)
+  D_EXPAND(numCells[0] = runtime.patch_npoint[IDIR][1]; ,
+           numCells[1] = runtime.patch_npoint[JDIR][1]; ,
+           numCells[2] = runtime.patch_npoint[KDIR][1];)
 
   CH_assert(D_TERM(   (numCells[0] > 0),
                    && (numCells[1] > 0),
@@ -204,8 +197,7 @@ void amrPluto(int argc, char *argv[], char *ini_file, Cmd_Line *cmd_line)
                    && (numCells[1] % 2 == 0),
                    && (numCells[2] % 2 == 0)));
 
-  // REFINEMENT
- 
+  // REFINEMENT 
   ParamFileRead (ini_file);
 
   //Maximum AMR level limit
@@ -223,6 +215,11 @@ void amrPluto(int argc, char *argv[], char *ini_file, Cmd_Line *cmd_line)
     if (nlev < maxLevel) totLevels *= refRatios[nlev];
   }
  
+  int nprocs = 1;  // number of processors
+#ifdef CH_MPI
+  MPI_Comm_size(Chombo_MPI::comm, &nprocs);
+#endif
+
   pout() << endl << endl;
   pout() << "> AMR: " << endl << endl;
   pout() << "  Number of levels:      " << maxLevel << endl;
@@ -230,14 +227,9 @@ void amrPluto(int argc, char *argv[], char *ini_file, Cmd_Line *cmd_line)
   D_EXPAND(                                                  , 
            pout() << " x " << grid[JDIR].np_int*totLevels;   ,
            pout() << " x " << grid[KDIR].np_int*totLevels;)
-  pout() << endl << endl;
-
-/*
-  D_EXPAND(pout() << grid[IDIR].np_int*totLevels; ,
-           pout() << " X "+grid[JDIR].np_int*totLevels; ,
-           pout() << " X "+grid[KDIR].np_int*totLevels;)
   pout() << endl;
-*/
+  pout() << "  Number of procs:       " << nprocs << endl << endl;
+
   // Number of coarse time steps from one regridding to the next
   std::vector<int> regridIntervals(numReadLevels);
   for (int nlev = 0; nlev < numReadLevels; nlev++)
@@ -261,11 +253,10 @@ void amrPluto(int argc, char *argv[], char *ini_file, Cmd_Line *cmd_line)
   Real fillRatio = atof (ParamFileGet("Fill_ratio",1));
 
   // [Time] 
-
-  Real cfl         = ini.cfl;         // CFL multiplier
-  Real maxDtGrowth = ini.cfl_max_var; // Limit the time step growth
-  Real stopTime    = ini.tstop;       // Stop when the simulation time get here
-  Real initialDT   = ini.first_dt;    // Initial time step
+//  Real cfl         = runtime.cfl;         // CFL multiplier
+//  Real maxDtGrowth = runtime.cfl_max_var; // Limit the time step growth
+//  Real stopTime    = runtime.tstop;       // Stop when the simulation time get here
+  Real initialDT   = runtime.first_dt;    // Initial time step
 
   Real dtToleranceFactor = 1.1;  // Let the time step grow by this factor 
                                  // above the "maximum" before reducing it
@@ -276,26 +267,16 @@ void amrPluto(int argc, char *argv[], char *ini_file, Cmd_Line *cmd_line)
   // [Solver]
 
   Riemann_Solver *Solver;  // SOLVER
-  std::string riem = ini.solv_type;
+  std::string riem = runtime.solv_type;
   Solver = SetSolver(riem.c_str());
  
   Real fixedDt = -1; // Determine if a fixed or variable time step will be used
 
   // [Boundary] 
-
-  int  leftbound[3];
-  int  rightbound[3];
   vector<int> isPeriodica(SpaceDim,0);
 
-  leftbound[0]  = ini.lft_bound_side[0];
-  leftbound[1]  = ini.lft_bound_side[1];
-  leftbound[2]  = ini.lft_bound_side[2];
-  rightbound[0] = ini.rgt_bound_side[0];
-  rightbound[1] = ini.rgt_bound_side[1];
-  rightbound[2] = ini.rgt_bound_side[2];
-
   for (int dir = 0; dir < DIMENSIONS; dir++){
-    if (leftbound[dir] == PERIODIC || rightbound[dir] == PERIODIC){
+    if (runtime.left_bound[dir] == PERIODIC || runtime.right_bound[dir] == PERIODIC){
       isPeriodica[dir] = 1;
     } else {
       isPeriodica[dir] = 0;
@@ -314,38 +295,40 @@ void amrPluto(int argc, char *argv[], char *ini_file, Cmd_Line *cmd_line)
   // [Output]
 
   // Set up checkpointing
-  Real checkpointPeriod  = atof(ParamFileGet("Checkpoint_interval",1));
-  int checkpointInterval = atoi(ParamFileGet("Checkpoint_interval",2));
- 
+  Output output;
+  GetOutputFrequency (&output, "Checkpoint_interval");
+
+  Real checkpointPeriod   = output.dt;
+  Real checkpointClock    = output.dclock;
+  int  checkpointInterval = output.dn;
+
   // Set up plot file writing
-  Real plotPeriod  = atof(ParamFileGet("Plot_interval",1));
-  int plotInterval = atoi(ParamFileGet("Plot_interval",2));
+  GetOutputFrequency (&output, "Plot_interval");
+
+  Real plotPeriod   = output.dt;
+  Real plotClock    = output.dclock;
+  int  plotInterval = output.dn;
 
   if (cmd_line->write == NO) {
-    plotPeriod = checkpointPeriod = -1.0;
+    plotPeriod   = checkpointPeriod   = -1.0;
+    plotClock    = checkpointClock    = -1.0;
     plotInterval = checkpointInterval = -1;
   }
  
-  // Set up output files ---> after definition of amr
- 
-  // Restart ---> after definition of amr
- 
-
   // [Parameters]
 
-  for (int i = 0; i < USER_DEF_PARAMETERS; ++i) g_inputParam[i] = ini.aux[i];
-
+  for (int i = 0; i < USER_DEF_PARAMETERS; ++i) g_inputParam[i] = runtime.aux[i];
 
   // Initialize PVTE_LAW EOS Table before calling Init()
   
-  #if EOS == PVTE_LAW && NIONS == 0
-   #if TV_ENERGY_TABLE == YES
-    MakeInternalEnergyTable();
-   #else
-    MakeEV_TemperatureTable();
-   #endif
-   MakePV_TemperatureTable();
+#if EOS == PVTE_LAW && NIONS == 0
+  #if TV_ENERGY_TABLE == YES
+  MakeInternalEnergyTable();
+  #else
+  MakeEV_TemperatureTable();
   #endif
+  MakePV_TemperatureTable();
+#endif
   
   // Call Init once so all processors share global variables
   // assigniments such as g_gamma, g_unitDensity, and so on.
@@ -356,42 +339,38 @@ void amrPluto(int argc, char *argv[], char *ini_file, Cmd_Line *cmd_line)
   Init (u, g_domBeg[0], g_domBeg[1], g_domBeg[2]);
 
   // Print the parameters
-  if ( verbosity >= 2 )
-    {
-      pout() << "maximum step = " << nstop << endl;
-      pout() << "maximum time = " << stopTime << endl;
+  if ( verbosity >= 2 ) {
+    pout() << "maximum step = " << nstop << endl;
+    pout() << "maximum time = " << runtime.tstop << endl;
 
-      pout() << "number of cells = " << D_TERM(numCells[0] << "  " <<,
-                                               numCells[1] << "  " <<,
-                                               numCells[2] << ) endl;
+    pout() << "number of cells = " << D_TERM(numCells[0] << "  " <<,
+                                             numCells[1] << "  " <<,
+                                             numCells[2] << ) endl;
 
-      pout() << "maximum level = " << maxLevel << endl;
+    pout() << "maximum level = " << maxLevel << endl;
 
-      pout() << "refinement ratio = ";
-      for (int i = 0; i < refRatios.size(); ++i) pout() << refRatios[i] << " ";
-      pout() << endl;
+    pout() << "refinement ratio = ";
+    for (int i = 0; i < refRatios.size(); ++i) pout() << refRatios[i] << " ";
+    pout() << endl;
 
-      pout() << "regrid interval = ";
-      for (int i = 0; i < regridIntervals.size(); ++i) pout() << regridIntervals[i] << " ";
-      pout() << endl;
+    pout() << "regrid interval = ";
+    for (int i = 0; i < regridIntervals.size(); ++i) pout() << regridIntervals[i] << " ";
+    pout() << endl;
 
-      pout() << "refinement threshold = " << refineThresh << endl;
+    pout() << "refinement threshold = " << refineThresh << endl;
 
-      pout() << "blocking factor = " << blockFactor << endl;
-      pout() << "max grid size = " << maxGridSize << endl;
-      pout() << "fill ratio = " << fillRatio << endl;
+    pout() << "blocking factor = " << blockFactor << endl;
+    pout() << "max grid size = " << maxGridSize << endl;
+    pout() << "fill ratio = " << fillRatio << endl;
 
-      pout() << "checkpoint interval = " << checkpointInterval << endl;
-      pout() << "plot interval = " << plotInterval << endl;
-      pout() << "CFL = " << cfl << endl;
-      pout() << "initial dt = " << initialDT << endl;
-      if (fixedDt > 0)
-        {
-          pout() << "fixed dt = " << fixedDt << endl;
-        }
-      pout() << "maximum dt growth = " << maxDtGrowth << endl;
-      pout() << "dt tolerance factor = " << dtToleranceFactor << endl;
-    }
+    pout() << "checkpoint interval = " << checkpointInterval << endl;
+    pout() << "plot interval = " << plotInterval << endl;
+    pout() << "CFL = " << runtime.cfl << endl;
+    pout() << "initial dt = " << initialDT << endl;
+    if (fixedDt > 0) pout() << "fixed dt = " << fixedDt << endl;
+    pout() << "maximum dt growth = " << runtime.cfl_max_var << endl;
+    pout() << "dt tolerance factor = " << dtToleranceFactor << endl;
+  }
 
   ShowUnits();
 
@@ -406,14 +385,13 @@ void amrPluto(int argc, char *argv[], char *ini_file, Cmd_Line *cmd_line)
   PatchPluto* patchPluto =  static_cast<PatchPluto*>(new PatchPluto());
 
   // Set up the patch integrator
-  patchPluto->setBoundary(leftbound,
-                          rightbound);
+  patchPluto->setBoundary(runtime.left_bound, runtime.right_bound);
   patchPluto->setRiemann(Solver);
 
   // Set up the AMRLevel... factory
   AMRLevelPlutoFactory amrGodFact;
 
-  amrGodFact.define(cfl,
+  amrGodFact.define(runtime.cfl,
                     domainLength,
                     verbosity,
                     refineThresh,
@@ -426,10 +404,7 @@ void amrPluto(int argc, char *argv[], char *ini_file, Cmd_Line *cmd_line)
   // Set up the AMR object
   amr.define(maxLevel,refRatios,probDomain,&amrGodFact);
 
-  if (fixedDt > 0)
-    {
-      amr.fixedDt(fixedDt);
-    }
+  if (fixedDt > 0)  amr.fixedDt(fixedDt);
 
   // Set grid generation parameters
   amr.maxGridSize(maxGridSize);
@@ -441,27 +416,28 @@ void amrPluto(int argc, char *argv[], char *ini_file, Cmd_Line *cmd_line)
 
   // Set output parameters
   amr.checkpointPeriod(checkpointPeriod);
+  amr.checkpointClock (checkpointClock);
   amr.checkpointInterval(checkpointInterval);
-  amr.plotPeriod(plotPeriod);
+  amr.plotPeriod  (plotPeriod);
+  amr.plotClock   (plotClock);
   amr.plotInterval(plotInterval);
   amr.regridIntervals(regridIntervals);
-  amr.maxDtGrow(maxDtGrowth);
+  amr.maxDtGrow(runtime.cfl_max_var);
   amr.dtToleranceFactor(dtToleranceFactor);
 
-  // Set up output files
+  // Setup output files
   std::string prefix = "data.";
-  prefix = ini.output_dir+string("/")+prefix;
+  prefix = runtime.output_dir+string("/")+prefix;
   amr.plotPrefix(prefix);
 
-  // Set up checkpoint files
+  // Setup checkpoint files
   prefix = "chk.";
-  prefix = ini.output_dir+string("/")+prefix;
+  prefix = runtime.output_dir+string("/")+prefix;
   amr.checkpointPrefix(prefix);
-  
+
   amr.verbosity(verbosity);
 
-  // Set up input files
-
+  // Setup input files
   if (cmd_line->restart == NO && cmd_line->h5restart == NO){
     if (!ParamExist("fixed_hierarchy")) {
 
@@ -471,14 +447,15 @@ void amrPluto(int argc, char *argv[], char *ini_file, Cmd_Line *cmd_line)
     } else       {
       MayDay::Error("Fixed_hierarchy option still disabled");
     }
-  } else {
-    char restartFile[128];
-    sprintf (restartFile,"chk.%04d.hdf5",cmd_line->nrestart);
+  } else { 
+    char   restartNumber[32];
+    sprintf (restartNumber, "%04d.hdf5", cmd_line->nrestart);
+    prefix += restartNumber;
 
-    pout() << endl << "> Restarting from file " << restartFile << endl;
+    pout() << endl << "> Restarting from file " << prefix << endl;
 
 #ifdef CH_USE_HDF5
-    HDF5Handle handle(restartFile,HDF5Handle::OPEN_RDONLY);
+    HDF5Handle handle(prefix,HDF5Handle::OPEN_RDONLY);
     // read from checkpoint file
     amr.setupForRestart(handle);
     handle.close();
@@ -498,16 +475,23 @@ void amrPluto(int argc, char *argv[], char *ini_file, Cmd_Line *cmd_line)
 #endif
   }
 
+  time_t tbeg, tend;
+  double exec_time;
+
   // Run the computation
   pout() << "> Starting Computation" << endl;
-  amr.run(stopTime,nstop);
+  time (&tbeg);
+
+  amr.run(runtime.tstop,nstop);
+
+  time (&tend);
+  exec_time = difftime (tend, tbeg);
+  pout() << "> Elapsed time: " << exec_time << " s" << endl;
   pout() << "> Done\n";
 
   // Output the last plot file and statistics
   amr.conclude();
-
 }
-
 
 /* ******************************************************************* */
 void print (const char *fmt, ...)

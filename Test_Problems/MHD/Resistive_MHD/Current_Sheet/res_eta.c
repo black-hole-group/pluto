@@ -30,9 +30,7 @@ void Resistive_eta(double *v, double x1, double x2, double x3,
  *
  *********************************************************************** */
 {
-
  eta[IDIR] = g_inputParam[ETA];
  eta[JDIR] = g_inputParam[ETA];
  eta[KDIR] = g_inputParam[ETA];
-  
 }

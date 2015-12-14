@@ -309,51 +309,33 @@ void Where (int i, Grid *grid)
 
 /* /////////////////////////////////////////////////////////////////////
     The next set of functions provides basic functionalities to
-
-     - set/get the output directory
+     
      - set the log file
      - formatted output to the log file through the print() and print1()
        functions
    ///////////////////////////////////////////////////////////////////// */
 
-static char log_file_name[512], output_dir[512];
+static char log_file_name[512];
 
 /* ********************************************************************* */
-void SetOutputDir(char *s)
-/*!
- * Set the name of the output directory.
- *
- *********************************************************************** */
-{
-  sprintf (output_dir,"%s",s);
-}
-/* ********************************************************************* */
-char *GetOutputDir()
-/*!
- *  Retrieve the name of the output directory.
- *
- *********************************************************************** */
-{
-  return output_dir;
-}
-/* ********************************************************************* */
-int SetLogFile(char *ini_file, Cmd_Line *cmd)
+int SetLogFile(char *output_dir, Cmd_Line *cmd)
 /*!
  * Set the name of the log file and open in write or append mode
  * depending on whether restart is enabled or not.
  *
+ * \param [in] output_dir  the name of the output directory
+ * \param [in] cmd         pointer to cmd line option structure.
+ *                           
  *********************************************************************** */
 {
 #if PRINT_TO_FILE == YES
-  char *str;
   FILE *fl;
 
 /* ------------------------------------------------
     All processors set log file name
    ------------------------------------------------ */
 
-  str = GetOutputDir();
-  sprintf (log_file_name, "%s/pluto.log",str);    
+  sprintf (log_file_name, "%s/pluto.log",output_dir);    
 
 /* ------------------------------------------------
     Proc. #0 opens log file for writing if 

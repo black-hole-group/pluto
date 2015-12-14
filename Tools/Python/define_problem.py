@@ -32,15 +32,15 @@ class DefineProblem(object):
         self.pluto_path = []
         self.def_file_list = []
 
+        self.ChkCompatiblity() #To Replace Old Keywords with New Ones
+
         # defining the PLUTO entries and its default values in lists.  
         self.entries = ['PHYSICS', 'DIMENSIONS', 'COMPONENTS', 'GEOMETRY',
-                        'BODY_FORCE', 'COOLING', 'INTERPOLATION', 'TIME_STEPPING',
-                        'DIMENSIONAL_SPLITTING', 'NTRACER', 'USER_DEF_PARAMETERS',
-                        'USER_DEF_CONSTANTS']
+                        'BODY_FORCE', 'COOLING', 'RECONSTRUCTION', 'TIME_STEPPING',
+                        'DIMENSIONAL_SPLITTING', 'NTRACER', 'USER_DEF_PARAMETERS']
         self.default = ['HD', '1', '1', 'CARTESIAN','NO',
                         'NO','LINEAR','RK2',
-                        'YES', '0', '0',
-                         '0']
+                        'NO', '0', '0']
 
         # Creating a dictionary of flags that are invoked by giving arguments.
         flag_keys = ['WITH-CHOMBO', 'FULL', 'WITH-FD', 'WITH-SB', 'WITH-FARGO']
@@ -92,17 +92,26 @@ class DefineProblem(object):
         self.udef_const = []
         self.udef_const_vals = []
         self.nparam = int(self.default[self.entries.index('USER_DEF_PARAMETERS')])
-        self.nconst = int(self.default[self.entries.index('USER_DEF_CONSTANTS')])
+        #self.nconst = int(self.default[self.entries.index('USER_DEF_CONSTANTS')])
         if self.nparam > 0:
             self.ProcessUserDefPara()
         
-        if self.nconst > 0:
-            self.ProcessUserDefConst()
+        
+        self.ProcessUserDefConst()
 
         # Write a List def_file_list which will be written as the header file.    
         self.WriteDefFileList()
         pf = pfIO.PlutoFiles(self.work_dir+'/definitions.h')
         pf.List2File(self.def_file_list)
+
+
+    def ChkCompatiblity(self):
+          oldKeys_ = ['INTERPOLATION','MHD_FORMULATION','RESISTIVE_MHD']
+          replaceKeys_ = ['RECONSTRUCTION','DIVB_CONTROL','RESISTIVITY']
+          if (os.path.exists(self.work_dir+'/definitions.h')):
+            pf = pfIO.PlutoFiles(self.work_dir+'/definitions.h')
+            for i in range(len(oldKeys_)):
+                pf.ReplaceWord(oldKeys_[i], replaceKeys_[i])
     
     def GenerateOptionsList(self):
         """Creates a default option list.
@@ -122,7 +131,7 @@ class DefineProblem(object):
         intlist = ['FLAT','LINEAR','LimO3','WENO3','PARABOLIC']
         tmslist = ['EULER','RK2','RK3','HANCOCK','CHARACTERISTIC_TRACING']
         dislist = ['YES','NO']
-        ntrlist = ['%d'%n for n in range(5)]
+        ntrlist = ['%d'%n for n in range(9)]
         udplist = ['%d'%n for n in range(32)]
         udclist = ['%d'%n for n in range(32)]
 
@@ -140,11 +149,11 @@ class DefineProblem(object):
         the flags set using system arguments.
         """
         if self.flag_dict['FULL']:
-             self.options[self.entries.index('INTERPOLATION')] = ['FLAT','LINEAR','LimO3', 'WENO3','PARABOLIC', 'MP5']
+             self.options[self.entries.index('RECONSTRUCTION')] = ['FLAT','LINEAR','LimO3', 'WENO3','PARABOLIC', 'MP5']
         
         if self.flag_dict['WITH-CHOMBO']:
             self.options[self.entries.index('GEOMETRY')] = ['CARTESIAN','CYLINDRICAL','POLAR','SPHERICAL']
-            self.options[self.entries.index('INTERPOLATION')] = ['FLAT','LINEAR','WENO3','PARABOLIC']
+            self.options[self.entries.index('RECONSTRUCTION')] = ['FLAT','LINEAR','WENO3','PARABOLIC']
             self.options[self.entries.index('TIME_STEPPING')] = ['EULER','HANCOCK','CHARACTERISTIC_TRACING','RK2']
             self.default[self.entries.index('TIME_STEPPING')] = 'HANCOCK'
             self.options[self.entries.index('DIMENSIONAL_SPLITTING')] = ['NO']
@@ -161,9 +170,9 @@ class DefineProblem(object):
         if self.flag_dict['WITH-FD']:
             self.options[self.entries.index('PHYSICS')] = ['HD', 'MHD']
             self.options[self.entries.index('GEOMETRY')] = ['CARTESIAN']
-            self.options[self.entries.index('INTERPOLATION')] = ['WENO3_FD', 'WENOZ_FD', 'MP5_FD','LIMO3_FD']
-            self.default[self.entries.index('INTERPOLATION')] = 'WENOZ_FD'
-            self.options[self.entries.index('TIME_STEPPING')] = ['RK3']
+            self.options[self.entries.index('RECONSTRUCTION')] = ['WENO3_FD', 'WENOZ_FD', 'MP5_FD','LIMO3_FD']
+            self.default[self.entries.index('RECONSTRUCTION')] = 'WENOZ_FD'
+            self.options[self.entries.index('TIME_STEPPING')] = ['RK3','SSP_RK4']
             self.default[self.entries.index('TIME_STEPPING')] = 'RK3'
             
 
@@ -210,62 +219,88 @@ class DefineProblem(object):
         Provides entries, options and defaults specific to Hydro Module.
         Also updates them accordingly if required by flags.
         """
-        self.entries_HD = ['EOS', 'ENTROPY_SWITCH', 'THERMAL_CONDUCTION', 'VISCOSITY', 'ROTATING_FRAME']
-        self.default_HD = ['IDEAL', 'NO', 'NO', 'NO', 'NO']
-        self.options_HD = [['IDEAL','PVTE_LAW','ISOTHERMAL'], ['NO','YES'], ['NO','EXPLICIT','SUPER_TIME_STEPPING'],
-                            ['NO','EXPLICIT','SUPER_TIME_STEPPING'], ['NO','YES']]
+        self.entries_HD = ['EOS', 'ENTROPY_SWITCH',
+                           'THERMAL_CONDUCTION',
+                           'VISCOSITY',
+                           'ROTATING_FRAME']
+        self.default_HD = ['IDEAL', 'NO',
+                           'NO',
+                           'NO',
+                           'NO']
+        self.options_HD = [['IDEAL','PVTE_LAW','ISOTHERMAL'],
+#                           ['NO','YES'],
+                            ['NO','SELECTIVE','ALWAYS','CHOMBO_REGRID'],
+                           ['NO','EXPLICIT','SUPER_TIME_STEPPING'],
+                           ['NO','EXPLICIT','SUPER_TIME_STEPPING'],
+                           ['NO','YES']]
     
-        if self.flag_dict['WITH-CHOMBO']:
-            self.options_HD[2] = ['NO','EXPLICIT']
-            self.options_HD[3] = ['NO','EXPLICIT']
+        if self.flag_dict['WITH-CHOMBO']: # Chombo does not support STS at the
+                                          # moment. Only explicit allowed with Chombo
+            i =  self.entries_HD.index('THERMAL_CONDUCTION')
+            self.options_HD[i] = ['NO','EXPLICIT']
+            i =  self.entries_HD.index('VISCOSITY')
+            self.options_HD[i] = ['NO','EXPLICIT']
 
     def ProcessRHDModule(self):
         """
         Provides entries, options and defaults specific to Relativistic
         Hydro Module. Also updates them accordingly if required by flags.
         """
-        self.entries_RHD = ['EOS', 'ENTROPY_SWITCH', 'USE_FOUR_VELOCITY']
+        self.entries_RHD = ['EOS', 'ENTROPY_SWITCH']
         self.default_RHD = ['IDEAL', 'NO', 'NO']
-        self.options_RHD = [['IDEAL','TAUB'], ['NO','YES'],  ['NO','YES']]
+        self.options_RHD = [['IDEAL','TAUB'],
+#                            ['NO','YES']]
+                            ['NO','SELECTIVE','ALWAYS','CHOMBO_REGRID']]
 
     def ProcessMHDModule(self):
         """
         Provides entries, options and defaults specific to Magneto-
         Hydro Module.Also updates them accordingly if required by flags.
         """
-        self.entries_MHD = ['EOS', 'ENTROPY_SWITCH', 'MHD_FORMULATION', 'BACKGROUND_FIELD',
-                            'RESISTIVE_MHD', 'THERMAL_CONDUCTION', 'VISCOSITY', 'ROTATING_FRAME']
+        self.entries_MHD = ['EOS', 'ENTROPY_SWITCH', 'DIVB_CONTROL', 'BACKGROUND_FIELD',
+                            'RESISTIVITY', 'THERMAL_CONDUCTION', 'VISCOSITY', 'ROTATING_FRAME']
         self.default_MHD = ['IDEAL','NO','EIGHT_WAVES','NO','NO','NO','NO','NO']
-        self.options_MHD = [['IDEAL','PVTE_LAW','ISOTHERMAL'], ['NO','YES'],
-                            ['NONE','EIGHT_WAVES','DIV_CLEANING','CONSTRAINED_TRANSPORT'],
+        self.options_MHD = [['IDEAL','PVTE_LAW','ISOTHERMAL'],
+#                            ['NO','YES'],
+                            ['NO','SELECTIVE','ALWAYS','CHOMBO_REGRID'],
+                            ['NO','EIGHT_WAVES','DIV_CLEANING','CONSTRAINED_TRANSPORT'],
                             ['NO','YES'],['NO','EXPLICIT', 'SUPER_TIME_STEPPING'],
                             ['NO','EXPLICIT', 'SUPER_TIME_STEPPING'],['NO','EXPLICIT', 'SUPER_TIME_STEPPING'],['NO','YES']]
         
         if self.flag_dict['WITH-CHOMBO']:
-            self.options_MHD[2] = ['NONE','EIGHT_WAVES','DIV_CLEANING']
-            self.options_MHD[4] = ['NO','EXPLICIT']
-            self.options_MHD[5] = ['NO','EXPLICIT']
-            self.options_MHD[6] = ['NO','EXPLICIT']
+            indx_ = self.entries_MHD.index('DIVB_CONTROL')
+            self.options_MHD[indx_] = ['NO','EIGHT_WAVES','DIV_CLEANING']
+            indx_ = self.entries_MHD.index('RESISTIVITY')
+            self.options_MHD[indx_] = ['NO','EXPLICIT']
+            indx_ = self.entries_MHD.index('THERMAL_CONDUCTION')
+            self.options_MHD[indx_] = ['NO','EXPLICIT']
+            indx_ = self.entries_MHD.index('VISCOSITY')
+            self.options_MHD[indx_] = ['NO','EXPLICIT']
 
         if self.flag_dict['WITH-FD']:
-            self.options_MHD[2] = ['NONE','EIGHT_WAVES','DIV_CLEANING']
+            indx_ = self.entries_MHD.index('DIVB_CONTROL')
+            self.options_MHD[indx_] = ['NO','EIGHT_WAVES','DIV_CLEANING']
 
         if self.flag_dict['WITH-SB'] or self.flag_dict['WITH-FARGO']:
-            self.options_MHD[2] = ['CONSTRAINED_TRANSPORT']
-            self.default_MHD[2] = 'CONSTRAINED_TRANSPORT'
+            indx_ = self.entries_MHD.index('DIVB_CONTROL')
+            self.options_MHD[indx_] = ['CONSTRAINED_TRANSPORT']
+            self.default_MHD[indx_] = 'CONSTRAINED_TRANSPORT'
     
     def ProcessRMHDModule(self):
         """
         Provides entries, options and defaults specific to Relativisitc
         Magneto-Hydro Module.Also updates them accordingly if required by flags.
         """
-        self.entries_RMHD = ['EOS', 'ENTROPY_SWITCH','MHD_FORMULATION' ]
-        self.default_RMHD = ['IDEAL', 'NO', 'NONE']
-        self.options_RMHD = [['IDEAL', 'TAUB'], ['NO','YES'],
-                           ['NONE','EIGHT_WAVES','DIV_CLEANING','CONSTRAINED_TRANSPORT']]
+        self.entries_RMHD = ['EOS', 'ENTROPY_SWITCH','DIVB_CONTROL' ]
+        self.default_RMHD = ['IDEAL', 'NO', 'NO']
+        self.options_RMHD = [['IDEAL', 'TAUB'],
+#                            ['NO','YES'],
+                             ['NO','SELECTIVE','ALWAYS','CHOMBO_REGRID'],
+                             ['NO','EIGHT_WAVES','DIV_CLEANING','CONSTRAINED_TRANSPORT']]
 
         if self.flag_dict['WITH-CHOMBO']:
-            self.options_RMHD[2] = ['NONE','EIGHT_WAVES','DIV_CLEANING']
+            indx_ = self.entries_RMHD.index('DIVB_CONTROL')
+            self.options_RMHD[indx_] = ['NO','EIGHT_WAVES','DIV_CLEANING']
 
     def ProcessUserDefPara(self):
         """
@@ -293,58 +328,71 @@ class DefineProblem(object):
             menu.SetTitle ("User-defined Parameters")
             par_entries = ['%d'%i for i in range(self.nparam)]
             menu.Insert(par_entries,self.udef_params)
+
+
+
     
+        
     def ProcessUserDefConst(self):
         """
         Sets the Userdefined Constants.
         """
-        self.udef_const = ['USER_CONST_%.2d'%i for i in range(self.nconst)]
-        self.udef_const_vals = self.nconst*['YES'] 
         if (os.path.exists(self.work_dir+'/definitions.h')):
             pf = pfIO.PlutoFiles(self.work_dir+'/definitions.h')
-            scrh = pf.LocateString('constants')
-            k0   = scrh[0][0] + 2
-            const_lines = pf.ReadLines(k0, k0 + self.nconst)
-            for n in range(self.nconst):
-                try:
-                    x = const_lines[n].split()
+            old_beg_scrh = pf.LocateString('symbolic')
+            try:
+                old_beg_scrh[0][0]
+            except IndexError:
+                pass
+            else:
+                del_indx = pf.LocateString('USER_DEF_CONSTANTS')
+                pf.DeleteLines(del_indx[0][0], del_indx[0][0])
+                old_beg_scrh = pf.LocateString('symbolic')
+                pf.ReplaceLine('/* [Beg] user-defined constants (do not change this line) */', old_beg_scrh[0][0])
+                old_end_scrh = pf.LocateString('supplementary')
+                pf.InsertLine('/* [End] user-defined constants (do not change this line) */', old_end_scrh[0][0] - 1)
+                
+            scrh_beg = pf.LocateString('[Beg]')
+            k_beg   = scrh_beg[0][0]+1
+            scrh_end = pf.LocateString('[End]')
+            k_end   = scrh_end[0][0]-1
+            const_lines = pf.ReadLines(k_beg, k_end)
+            #print const_lines
+            for n in range(len(const_lines)):
+                x = const_lines[n].split()
+                try:                
                     x[0] == '#define'
                 except IndexError: 
                     pass
                 else:
-                    if (x[0] == "#define"):
-                        self.udef_const[n] = x[1]
-                        self.udef_const_vals[n] = x[2]
-                    else:          
-                        break;
+                    if (x[0] == '#define'):
+                        self.udef_const.append(x[1])
+                        self.udef_const_vals.append(x[2])
+                    else:
+                        continue
             
-        if self.auto_update == 0:
-            menu.SetTitle ("User-defined constants")
-            const_entries = ['%d'%i for i in range(self.nconst)]
-            menu.Insert(const_entries,self.udef_const)
-            menu.SetTitle ("User-defined constant values")
-            menu.Insert(self.udef_const, self.udef_const_vals)
 
     def NonUserFriendlyConst(self):
         """
         Sets the non-user friendly constants.
         """
-        tmplist1 = ['INITIAL_SMOOTHING', 'WARNING_MESSAGES', 'PRINT_TO_FILE', 'INTERNAL_BOUNDARY', 'SHOCK_FLATTENING']
+        tmplist1 = ['INITIAL_SMOOTHING', 'WARNING_MESSAGES', 'PRINT_TO_FILE',
+		    'INTERNAL_BOUNDARY', 'SHOCK_FLATTENING']
         tmplist2 = len(tmplist1)*['NO']
         
-        if self.flag_dict['WITH-CHOMBO']:
-            tmplist1 += ['CHOMBO_EN_SWITCH','CHOMBO_REF_VAR','CHOMBO_LOGR']
-            tmplist2 += [              'NO',           'ENG',       'NO']  
+ #       if self.flag_dict['WITH-CHOMBO']:
+ #           tmplist1 += ['CHOMBO_REF_VAR','CHOMBO_LOGR']
+ #           tmplist2 += ['ENG',       'NO']  
 
         if not self.flag_dict['WITH-FD']:
-            tmplist1 = tmplist1 + ['ARTIFICIAL_VISCOSITY', 'CHAR_LIMITING', 'LIMITER']
-            tmplist2 = tmplist2 + ['NO', 'NO', 'DEFAULT']
+            tmplist1 = tmplist1 + ['CHAR_LIMITING', 'LIMITER']
+            tmplist2 = tmplist2 + ['NO', 'DEFAULT']
             
-        if 'MHD_FORMULATION' in self.mod_entries:
-            divb_mode = self.mod_default[self.mod_entries.index('MHD_FORMULATION')]
+        if 'DIVB_CONTROL' in self.mod_entries:
+            divb_mode = self.mod_default[self.mod_entries.index('DIVB_CONTROL')]
             if divb_mode == 'CONSTRAINED_TRANSPORT':
                 tmplist1 = tmplist1 + ['CT_EMF_AVERAGE', 'CT_EN_CORRECTION', 'ASSIGN_VECTOR_POTENTIAL']
-                tmplist2 = tmplist2 + ['UCT_HLL', 'NO', 'YES']
+                tmplist2 = tmplist2 + ['UCT_HLL', 'NO', 'NO']
             else:
                 tmplist1 = tmplist1 + ['ASSIGN_VECTOR_POTENTIAL']
                 tmplist2 = tmplist2 + ['NO']
@@ -361,10 +409,6 @@ class DefineProblem(object):
                 tmplist1 = tmplist1 + ['PRIMITIVE_HANCOCK']
                 tmplist2 = tmplist2 + ['YES']
         
-        if 'SUPER_TIME_STEPPING' in self.mod_default:
-            tmplist1 = tmplist1 + ['STS_nu']
-            tmplist2 = tmplist2 + ['0.01']
-
         longword = max(len(w) for w in tmplist1)
         
         if (os.path.exists(self.work_dir+'/definitions.h')):
@@ -378,7 +422,7 @@ class DefineProblem(object):
         Adds additional object files based on
         modular defintions and requirements. 
         """
-        interp_mode = self.default[self.entries.index('INTERPOLATION')]
+        interp_mode = self.default[self.entries.index('RECONSTRUCTION')]
 
         if interp_mode == 'LINEAR':
             self.additional_files.append('plm_states.o')
@@ -387,12 +431,12 @@ class DefineProblem(object):
             self.additional_files.append('ppm_coeffs.o')
             self.header_files.append('ppm_coeffs.h')
         elif interp_mode in ['FLAT', 'LimO3', 'WENO3']:
-            self.additional_files.append('states_'+interp_mode.lower()+'.o')
+            self.additional_files.append(interp_mode.lower()+'_states.o')
 	else:
 	    pass
         
         if self.flag_dict['WITH-FD']:
-            self.additional_files += ['states_fd.o', 'fd_reconstruct.o', 'fd_flux.o']
+            self.additional_files += ['fd_states.o', 'fd_reconstruct.o', 'fd_flux.o']
 
         if self.default[self.entries.index('COOLING')] not in ['NO', 'POWER_LAW']:
             self.additional_files += ['cooling_source.o','cooling_ode_solver.o']
@@ -403,18 +447,20 @@ class DefineProblem(object):
                 self.additional_files.append('vec_pot_update.o')
 
         if self.flag_dict['WITH-CHOMBO']:
-            if self.default[self.entries.index('DIMENSIONS')] == '1':
-                self.additional_files.append('PatchCTU.1D.o')
-            elif self.default[self.entries.index('TIME_STEPPING')] in ['EULER', 'RK2']:
-                self.additional_files.append('PatchEuler.3D.o')
+            if self.default[self.entries.index('TIME_STEPPING')] in ['EULER', 'RK2']:
+                self.additional_files.append('PatchEuler.o')
+                self.additional_files.append('update_stage.o')
             else:
-                self.additional_files.append('PatchCTU.3D.o')
+                self.additional_files.append('PatchCTU.o')
         else:
             cmset = set(['CHARACTERISTIC_TRACING', 'HANCOCK']) & set(self.default)
             if len(cmset) != 0 and self.default[self.entries.index('DIMENSIONAL_SPLITTING')] == 'NO':
-                self.additional_files.append('ctu_update.o')
+                self.additional_files.append('ctu_step.o')
+            elif self.default[self.entries.index('TIME_STEPPING')] == 'SSP_RK4':
+                self.additional_files.append('unsplit.ssprk.o')                
             else:
-                self.additional_files.append('rk_update.o')
+                self.additional_files.append('rk_step.o')
+                self.additional_files.append('update_stage.o')
         
         if 'HANCOCK' in self.default:
             self.additional_files.append('hancock.o')
@@ -436,13 +482,13 @@ class DefineProblem(object):
         """
         self.pluto_path.append(self.phymodule+'/')
 
-        dis_eff = ['Thermal_Conduction', 'Viscosity']
+        dis_eff = ['Dust','Thermal_Conduction', 'Viscosity']
         for de in dis_eff:
             if de.upper() in self.mod_entries and self.mod_default[self.mod_entries.index(de.upper())] != 'NO':
                 self.pluto_path.append(de+'/')
         
         if self.phymodule == 'MHD' or self.phymodule == 'RMHD':
-            divb_mode = self.mod_default[self.mod_entries.index('MHD_FORMULATION')]
+            divb_mode = self.mod_default[self.mod_entries.index('DIVB_CONTROL')]
             if divb_mode == 'CONSTRAINED_TRANSPORT':
                 self.pluto_path.append('MHD/CT/')
             elif divb_mode == 'DIV_CLEANING':
@@ -450,8 +496,8 @@ class DefineProblem(object):
             else:
                 pass
 
-            if self.phymodule == 'MHD' and self.mod_default[self.mod_entries.index('RESISTIVE_MHD')] != 'NO':
-                self.pluto_path.append('MHD/Resistive/')
+            if self.phymodule == 'MHD' and self.mod_default[self.mod_entries.index('RESISTIVITY')] != 'NO':
+                self.pluto_path.append('MHD/Resistivity/')
 
         if self.flag_dict['WITH-SB']:
             self.pluto_path.append('MHD/ShearingBox/')
@@ -467,7 +513,7 @@ class DefineProblem(object):
         cool_mode = self.default[self.entries.index('COOLING')]
         if cool_mode != 'NO':
             if cool_mode == 'TABULATED':
-                self.pluto_path.append('Cooling/Tab/')
+                self.pluto_path.append('Cooling/TABULATED/')
             elif cool_mode == 'POWER_LAW':
                 self.pluto_path.append('Cooling/Power_Law/')
             else:
@@ -553,22 +599,16 @@ class DefineProblem(object):
         self.UpdatePlutoIni()
     
                 
-        self.def_file_list.append('\n/* -- user-defined symbolic constants -- */\n\n')
+        self.def_file_list.append('\n/* [Beg] user-defined constants (do not change this line) */\n\n')
         for i in range(len(self.udef_const)):
             self.def_file_list.append('#define  '+self.udef_const[i].ljust(21)+'   '+self.udef_const_vals[i]+'\n')
 
+        self.def_file_list.append('\n/* [End] user-defined constants (do not change this line) */\n')
+        
         self.def_file_list.append('\n/* -- supplementary constants (user editable) -- */ \n\n')
         self.NonUserFriendlyConst()
         for x in self.non_usfr:
             self.def_file_list.append(x)
         
-        
-        
-        
-        
-        
-            
-        
-
         
         

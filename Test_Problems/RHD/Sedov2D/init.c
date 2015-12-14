@@ -22,12 +22,6 @@ void Init (double *us, double x, double y, double z)
     us[PRS] = 2.e-6/3.;
   }
 
-  #if USE_FOUR_VELOCITY == YES
-   scrh = 1.0/sqrt(1.0 - us[VX1]*us[VX1] - us[VX2]*us[VX2]);
-   us[VX1] *= scrh;
-   us[VX2] *= scrh;
-  #endif
-
 }
 
 /* ********************************************************************* */

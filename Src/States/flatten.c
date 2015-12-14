@@ -13,40 +13,7 @@ void Flatten (const State_1D *state, int beg, int end, Grid *grid)
  *
  *
  ************************************************************************ */
-#if SHOCK_FLATTENING == MULTID
-
-/* -----------------------------------------
-    Multi dimensional shock flattening
-   ----------------------------------------- */
-
-{
-  int    i, nv;
-  double **vp, **vm, **v;
-  double dvp, dvm, dv;
-
-  vp = state->vp;
-  vm = state->vm;
-  v  = state->v;
-
-  for (i = beg; i <= end; i++){
-    if (CheckZone (i, FLAG_MINMOD)) {
-      for (nv = NVAR; nv--; ) {
-        dvp = v[i + 1][nv] - v[i][nv];
-        dvm = v[i][nv] - v[i - 1][nv];
-        dv  = 0.0;
-        if (dvp*dvm > 0.0) dv = fabs(dvp) < fabs(dvm) ? dvp:dvm;
-        vp[i][nv] = v[i][nv] + 0.5*dv;
-        vm[i][nv] = v[i][nv] - 0.5*dv;
-      }
-    }else if (CheckZone (i, FLAG_FLAT)) {
-      for (nv = NVAR; nv--; ) {
-        vp[i][nv] = vm[i][nv] = v[i][nv];
-      }
-    }
-  }
-}
-
-#elif SHOCK_FLATTENING == ONED
+#if SHOCK_FLATTENING == ONED
 
 /* -----------------------------------------
     One dimensional shock flattening:
@@ -96,7 +63,7 @@ void Flatten (const State_1D *state, int beg, int end, Grid *grid)
   #if EOS == ISOTHERMAL 
    int PRS = RHO;
   #endif
-     
+   
   if (f_t == NULL){
     f_t   = ARRAY_1D(NMAX_POINT, double);    
   }
@@ -220,4 +187,3 @@ void Flatten (const State_1D *state, int beg, int end, Grid *grid)
 }
 #endif
 
- 

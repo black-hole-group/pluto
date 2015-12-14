@@ -133,6 +133,11 @@ simplify(a0 - coeff(fMB2,lambda,0)/gamma^2);
   double  scrh1, scrh2, scrh;
   double  b2, del, z[4];
 
+#if RMHD_FAST_EIGENVALUES
+  Eigenvalues (vp, cs2, h, lambda);
+  return 0;
+#endif
+
   scrh   = fabs(vp[VXn])/sqrt(cs2);
   g_maxMach = MAX(scrh, g_maxMach);
 
@@ -267,6 +272,57 @@ if (z[3] < z[2] || z[3] < z[1] || z[3] < z[0] ||
   }
   return 0;
 }
+
+/* ********************************************************************* */
+int Eigenvalues(double *v, double cs2, double h, double *lambda)
+/*!
+ * Compute an approximate expression for the fast magnetosonic speed
+ * using the upper-bound estimated outlined by
+ * Leismann et al. (A&A 2005, 436, 503), Eq. [27].
+ *
+ *********************************************************************** */
+{
+  double vel2, lor2, Bmag2, b2, ca2, om2, vB2;
+  double vB, scrh, vl, vx, vx2;
+
+  vel2  = EXPAND(v[VX1]*v[VX1], + v[VX2]*v[VX2], + v[VX3]*v[VX3]);
+  vB    = EXPAND(v[VX1]*v[BX1], + v[VX2]*v[BX2], + v[VX3]*v[BX3]);
+  Bmag2 = EXPAND(v[BX1]*v[BX1], + v[BX2]*v[BX2], + v[BX3]*v[BX3]);  
+
+  if (vel2 >= 1.0){
+    print ("! Eigenavalues(): |v|^2 = %f > 1\n",vel2);
+    return 1;
+  }
+
+  vx  = v[VXn];
+  vx2 = vx*vx;
+  vB2 = vB*vB;
+  b2  = Bmag2*(1.0 - vel2) + vB2;
+  ca2 = b2/(v[RHO]*h + b2);
+
+  om2  = cs2 + ca2 - cs2*ca2;
+  vl   = vx*(1.0 - om2)/(1.0 - vel2*om2);
+  scrh = om2*(1.0 - vel2)*((1.0 - vel2*om2) - vx2*(1.0 - om2));
+  scrh = sqrt(scrh)/(1.0 - vel2*om2);
+  lambda[KFASTM] = vl - scrh;
+  lambda[KFASTP] = vl + scrh;
+
+  if (fabs(lambda[KFASTM])>1.0 || fabs(lambda[KFASTP]) > 1.0){
+    print ("! Eigenvalues(): vm, vp = %8.3e, %8.3e\n",lambda[KFASTM],lambda[KFASTP]);
+    QUIT_PLUTO(1);
+  }
+  if (lambda[KFASTM] != lambda[KFASTM] || lambda[KFASTP] != lambda[KFASTP]){
+    print ("! Eigenvalues(): nan, vm, vp = %8.3e, %8.3e\n",lambda[KFASTM],lambda[KFASTP]);
+    QUIT_PLUTO(1);
+  }
+   
+  scrh      = fabs(vx)/sqrt(cs2);
+  g_maxMach = MAX(scrh, g_maxMach);
+}
+
+
+
+
 
 #if 1==0   /* this part of the code is beta-testing 
               and is excluded from normal usage  */
@@ -407,7 +463,7 @@ printf ("AA = %12.6e\n",q[BXn]/sqrt(q[BXn]*q[BXn] + q[RHO]*h));
   lambda[KALFVM] = (b[1] - u[1]*sqrt(E))/(b[0] - u[0]*sqrt(E));
   lambda[KENTRP] = q[VXn];
   #ifdef KDIVB
-  #if MHD_FORMULATION != EIGHT_WAVES
+  #if DIVB_CONTROL != EIGHT_WAVES
     lambda[KDIVB]  = 0.0;
   #endif
   #endif
@@ -692,7 +748,7 @@ printf ("SLOW, a = %12.6e, A = %12.6e, B = %12.6e\n",a,A,B);
      -------------------------  */
 
   #ifdef KDIVB
-  #if MHD_FORMULATION != EIGHT_WAVES
+  #if DIVB_CONTROL != EIGHT_WAVES
    k = KDIVB;
    RR[BXn][k] = 1.0;
   #endif
@@ -719,7 +775,7 @@ ShowMatrix(RR);
       RR[nv][k] = LL[k][nv] = (k == nv ? 1.0:0.0);
     }}
     #ifdef KDIVB
-     #if MHD_FORMULATION != EIGHT_WAVES
+     #if DIVB_CONTROL != EIGHT_WAVES
      LL[KDIVB][BXn] = RR[BXn][KDIVB] = 0.0;
      #endif
     #endif
@@ -734,7 +790,7 @@ ShowMatrix(RR);
   }
 
   #ifdef KDIVB
-   #if MHD_FORMULATION != EIGHT_WAVES
+   #if DIVB_CONTROL != EIGHT_WAVES
     LL[KDIVB][BXn] = RR[BXn][KDIVB] = 0.0;
    #endif
   #endif

@@ -43,7 +43,6 @@
   \date   Sep 17, 2012
 */
 /* ///////////////////////////////////////////////////////////////////// */
-
 #include "pluto.h"
 
 /* ********************************************************************* */
@@ -65,11 +64,16 @@ void SetIndexes (Index *indx, Grid *grid)
     EXPAND(VXn = MXn = VX1; , 
            VXt = MXt = VX2; , 
            VXb = MXb = VX3;)
-    #if PHYSICS == MHD || PHYSICS == RMHD
-     EXPAND(BXn = BX1; , 
-            BXt = BX2; ,  
-            BXb = BX3;)
-    #endif
+#if PHYSICS == MHD || PHYSICS == RMHD
+    EXPAND(BXn = BX1; , 
+           BXt = BX2; ,  
+           BXb = BX3;)
+#endif
+#if DUST == YES
+    EXPAND(VXn_D = MXn_D = VX1_D; , 
+           VXt_D = MXt_D = VX2_D; ,  
+           VXb_D = MXb_D = VX3_D;)
+#endif
 
     indx->ntot   = grid[IDIR].np_tot;
     indx->beg    = IBEG; indx->end    = IEND;
@@ -81,11 +85,16 @@ void SetIndexes (Index *indx, Grid *grid)
     EXPAND(VXn = MXn = VX2;  , 
            VXt = MXt = VX1;  , 
            VXb = MXb = VX3;)
-    #if PHYSICS == MHD || PHYSICS == RMHD
-     EXPAND(BXn = BX2; , 
-            BXt = BX1; ,  
-            BXb = BX3;)
-    #endif
+#if PHYSICS == MHD || PHYSICS == RMHD
+    EXPAND(BXn = BX2; , 
+           BXt = BX1; ,  
+           BXb = BX3;)
+#endif
+#if DUST == YES
+    EXPAND(VXn_D = MXn_D = VX2_D; , 
+           VXt_D = MXt_D = VX1_D; ,  
+           VXb_D = MXb_D = VX3_D;)
+#endif
     
     indx->ntot   = grid[JDIR].np_tot;
     indx->beg    = JBEG; indx->end    = JEND;
@@ -102,6 +111,11 @@ void SetIndexes (Index *indx, Grid *grid)
      BXt = BX1;
      BXb = BX2;
     #endif
+#if DUST == YES
+    EXPAND(VXn_D = MXn_D = VX3_D; , 
+           VXt_D = MXt_D = VX1_D; ,  
+           VXb_D = MXb_D = VX2_D;)
+#endif
 
     indx->ntot   = grid[KDIR].np_tot;
     indx->beg    = KBEG; indx->end    = KEND;

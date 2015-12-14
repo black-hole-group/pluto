@@ -123,7 +123,7 @@ void RightHandSide (const State_1D *state, Time_Step *Dts,
        I1. initialize rhs with flux difference
        ----------------------------------------------- */
 
-      VAR_LOOP(nv) rhs[i][nv] = -dtdx*(flux[i][nv] - flux[i-1][nv]);
+      NVAR_LOOP(nv) rhs[i][nv] = -dtdx*(flux[i][nv] - flux[i-1][nv]);
       #if USE_PR_GRADIENT == YES
        rhs[i][MX1] -= dtdx*(p[i] - p[i-1]);
       #endif
@@ -172,7 +172,7 @@ void RightHandSide (const State_1D *state, Time_Step *Dts,
        J1. initialize rhs with flux difference
        ----------------------------------------------- */
 
-      VAR_LOOP(nv) rhs[j][nv] = -dtdx*(flux[j][nv] - flux[j-1][nv]);
+      NVAR_LOOP(nv) rhs[j][nv] = -dtdx*(flux[j][nv] - flux[j-1][nv]);
       #if USE_PR_GRADIENT == YES
        rhs[j][MX2] -= dtdx*(p[j] - p[j-1]);
       #endif
@@ -218,7 +218,7 @@ void RightHandSide (const State_1D *state, Time_Step *Dts,
        K1. initialize rhs with flux difference
        ----------------------------------------------- */
 
-      VAR_LOOP(nv) rhs[k][nv] = -dtdx*(flux[k][nv] - flux[k-1][nv]);
+      NVAR_LOOP(nv) rhs[k][nv] = -dtdx*(flux[k][nv] - flux[k-1][nv]);
       #if USE_PR_GRADIENT == YES
        rhs[k][MX3] -= dtdx*(p[k] - p[k-1]);
       #endif
@@ -278,7 +278,7 @@ void RightHandSide (const State_1D *state, Time_Step *Dts,
       #ifdef GLM_MHD
        fA[i][PSI_GLM] = flux[i][PSI_GLM]*R;
       #endif
-      for (nv = NFLX; nv < NVAR; nv++) fA[i][nv] = flux[i][nv]*R;
+       NSCL_LOOP(nv) fA[i][nv] = flux[i][nv]*R;
     }
 
   /* ****************************************************
@@ -321,9 +321,8 @@ void RightHandSide (const State_1D *state, Time_Step *Dts,
       #if HAVE_ENERGY
        rhs[i][ENG] = -dtdV*(fA[i][ENG] - fA[i-1][ENG]);
       #endif
-      for (nv = NFLX; nv < NVAR; nv++) {
-        rhs[i][nv] = -dtdV*(fA[i][nv] - fA[i-1][nv]);
-      }
+       NSCL_LOOP(nv) rhs[i][nv] = -dtdV*(fA[i][nv] - fA[i-1][nv]);
+      
 
     /* -------------------------------------------------------
        I2. Add source terms
@@ -386,7 +385,7 @@ void RightHandSide (const State_1D *state, Time_Step *Dts,
        J1. initialize rhs with flux difference
        ----------------------------------------------- */
 
-      VAR_LOOP(nv) rhs[j][nv] = -dtdx*(flux[j][nv] - flux[j-1][nv]);
+      NVAR_LOOP(nv) rhs[j][nv] = -dtdx*(flux[j][nv] - flux[j-1][nv]);
       #if USE_PR_GRADIENT == YES
        rhs[j][iMZ] += - dtdx*(p[j] - p[j-1]);
       #endif
@@ -447,7 +446,7 @@ void RightHandSide (const State_1D *state, Time_Step *Dts,
       #ifdef GLM_MHD
        fA[i][PSI_GLM] = flux[i][PSI_GLM]*R;
       #endif
-      for (nv = NFLX; nv < NVAR; nv++) fA[i][nv] = flux[i][nv]*R;
+       NSCL_LOOP(nv) fA[i][nv] = flux[i][nv]*R;
     }
 
   /* ****************************************************
@@ -490,9 +489,9 @@ void RightHandSide (const State_1D *state, Time_Step *Dts,
       #if HAVE_ENERGY
        rhs[i][ENG] = -dtdV*(fA[i][ENG] - fA[i-1][ENG]);
       #endif
-      for (nv = NFLX; nv < NVAR; nv++) {
-        rhs[i][nv] = -dtdV*(fA[i][nv] - fA[i-1][nv]);
-      }
+      
+       NSCL_LOOP(nv)  rhs[i][nv] = -dtdV*(fA[i][nv] - fA[i-1][nv]);
+      
 
     /* ----------------------------------------------------
        I2. Add source terms to the radial momentum eqn.
@@ -552,7 +551,7 @@ void RightHandSide (const State_1D *state, Time_Step *Dts,
        J1. Compute equations rhs for phi-contributions
        ------------------------------------------------ */
 
-      VAR_LOOP(nv) rhs[j][nv] = -dtdx*(flux[j][nv] - flux[j-1][nv]);
+      NVAR_LOOP(nv) rhs[j][nv] = -dtdx*(flux[j][nv] - flux[j-1][nv]);
       rhs[j][iMPHI] -= dtdx*(p[j] - p[j-1]);
 
     /* -------------------------------------------------------
@@ -590,7 +589,7 @@ void RightHandSide (const State_1D *state, Time_Step *Dts,
        K1. initialize rhs with flux difference
        ----------------------------------------------- */
 
-      VAR_LOOP(nv) rhs[k][nv] = -dtdx*(flux[k][nv] - flux[k-1][nv]);
+      NVAR_LOOP(nv) rhs[k][nv] = -dtdx*(flux[k][nv] - flux[k-1][nv]);
       rhs[k][iMZ] -= dtdx*(p[k] - p[k-1]);
 
     /* ----------------------------------------------------
@@ -653,7 +652,7 @@ void RightHandSide (const State_1D *state, Time_Step *Dts,
       #ifdef GLM_MHD
        fA[i][PSI_GLM] = flux[i][PSI_GLM]*r2;
       #endif
-      for (nv = NFLX; nv < NVAR; nv++) fA[i][nv] = flux[i][nv]*r2;
+       NSCL_LOOP(nv) fA[i][nv] = flux[i][nv]*r2;
     } 
 
   /* ****************************************************
@@ -701,9 +700,9 @@ void RightHandSide (const State_1D *state, Time_Step *Dts,
        rhs[i][ENG] = -dtdV*(fA[i][ENG] - fA[i-1][ENG]);
       #endif
 
-      for (nv = NFLX; nv < NVAR; nv++){
-        rhs[i][nv] = -dtdV*(fA[i][nv] - fA[i-1][nv]);
-      }
+      
+       NSCL_LOOP(nv)  rhs[i][nv] = -dtdV*(fA[i][nv] - fA[i-1][nv]);
+      
 
     /* ----------------------------------------------------
        I2. Add source terms 
@@ -722,8 +721,8 @@ void RightHandSide (const State_1D *state, Time_Step *Dts,
               mphi = wt*v[iVPHI] - vB*v[iBPHI];)
       #elif PHYSICS == RHD
        wt   = v[RHO]*h[i]*lor2;
-       EXPAND(                          ,
-              mth  = wt*v[iVTH];        ,
+       EXPAND(                 ;     ,
+              mth  = wt*v[iVTH];     ,
               mphi = wt*v[iVPHI];)
       #endif
 
@@ -776,7 +775,7 @@ void RightHandSide (const State_1D *state, Time_Step *Dts,
       #ifdef GLM_MHD
        fA[j][PSI_GLM] = flux[j][PSI_GLM]*s;
       #endif
-      for (nv = NFLX; nv < NVAR; nv++) fA[j][nv] = flux[j][nv]*s;
+       NSCL_LOOP(nv) fA[j][nv] = flux[j][nv]*s;
     }
 
   /* ****************************************************
@@ -789,7 +788,6 @@ void RightHandSide (const State_1D *state, Time_Step *Dts,
        - add gravity                          (J4)
      **************************************************** */
     
-//    r_1 = grid[IDIR].r_1[i];
     r_1 = 0.5*(x1p[i]*x1p[i] - x1p[i-1]*x1p[i-1])/dV1[i];
 
     #if COMPONENTS >= 2  /* -- need enthalpy for source term computation -- */
@@ -828,9 +826,9 @@ void RightHandSide (const State_1D *state, Time_Step *Dts,
       #if HAVE_ENERGY
        rhs[j][ENG] = -dtdV*(fA[j][ENG] - fA[j-1][ENG]);
       #endif
-      for (nv = NFLX; nv < NVAR; nv++){
-        rhs[j][nv] = -dtdV*(fA[j][nv] - fA[j-1][nv]);
-      }
+      
+       NSCL_LOOP(nv)  rhs[j][nv] = -dtdV*(fA[j][nv] - fA[j-1][nv]);
+      
 
     /* ----------------------------------------------------
        J2. Add source terms
@@ -848,8 +846,8 @@ void RightHandSide (const State_1D *state, Time_Step *Dts,
               mphi = wt*v[iVPHI] - vB*v[iBPHI];)
       #elif PHYSICS == RHD
        wt   = v[RHO]*h[j]*lor2;
-       EXPAND(                          ,
-              mth  = wt*v[iVTH];        ,
+       EXPAND(                 ;      ,
+              mth  = wt*v[iVTH];      ,
               mphi = wt*v[iVPHI];)
       #endif
 
@@ -895,7 +893,7 @@ void RightHandSide (const State_1D *state, Time_Step *Dts,
        K1.  initialize rhs with flux difference
        ------------------------------------------------ */
 
-      VAR_LOOP(nv) rhs[k][nv] = -dtdx*(flux[k][nv] - flux[k-1][nv]);
+      NVAR_LOOP(nv) rhs[k][nv] = -dtdx*(flux[k][nv] - flux[k-1][nv]);
       rhs[k][iMPHI] -= dtdx*(p[k] - p[k-1]); 
 
     /* -------------------------------------------------------
@@ -920,7 +918,7 @@ void RightHandSide (const State_1D *state, Time_Step *Dts,
    -------------------------------------------------- */
 
   #if PHYSICS == RMHD
-   #if MHD_FORMULATION == EIGHT_WAVES
+   #if DIVB_CONTROL == EIGHT_WAVES
     for (i = beg; i <= end; i++) {
       EXPAND(rhs[i][MX1] += dt*state->src[i][MX1];  ,
              rhs[i][MX2] += dt*state->src[i][MX2];  ,
@@ -940,8 +938,8 @@ void RightHandSide (const State_1D *state, Time_Step *Dts,
             Extended GLM source terms
    ------------------------------------------------- */
 
-  #if (defined GLM_MHD) && (EGLM == YES)
-   print1 ("! RHS: EGLM source terms not defined for RMHD\n");
+  #if (defined GLM_MHD) && (GLM_EXTENDED == YES)
+   print1 ("! RightHandSide(): Extended GLM source terms not defined for RMHD\n");
    QUIT_PLUTO(1);
   #endif
 

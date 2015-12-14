@@ -1,6 +1,6 @@
 NAME : pyPLUTO 
 
-TASK : Quick Tool for Visualization of PLUTO 4.1 code [Mignone 2007] data
+TASK : Quick Tool for Visualization of PLUTO 4 data [Mignone 2007]
 
 AUTHOR : Bhargav Vaidya [University of Torino, Italy.]
 

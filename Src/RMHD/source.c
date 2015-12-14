@@ -1,6 +1,6 @@
 #include "pluto.h"
 
-#if MHD_FORMULATION == EIGHT_WAVES
+#if DIVB_CONTROL == EIGHT_WAVES
 /* *************************************************************************  */
 void POWELL_DIVB_SOURCE(const State_1D *state, int is, int ie, Grid *grid)
 /*

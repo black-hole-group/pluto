@@ -149,7 +149,7 @@ void Startup (Data *d, Grid *G)
        }
       #else
        for (nv = 0; nv < DIMENSIONS; nv++) {
-         d->Vc[BX+nv][k][j][i] = b[nv];
+         d->Vc[BX1+nv][k][j][i] = b[nv];
        }
       #endif
 
@@ -204,19 +204,20 @@ void Startup (Data *d, Grid *G)
     for (nv = NVAR; nv--;  ) us[nv] = d->Vc[nv][k][j][i];
 
     if (us[RHO] <= 0.0) {
-      print ("! Startup: density is negative, zone [%f, %f, %f]\n", x1,x2,x3);
+      print ("! Startup(): negative density, zone [%f, %f, %f]\n", x1,x2,x3);
       QUIT_PLUTO(1);
     }
     #if HAVE_ENERGY
      if (us[PRS] <= 0.0) {
-       print ("! Startup: pressure is negative, zone [%f, %f, %f]\n",x1,x2,x3);
+       print ("! Startup(): negative pressure, zone [%f, %f, %f]\n",x1,x2,x3);
        QUIT_PLUTO(1);
      }
     #endif
-    #if (PHYSICS == RHD && USE_FOUR_VELOCITY == NO) || PHYSICS == RMHD
+
+    #if (PHYSICS == RHD || PHYSICS == RMHD) 
      scrh = EXPAND(us[VX1]*us[VX1], + us[VX2]*us[VX2], + us[VX3]*us[VX3]);
      if (scrh >= 1.0){
-       print ("! Startup: total velocity exceeds 1\n"); 
+       print ("! Startup(): total velocity exceeds 1\n"); 
        QUIT_PLUTO(1);
      }
     #endif

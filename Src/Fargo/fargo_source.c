@@ -1,133 +1,52 @@
+/* ///////////////////////////////////////////////////////////////////// */
+/*! 
+  \file  
+  \brief Add source terms before the FARGO advection step.
+  
+  This function is called prior to the FARGO advection algorithm to add
+  source terms.
+  At present, we use it only for the energy equation in the
+  ShearingBox module:
+  \f[ 
+     \pd{E'}{t} + w\pd{E'}{y} = (B_xB_y - \rho v_xv'_y)\pd{w}{x}
+  \f]
+  where \f$w = -q\Omega x\f$.
+  The discretization follows the algorithm of [GS10], see
+  Eq. (51) and (63) of that paper.
+
+  \b Reference
+     - [GS10] "Implementation of the shearing box approximation in Athena",
+       Stone & Gardiner, ApJS (2010) 189, 142.
+ 
+  \author A. Mignone (mignone@ph.unito.it)
+  \date   Aug 26, 2015
+*/
+/* ///////////////////////////////////////////////////////////////////// */
 #include "pluto.h"
 
 /* ********************************************************************* */
-void FARGO_ADD_SOURCE(const State_1D *state, int beg, int end, 
-                      double dt, Grid *grid)
-/* 
- * PURPOSE
+void FARGO_Source(Data_Arr UU, double dt, Grid *grid)
+/*!
  *
- *   Add source terms to the azimuthal component of the momentum
- *   equation.
- * 
+ * \param [in,out] UU     an array of conserved variables
+ * \param [in]     dt     the current time increment
+ * \param [in]     grid   pointer to an array of Grid structures 
  *********************************************************************** */
 {
-  int    i;
-  double w, dw, vphi;
-  double **rhs, *u, *v, **wA;
-  double *r, *ct, *dx;
+#if (HAVE_ENERGY) && (defined SHEARINGBOX)
+  int    i,j,k;
+  double scrh, rho, mx, my, Bx, By;
 
-  wA  = FARGO_GetVelocity();
-  rhs = state->rhs;
-  dx  = grid[g_dir].dx;
+  scrh = SB_Q*SB_OMEGA;
+  DOM_LOOP(k,j,i){
+    rho = UU[k][j][i][RHO];
+    mx  = UU[k][j][i][MX1];
+    my  = UU[k][j][i][MX2];
+    Bx  = UU[k][j][i][BX1];
+    By  = UU[k][j][i][BX2];
 
-  #if GEOMETRY == CARTESIAN
-
-   if (g_dir == IDIR){
-
-     for (i = beg; i <= end; i++){
-       v  = state->vh[i]; 
-       dw = 0.5*(wA[g_k][i+1] - wA[g_k][i-1])/dx[i];
-
-       rhs[i][MX2] -= dt*u[MX1]*dw;
-       #if HAVE_ENERGY
-        rhs[i][ENG] -= dt*v[VX2]*u[MX1]*dw;
-        #if PHYSICS == MHD
-         rhs[i][ENG] += dt*v[BX2]*v[BX1]*dw;
-        #endif
-       #endif
-     }
-
-   } else if (g_dir == KDIR){
-
-     for (i = beg; i <= end; i++){
-       v  = state->vh[i]; u = state->uh[i];
-       dw = 0.5*(wA[i+1][g_i] - wA[i-1][g_i])/dx[i];
-       
-       rhs[i][MX2] -= dt*u[MX3]*dw;
-       #if HAVE_ENERGY
-        rhs[i][ENG] -= dt*v[VX2]*u[MX3]*dw;
-        #if PHYSICS == MHD
-         rhs[i][ENG] += dt*v[BX2]*v[BX3]*dw;
-        #endif
-       #endif
-     }
-   } 
-   
-  #elif GEOMETRY == POLAR
-
-   r = grid[IDIR].x;
-   if (g_dir == IDIR){
-
-     for (i = beg; i <= end; i++){
-       v  = state->vh[i]; u = state->uh[i];
-       w  = wA[g_k][i];
-       dw = 0.5*(wA[g_k][i+1] - wA[g_k][i-1])/dx[i];
-
-       rhs[i][iMPHI] -= dt*u[iMR]*(dw + w/r[i]);
-       #if HAVE_ENERGY
-        vphi = v[iVPHI] + w;
-        rhs[i][ENG] += dt*u[iMR]*(vphi*w/r[i] - v[iVPHI]*dw);
-        #if PHYSICS == MHD
-         rhs[i][ENG] -= dt*v[iBR]*v[iBPHI]*(w/r[i] - dw);
-        #endif
-       #endif
-     }
-
-   }else if (g_dir == KDIR){
-
-     for (i = beg; i <= end; i++){
-       v  = state->vh[i]; u = state->uh[i];
-       w  = wA[i][g_i];
-       dw = 0.5*(wA[i+1][g_i] - wA[i-1][g_i])/dx[i];
-       
-       rhs[i][iMPHI] -= dt*u[MX3]*dw;
-       #if HAVE_ENERGY
-        rhs[i][ENG] -= dt*v[VX2]*u[MX3]*dw;
-        #if PHYSICS == MHD
-         rhs[i][ENG] += dt*v[BX2]*v[BX3]*dw;
-        #endif
-       #endif
-     }
-   }
-
-  #elif GEOMETRY == SPHERICAL
-
-   r  = grid[IDIR].x;
-   if (g_dir == IDIR){
-
-     for (i = beg; i <= end; i++){
-       v  = state->vh[i]; u = state->uh[i];
-       w  = wA[g_j][i];
-       dw = 0.5*(wA[g_j][i+1] - wA[g_j][i-1])/dx[i];
-
-       rhs[i][iMPHI] -= dt*u[iMR]*(dw + w/r[i]);
-       #if HAVE_ENERGY
-        vphi = v[iVPHI] + w;
-        rhs[i][ENG] += dt*u[iMR]*(vphi*w/r[i] - v[iVPHI]*dw);
-        #if PHYSICS == MHD
-         rhs[i][ENG] -= dt*v[iBR]*v[iBPHI]*(w/r[i] - dw); 
-        #endif
-       #endif
-     }
-
-   }else if (g_dir == JDIR){
-
-     ct = grid[JDIR].ct;
-     for (i = beg; i <= end; i++){
-       v  = state->vh[i]; u = state->uh[i];
-       w  = wA[i][g_i];
-       dw = 0.5*(wA[i+1][g_i] - wA[i-1][g_i])/(r[g_i]*dx[i]);
-
-       rhs[i][iMPHI] -= dt*u[iMTH]*(dw + ct[i]*w/r[g_i]);
-
-       #if HAVE_ENERGY
-        vphi = v[iVPHI] + w;
-        rhs[i][ENG] += dt*u[iMTH]*(ct[i]*vphi*w/r[i] - v[iVPHI]*dw);
-        #if PHYSICS == MHD
-         rhs[i][ENG] -= dt*v[iBTH]*v[iBPHI]*(ct[i]*w/r[g_i] - dw); 
-        #endif
-       #endif
-     }
-   }
-  #endif /* GEOMETRY == SPHERICAL */
+    UU[k][j][i][ENG] += - dt*scrh*Bx*(By - 0.5*dt*Bx*scrh)
+                        + dt*scrh*mx*my/rho;
+  }
+#endif
 }

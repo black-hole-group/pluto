@@ -16,7 +16,7 @@
       else                       --> p = p(E)
   
   \author A. Mignone (mignone@ph.unito.it)
-  \date   Oct 4, 2012
+  \date   June 25, 2015
 */
 /* ///////////////////////////////////////////////////////////////////// */
 #include "pluto.h"
@@ -53,30 +53,22 @@ void PrimToCons  (double *uprim[], double *ucons[],
 
     g = EXPAND(v[VX1]*v[VX1], +v[VX2]*v[VX2], +v[VX3]*v[VX3]);
 
-    #if USE_FOUR_VELOCITY == YES
-     g       = sqrt(1.0 + g);
-     scrh    = v[RHO]*h[ii]*g;
-     rhoh_g2 = scrh*g;
-    #else
+    if (g >= 1.0){
+      WARNING( 
+        print ("! u^2 > 1 (%f) in PrimToCons\n", scrh);
+        Where (ii, NULL);
+      )
 
-     if (g >= 1.0){
-       WARNING( 
-         print ("! u^2 > 1 (%f) in PrimToCons\n", scrh);
-         Where (ii, NULL);
-       )
+      g = beta_fix/sqrt(g);
+      EXPAND(v[VX1] *= g;  ,
+             v[VX2] *= g;  ,
+             v[VX3] *= g;)
 
-       g = beta_fix/sqrt(g);
-       EXPAND(v[VX1] *= g;  ,
-              v[VX2] *= g;  ,
-              v[VX3] *= g;)
-
-       g = beta_fix*beta_fix;
-     }
-     g    = 1.0/(1.0 - g);
-     scrh = rhoh_g2 = v[RHO]*h[ii]*g;
-     g    = sqrt(g);
-
-    #endif
+      g = beta_fix*beta_fix;
+    }
+    g    = 1.0/(1.0 - g);
+    scrh = rhoh_g2 = v[RHO]*h[ii]*g;
+    g    = sqrt(g);
 
     u[RHO] = v[RHO]*g;
     EXPAND(u[MX1] = scrh*v[VX1];  ,
@@ -85,7 +77,9 @@ void PrimToCons  (double *uprim[], double *ucons[],
 
     ucons[ii][ENG] = rhoh_g2 - v[PRS];
 
-    for (nv = NFLX; nv < (NFLX + NSCL); nv++) u[nv] = v[nv]*u[RHO];
+#if NSCL > 0    
+    NSCL_LOOP(nv) u[nv] = v[nv]*u[RHO];
+#endif    
 
     #if CHECK_CONSERVATIVE_VAR == YES
      m2 = EXPAND(u[MX1]*u[MX1], + u[MX2]*u[MX2], + u[MX3]*u[MX3]);
@@ -110,39 +104,40 @@ int ConsToPrim (double **ucons, double **uprim, int ibeg, int iend,
 /*!
  * Convert from conservative to primitive variables.
  *
- * \param [in]  ucons  array of conservative variables
- * \param [out] uprim  array of primitive variables
- * \param [in]  beg    starting index of computation
- * \param [in]  end    final index of computation
- * \param [out] flag   array of flags tagging zones where conversion
- *                     went wrong.
+ * \param [in]  ucons      array of conservative variables
+ * \param [out] uprim      array of primitive variables
+ * \param [in]  beg        starting index of computation
+ * \param [in]  end        final index of computation
+ * \param [in,out] flag    array of flags tagging, in input, zones
+ *                         where entropy must be used to recover pressure
+ *                         and, on output, zones where conversion was
+ *                         not successful.
  * 
- * \return Return (0) if conversion was succesful in every zone 
- *         [ibeg,iend]. 
- *         Otherwise, return a non-zero integer number giving the bit 
- *         flag(s) turned on during the conversion process.
- *         In this case, flag contains the failure codes of those
- *         zones where where conversion did not go through.
+ * \return Return 0 if conversion was successful in all zones in the 
+ *         range [ibeg,iend].
+ *         Return 1 if one or more zones could not be converted correctly
+ *         and either pressure, density or energy took non-physical values. 
  *
  *********************************************************************** */
 {
-  int     nv, i, status=0, use_energy;
+  int    nv, i, err, ifail;
+  int    use_entropy, use_energy=1;
   double  scrh, m, g;
   double *u, *v;
   Map_param par;
 
+  ifail = 0;
   for (i = ibeg; i <= iend; i++) {
 
-    flag[i] = 0;
     u = ucons[i];
     v = uprim[i];
 
-/* ------------------------------------------------------------
+  /* -----------------------------------------------------------
       Define the input parameters of the parameter structure
-   ------------------------------------------------------------ */
+     ----------------------------------------------------------- */
 
-    par.D  = u[DN];
-    par.E  = u[EN];
+    par.D  = u[RHO];
+    par.E  = u[ENG];
     par.m2 = EXPAND(u[MX1]*u[MX1], + u[MX2]*u[MX2], + u[MX3]*u[MX3]);
 
   /* -------------------------------------------
@@ -153,7 +148,8 @@ int ConsToPrim (double **ucons, double **uprim, int ibeg, int iend,
       print("! ConsToPrim: negative density (%8.2e), ", u[RHO]);
       Where (i, NULL);
       u[RHO]   = g_smallDensity;
-      flag[i] |= RHO_FAIL;
+      flag[i] |= FLAG_CONS2PRIM_FAIL;
+      ifail    = 1;
     }
 
     if (u[ENG] < 0.0) {
@@ -162,61 +158,51 @@ int ConsToPrim (double **ucons, double **uprim, int ibeg, int iend,
         Where (i, NULL);
       )
       u[ENG]   = sqrt(1.e-8 + par.m2 + u[RHO]*u[RHO]);
-      flag[i] |= ENG_FAIL;
+      flag[i] |= FLAG_CONS2PRIM_FAIL;
+      ifail    = 1;
     }
 
-/*
-    scrh = sqrt(m2 + u[RHO]*u[RHO]);
-    if (u[ENG] < scrh){
-      WARNING( 
-        print ("! ConsToPrim: E*E < m*m + D*D, ");
-        Where(i, NULL);
-      )
-      u[ENG]   = sqrt(scrh*scrh + 1.e-9); 
-      u[ENG]   = sqrt(scrh*scrh + g_smallPressure*g_smallPressure);
-      flag[i] |= ENG_FAIL;
-    }
-*/
   /* --------------------------------
       recover pressure by inverting 
       the energy or entropy equation.
      -------------------------------- */
 
-    use_energy = 1; /* -- default -- */
-    #if ENTROPY_SWITCH == YES
-     par.sigma_c = u[ENTR];
-     #ifdef CH_SPACEDIM
-      if (g_intStage > 0)   /* -- hot fix to be used with Chombo: avoid calling 
-                             CheckZone when writing file to disk          -- */
-     #endif
-     if (CheckZone(i,FLAG_ENTROPY)) {
-       use_energy = 0;
-       if (EntropySolve(&par) != 0) {
-         flag[i] |= ENG_FAIL;
-         WARNING(Where (i, NULL);)
-         if (PressureFix(&par) != 0) flag[i] = PRS_FAIL;
-         u[ENG] = par.E;
-       }
-     } 
-    #endif
+#if ENTROPY_SWITCH
+    use_entropy = (flag[i] & FLAG_ENTROPY);
+    use_energy  = !use_entropy;
+    par.sigma_c = u[ENTR];
+    if (use_entropy) {
+      err = EntropySolve(&par);      
+      if (err) {
+        WARNING(Where (i, NULL);)
+        err = PressureFix(&par);
+        if (err){
+          Where(i,NULL);
+          QUIT_PLUTO(1);
+        }
+        flag[i] |= FLAG_CONS2PRIM_FAIL;
+        ifail    = 1;
+      }
+      u[ENG] = par.E;  /* Redefine energy */
+    } 
+#endif
  
     if (use_energy){
-      if (EnergySolve (&par) != 0){
+      err = EnergySolve(&par);
+      if (err){
         WARNING(Where(i,NULL);)
-        flag[i] |= ENG_FAIL;
-        if (PressureFix(&par) != 0) flag[i] |= PRS_FAIL;
-        u[ENG] = par.E;
+        err = PressureFix(&par);
+        if (err){
+          Where(i,NULL);
+          QUIT_PLUTO(1);
+        }
+        u[ENG]   = par.E;
+        flag[i] |= FLAG_CONS2PRIM_FAIL;
+        ifail    = 1;
       }
-    }
-
-  /* --------------------------------
-      quit if a consistent pressure 
-      value could not be found.  
-     -------------------------------- */
-    
-    if (flag[i] & PRS_FAIL){
-      Where(i,NULL);
-      QUIT_PLUTO(1);
+#if ENTROPY_SWITCH  
+      u[ENTR] = par.sigma_c;  /* Redefine entropy */
+#endif      
     }
 
   /*  ------------------------------------------
@@ -232,16 +218,13 @@ int ConsToPrim (double **ucons, double **uprim, int ibeg, int iend,
 
     g = EXPAND(v[VX1]*v[VX1], + v[VX2]*v[VX2], + v[VX3]*v[VX3]);
     g = 1.0/sqrt(1.0 - g);
-    #if USE_FOUR_VELOCITY == YES
-     EXPAND(v[VX1] *= g;  ,
-            v[VX2] *= g;  ,
-            v[VX3] *= g;)
-    #endif
     v[RHO] = u[RHO]/g;
 
-    for (nv = NFLX; nv < NVAR; nv++) v[nv] = u[nv]/u[RHO];
-    status |= flag[i];
+#if NSCL > 0     
+    NSCL_LOOP(nv)  v[nv] = u[nv]/u[RHO];
+#endif
+
   }
 
-  return(status);
+  return ifail;
 }

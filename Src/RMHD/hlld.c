@@ -154,7 +154,7 @@ void HLLD_Solver (const State_1D *state, int beg, int end,
     hR  = ARRAY_1D(NMAX_POINT, double);
   }
 /*
-  #if MHD_FORMULATION == EIGHT_WAVES
+  #if DIVB_CONTROL == EIGHT_WAVES
    print ("! hlld Riemann solver does not work with Powell's 8-wave\n");
    QUIT_PLUTO(1);
   #endif
@@ -228,28 +228,28 @@ void HLLD_Solver (const State_1D *state, int beg, int end,
         Fhll[i][nv] *= dS_1;
       }
       Uhll[i][MXn] += (pL[i] - pR[i])*dS_1;
-      #if NSCL > 0 
-       for (nv = NFLX; nv < NVAR; nv++){
-         Uhll[i][nv]  = (SR[i] - vR[VXn])*uR[nv] - (SL[i] - vL[VXn])*uL[nv];
-         Uhll[i][nv] *= dS_1;
+#if NSCL > 0 
+      NSCL_LOOP(nv) {
+        double vxR = vR[VXn];
+        double vxL = vL[VXn];
+        Uhll[i][nv]  = (SR[i] - vxR)*uR[nv] - (SL[i] - vxL)*uL[nv];
+        Uhll[i][nv] *= dS_1;
 
-         Fhll[i][nv]  =   SR[i]*uL[nv]*vL[VXn] - SL[i]*uR[nv]*vR[VXn] 
-                        + SL[i]*SR[i]*(uR[nv] - uL[nv]);
-         Fhll[i][nv] *= dS_1;
-       }
-      #endif
+        Fhll[i][nv]  =   SR[i]*uL[nv]*vL[VXn] - SL[i]*uR[nv]*vR[VXn] 
+                       + SL[i]*SR[i]*(uR[nv] - uL[nv]);
+        Fhll[i][nv] *= dS_1;
+      }
+#endif
 
   /* ---- revert to HLL in proximity of strong shocks ---- */
 
-      #if SHOCK_FLATTENING == MULTID
-       if (CheckZone(i, FLAG_HLL) || CheckZone(i+1, FLAG_HLL)){
-         for (nv = NFLX; nv--; ){
-           state->flux[i][nv] = Fhll[i][nv];
-         }
-         state->press[i] = (SR[i]*pL[i] - SL[i]*pR[i])*dS_1;
-         continue;
-       }
-      #endif
+#if SHOCK_FLATTENING == MULTID
+      if ((state->flag[i] & FLAG_HLL) || (state->flag[i+1] & FLAG_HLL)){        
+        for (nv = NFLX; nv--; ) state->flux[i][nv] = Fhll[i][nv];
+        state->press[i] = (SR[i]*pL[i] - SL[i]*pR[i])*dS_1;
+        continue;
+      }
+#endif
 
   /* ---- proceed normally otherwise ---- */
 
@@ -262,7 +262,7 @@ void HLLD_Solver (const State_1D *state, int beg, int end,
       }
       PaL.R[MXn] -= pL[i];
       PaR.R[MXn] -= pR[i];
-      #if SUBTRACT_DENSITY == YES
+      #if RMHD_REDUCED_ENERGY == YES
        PaL.R[ENG] += PaL.R[RHO];
        PaR.R[ENG] += PaR.R[RHO];
       #endif
@@ -348,7 +348,7 @@ HLLD_PrintWhatsWrong(&PaL, &PaR, phll, phll, p0Bx, p, vL, vR);
       if (PaL.Sa >= -1.e-6){      
 
         HLLD_GetAState (&PaL, p);
-        #if SUBTRACT_DENSITY == YES
+        #if RMHD_REDUCED_ENERGY == YES
          PaL.u[ENG] -= PaL.u[RHO];
         #endif
         for (nv = NFLX; nv--;   ) {
@@ -359,7 +359,7 @@ HLLD_PrintWhatsWrong(&PaL, &PaR, phll, phll, p0Bx, p, vL, vR);
       }else if (PaR.Sa <= 1.e-6){
 
         HLLD_GetAState (&PaR, p);
-        #if SUBTRACT_DENSITY == YES
+        #if RMHD_REDUCED_ENERGY == YES
          PaR.u[ENG] -= PaR.u[RHO];
         #endif
         for (nv = NFLX; nv--;   ) {
@@ -371,7 +371,7 @@ HLLD_PrintWhatsWrong(&PaL, &PaR, phll, phll, p0Bx, p, vL, vR);
 
         HLLD_GetCState (&PaL, &PaR, p, Uc);
         if (Sc > 0.0){
-          #if SUBTRACT_DENSITY == YES
+          #if RMHD_REDUCED_ENERGY == YES
            PaL.u[ENG] -= PaL.u[RHO];
            Uc[ENG]    -= Uc[RHO];
           #endif
@@ -382,7 +382,7 @@ HLLD_PrintWhatsWrong(&PaL, &PaR, phll, phll, p0Bx, p, vL, vR);
           state->press[i] = pL[i];
 
         }else{
-          #if SUBTRACT_DENSITY == YES
+          #if RMHD_REDUCED_ENERGY == YES
            PaR.u[ENG] -= PaR.u[RHO];
            Uc[ENG]    -= Uc[RHO];
           #endif
@@ -400,7 +400,7 @@ HLLD_PrintWhatsWrong(&PaL, &PaR, phll, phll, p0Bx, p, vL, vR);
               initialize source term
    -------------------------------------------------------- */
  
-  #if MHD_FORMULATION == EIGHT_WAVES
+  #if DIVB_CONTROL == EIGHT_WAVES
    HLL_DIVB_SOURCE (state, Uhll, beg + 1, end, grid);
   #endif
 
@@ -678,20 +678,19 @@ void HLLD_GetCState (Riemann_State *PaL, Riemann_State *PaR, double p,
 }
 
 /* ********************************************************************* */
-double HLLD_TotalPressure (double *V)
+double HLLD_TotalPressure (double *v)
 /*!
  * Compute total pressure
  *
  *********************************************************************** */
 {
-  double vel2, Bmag2, vB;
+  double vel2, Bmag2, vB, lor2;
   double pt;
 
-  vel2  = EXPAND(V[VX1]*V[VX1], + V[VX2]*V[VX2], + V[VX3]*V[VX3]);
-  Bmag2 = EXPAND(V[BX1]*V[BX1], + V[BX2]*V[BX2], + V[BX3]*V[BX3]);
-  vB    = EXPAND(V[VX1]*V[BX1], + V[VX2]*V[BX2], + V[VX3]*V[BX3]);
-          
-  pt = V[PRS] + 0.5*(Bmag2*(1.0 - vel2) + vB*vB);
+  Bmag2 = EXPAND(v[BX1]*v[BX1], + v[BX2]*v[BX2], + v[BX3]*v[BX3]);
+  vel2  = EXPAND(v[VX1]*v[VX1], + v[VX2]*v[VX2], + v[VX3]*v[VX3]);
+  vB    = EXPAND(v[VX1]*v[BX1], + v[VX2]*v[BX2], + v[VX3]*v[BX3]);
+  pt   = v[PRS] + 0.5*(Bmag2*(1.0 - vel2) + vB*vB);
   return(pt);  
 }
 

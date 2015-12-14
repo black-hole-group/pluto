@@ -4,12 +4,11 @@
 #define  GEOMETRY                CYLINDRICAL
 #define  BODY_FORCE              NO
 #define  COOLING                 NO
-#define  INTERPOLATION           PARABOLIC
+#define  RECONSTRUCTION          PARABOLIC
 #define  TIME_STEPPING           RK3
 #define  DIMENSIONAL_SPLITTING   NO
 #define  NTRACER                 0
 #define  USER_DEF_PARAMETERS     4
-#define  USER_DEF_CONSTANTS      0
 
 /* -- physics dependent declarations -- */
 
@@ -26,16 +25,17 @@
 #define  CS_AMB                  2
 #define  V_CSM                   3
 
-/* -- user-defined symbolic constants -- */
+/* [Beg] user-defined constants (do not change this line) */
 
+
+/* [End] user-defined constants (do not change this line) */
 
 /* -- supplementary constants (user editable) -- */ 
 
-#define  INITIAL_SMOOTHING      NO
-#define  WARNING_MESSAGES       YES
-#define  PRINT_TO_FILE          YES
-#define  INTERNAL_BOUNDARY      YES
-#define  SHOCK_FLATTENING       MULTID
-#define  ARTIFICIAL_VISCOSITY   NO
-#define  CHAR_LIMITING          NO
-#define  LIMITER                VANLEER_LIM
+#define  INITIAL_SMOOTHING   NO
+#define  WARNING_MESSAGES    YES
+#define  PRINT_TO_FILE       YES
+#define  INTERNAL_BOUNDARY   YES
+#define  SHOCK_FLATTENING    MULTID
+#define  CHAR_LIMITING       NO
+#define  LIMITER             VANLEER_LIM

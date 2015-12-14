@@ -4,17 +4,25 @@
   \brief Super Time Stepping driver for integration of diffusion terms.
 
   Take one step in the solution of the diffusion equation 
-  \f$ dV/dt = R  \f$ where R is a nonlinear right hand side involving 
-  second derivatives. 
+  \f$ dU/dt = R(\partial^2U)  \f$ where R is a nonlinear right hand side
+  involving second derivatives. 
   The super step is taken to be equal to the current time step
-  ::g_dt and the number of steps Nsts is given by solving Eq. (??)
-  of Alexiades et al. with the explicit parabolic time step being computed
-  from
+  ::g_dt and the number of substeps Nsts is given by solving the following
+  nonlinear equation:
+  \f[
+    \frac{\Delta t}{\Delta t_{\rm par}}
+     =
+    \frac{N}{2\sqrt{\nu}}\frac{(1+\sqrt{\nu})^{2N} - (1-\sqrt{\nu})^{2N}}
+                              {(1+\sqrt{\nu})^{2N} + (1-\sqrt{\nu})^{2N}}
+  \f]
+  where \f$\nu\f$ is set by the macro ::STS_NU (default equal to 0.01).
+  The previous relation is given by Eq. [2.10] of Alexiades et al. with the
+  explicit parabolic time step \f$\Delta t_{\rm par}\f$ being computed from
   \f[
     \frac{2}{N_d} \max\left[  \frac{\eta_x}{\Delta x^2} 
                             + \frac{\eta_y}{\Delta y^2} 
                             + \frac{\eta_z}{\Delta z^2} \right] 
-    \Delta t_{exp} = C_p < \frac{1}{N_d}
+    \Delta t_{\rm par} = C_p < \frac{1}{N_d}
   \f]
   where \f$C_p\f$ is the parabolic Courant number, \f$ N_d \f$ is the number
   of spatial dimensions and the maximum of the square
@@ -29,13 +37,13 @@
 
   \authors A. Mignone (mignone@ph.unito.it)\n
            T. Matsakos
-  \date    April 1, 2014
+  \date    Aug 27, 2015
 */
 /* ///////////////////////////////////////////////////////////////////// */
 #include "pluto.h"
 
-#ifndef STS_nu 
- #define STS_nu  0.01
+#ifndef STS_NU     
+ #define STS_NU  0.01  /**< Sets the nu parameter used in STS. */
 #endif
 
 #define STS_MAX_STEPS 1024
@@ -46,7 +54,7 @@ static double STS_CorrectTimeStep(int, double);
 /* ********************************************************************* */
 void STS (const Data *d, Time_Step *Dts, Grid *grid)
 /*!
- * Solve diffusion equation using Super-Time-Stepping.
+ * Solve diffusion equation(s) using Super-Time-Stepping.
  *
  * \param [in,out]  d    pointer to Data structure
  * \param [in,out]  Dts  pointer to Time_Step structure  
@@ -58,6 +66,7 @@ void STS (const Data *d, Time_Step *Dts, Grid *grid)
   double N, ts[STS_MAX_STEPS];
   double dt_par, tau, tsave, inv_dtp;
   static Data_Arr rhs;
+  RBox *box = GetRBox(DOM, CENTER);
 
   if (rhs == NULL) rhs  = ARRAY_4D(NX3_TOT, NX2_TOT, NX1_TOT, NVAR, double); 
 
@@ -67,7 +76,7 @@ void STS (const Data *d, Time_Step *Dts, Grid *grid)
     contains Vc as well as Uc (for future improvements).
    ------------------------------------------------------------- */
 
-  PrimToCons3D(d->Vc, d->Uc, grid);
+  PrimToCons3D(d->Vc, d->Uc, box);
   tsave = g_time;
 
 /* ------------------------------------------------------------
@@ -145,20 +154,20 @@ void STS (const Data *d, Time_Step *Dts, Grid *grid)
               d->Uc[k][j][i][MX2] += tau*rhs[k][j][i][MX2];  ,
               d->Uc[k][j][i][MX3] += tau*rhs[k][j][i][MX3];)
       #endif
-      #if (RESISTIVE_MHD == SUPER_TIME_STEPPING)
+      #if (RESISTIVITY == SUPER_TIME_STEPPING)
        EXPAND(d->Uc[k][j][i][BX1] += tau*rhs[k][j][i][BX1];  ,
               d->Uc[k][j][i][BX2] += tau*rhs[k][j][i][BX2];  ,
               d->Uc[k][j][i][BX3] += tau*rhs[k][j][i][BX3];)
       #endif
       #if HAVE_ENERGY
        #if (THERMAL_CONDUCTION == SUPER_TIME_STEPPING) || \
-           (RESISTIVE_MHD      == SUPER_TIME_STEPPING) || \
+           (RESISTIVITY      == SUPER_TIME_STEPPING) || \
            (VISCOSITY          == SUPER_TIME_STEPPING) 
         d->Uc[k][j][i][ENG] += tau*rhs[k][j][i][ENG]; 
        #endif
       #endif
     }
-    #if (defined STAGGERED_MHD) && (RESISTIVE_MHD == SUPER_TIME_STEPPING)
+    #if (defined STAGGERED_MHD) && (RESISTIVITY == SUPER_TIME_STEPPING)
 
   /* -----------------------------------------------
       Update staggered magnetic field variables
@@ -213,7 +222,7 @@ for (j = JBEG-1; j <= JEND; j++) IDOM_LOOP(i){
       only total energy can be evolved using STS
      -------------------------------------------------- */
 
-    #if ENTROPY_SWITCH == YES  
+    #if ENTROPY_SWITCH
      TOT_LOOP(k,j,i) d->flag[k][j][i] &= ~FLAG_ENTROPY;
     #endif
 
@@ -222,7 +231,7 @@ for (j = JBEG-1; j <= JEND; j++) IDOM_LOOP(i){
       for next iteration. Increment loop index.
      ---------------------------------------------- */
 
-    ConsToPrim3D(d->Uc, d->Vc, grid);
+    ConsToPrim3D(d->Uc, d->Vc, d->flag, box);
     g_time += ts[n-m-1];
     m++;
   }
@@ -239,8 +248,8 @@ void STS_ComputeSubSteps(double dtex, double tau[], int ssorder)
   double S=0.0;
 
   for (i = 0; i < ssorder; i++) {
-    tau[i] = dtex / ((-1.0 + STS_nu)*cos(((2.0*i+1.0)*CONST_PI)/(2.0*ssorder)) 
-                     + 1.0 + STS_nu);
+    tau[i] = dtex / ((-1.0 + STS_NU)*cos(((2.0*i+1.0)*CONST_PI)/(2.0*ssorder)) 
+                     + 1.0 + STS_NU);
     S += tau[i];
   }
 }
@@ -262,11 +271,11 @@ double STS_FindRoot(double x0, double dtr, double dta)
    
   while(fabs(Ns-Ns1) >= 1.0e-5){
     Ns = Ns1;
-    a = (1.0-sqrt(STS_nu))/(1.0+sqrt(STS_nu));
+    a = (1.0-sqrt(STS_NU))/(1.0+sqrt(STS_NU));
     b = pow(a,2.0*Ns);
     c = (1.0-b)/(1.0+b);
-    Ns1 = Ns + (dta - dtr*Ns/(2.0*sqrt(STS_nu))*c)
-              /(dtr/(2.0*sqrt(STS_nu))*(c-2.0*Ns*b*log(a)*(1.0+c)/(1.0+b)));
+    Ns1 = Ns + (dta - dtr*Ns/(2.0*sqrt(STS_NU))*c)
+              /(dtr/(2.0*sqrt(STS_NU))*(c-2.0*Ns*b*log(a)*(1.0+c)/(1.0+b)));
     n += 1;
     if (n == 128){
       print1 ("! STS_FindRoot: max number of iterations exceeded");
@@ -285,11 +294,11 @@ double STS_CorrectTimeStep(int n0, double dta)
   double a,b,c;
   double dtr;
 
-  a = (1.0-sqrt(STS_nu))/(1.0+sqrt(STS_nu));
+  a = (1.0-sqrt(STS_NU))/(1.0+sqrt(STS_NU));
   b = pow(a,2.0*n0);
   c = (1.0-b)/(1.0+b);
 
-  dtr = dta*2.0*sqrt(STS_nu)/(n0*c);
+  dtr = dta*2.0*sqrt(STS_NU)/(n0*c);
   return(dtr);
 }
 #undef STS_MAX_STEPS 

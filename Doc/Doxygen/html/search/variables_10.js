@@ -1,12 +1,13 @@
 var searchData=
 [
-  ['s',['S',['../struct_map__param.html#a1f3afedeffb9d5e23fe337fc32161bc0',1,'Map_param']]],
-  ['s2',['S2',['../struct_map__param.html#a2460f0b92b54bebe56b8a6ac1426fcd1',1,'Map_param']]],
-  ['sb_5fomega',['sb_Omega',['../shearingbox_8h.html#a8b9fe2b86757879482f0dc5f6ede3beb',1,'shearingbox.h']]],
-  ['sb_5fq',['sb_q',['../shearingbox_8h.html#a60b4216c0630a8cca1065ea60f39e78d',1,'shearingbox.h']]],
-  ['sb_5fvy',['sb_vy',['../sb__boundary_8c.html#aacd0f20e328a7fe932d112232a954d30',1,'sb_vy():&#160;sb_boundary.c'],['../shearingbox_8h.html#aacd0f20e328a7fe932d112232a954d30',1,'sb_vy():&#160;sb_boundary.c']]],
-  ['sigma_5fc',['sigma_c',['../struct_map__param.html#a309b0f331b88e050658299ba928e3bec',1,'Map_param']]],
-  ['sl',['SL',['../struct_state__1_d.html#a4b8627bdad4c644227764e9afda5a8e0',1,'State_1D']]],
-  ['sr',['SR',['../struct_state__1_d.html#a96eddb289df45a6232a0405470290947',1,'State_1D']]],
-  ['stag_5fvar',['stag_var',['../struct_output.html#a9c013348e2d80997a71ebf0eef73e792',1,'Output']]]
+  ['r_5f1',['r_1',['../struct_grid.html#a0c3d3b02b4790a9641db64f1b67ef2ca',1,'Grid']]],
+  ['rank_5fcoord',['rank_coord',['../struct_grid.html#a8112ab80ccb8d08a12393d69dcc5f12b',1,'Grid']]],
+  ['rbound',['rbound',['../struct_grid.html#a002302795fa1ce23d3fd27c70cb99ee4',1,'Grid']]],
+  ['res_5fflux',['res_flux',['../struct_state__1_d.html#acd340985623265c8d8b59f53cccda3bc',1,'State_1D']]],
+  ['rho',['rho',['../struct_map__param.html#a3ed57096651b587c2bf716fa78048153',1,'Map_param']]],
+  ['rhoe_5ftab',['rhoe_tab',['../internal__energy_8c.html#a1a4dff0c614fe75d3ec5bf96e59afcb8',1,'internal_energy.c']]],
+  ['rhs',['rhs',['../struct_state__1_d.html#a7ef7e7759a949e10c4c8a9631459263d',1,'State_1D']]],
+  ['right_5fbound',['right_bound',['../struct_runtime.html#a20a11ede27e03cd28c470a9dd4faf3e5',1,'Runtime']]],
+  ['rmax_5fpar',['rmax_par',['../struct_runtime.html#aeaf62995d64fe4f7368ae9ef5f9a68e3',1,'Runtime']]],
+  ['rp',['Rp',['../struct_state__1_d.html#a13011670e8ea3003111dd3b2adf21f51',1,'State_1D']]]
 ];

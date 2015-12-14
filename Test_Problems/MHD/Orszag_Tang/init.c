@@ -56,7 +56,7 @@ void Init (double *us, double x1, double x2, double x3)
   #if EOS != ISOTHERMAL && EOS != BAROTROPIC
    us[PRS] = 5.0/3.0;
   #endif
-  us[TR] = (y>CONST_PI)*1.0;
+  us[TRC] = (y>CONST_PI)*1.0;
 
   us[AX1] = 0.0;
   us[AX2] = 0.0;

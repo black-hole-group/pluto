@@ -1,5 +1,6 @@
 var searchData=
 [
+  ['advancestep',['AdvanceStep',['../ctu__step_8c.html#a0ae2eb5c623934ef7af9541e241c550e',1,'AdvanceStep(const Data *d, Riemann_Solver *Riemann, Time_Step *Dts, Grid *grid):&#160;ctu_step.c'],['../rk__step_8c.html#a0ae2eb5c623934ef7af9541e241c550e',1,'AdvanceStep(const Data *d, Riemann_Solver *Riemann, Time_Step *Dts, Grid *grid):&#160;rk_step.c']]],
   ['advectflux',['AdvectFlux',['../adv__flux_8c.html#ae8b43468093cb4d82915c020b3824045',1,'adv_flux.c']]],
   ['al_5fallocate_5farray',['AL_Allocate_array',['../al__alloc_8c.html#a9d90efb3bdfcb34b8cfbaaeb091fd1da',1,'AL_Allocate_array(int sz_ptr):&#160;al_alloc.c'],['../al__proto_8h.html#ad68fc0bd4a6da2abc739d88e9d024368',1,'AL_Allocate_array(int):&#160;al_alloc.c']]],
   ['al_5fallocate_5fsz_5f',['AL_Allocate_sz_',['../al__proto_8h.html#a82f5eef2aada121baf62a6c5eb927960',1,'AL_Allocate_sz_():&#160;al_szptr_.c'],['../al__szptr___8c.html#a82f5eef2aada121baf62a6c5eb927960',1,'AL_Allocate_sz_():&#160;al_szptr_.c']]],
@@ -35,7 +36,7 @@ var searchData=
   ['al_5fget_5fsize',['AL_Get_size',['../al__proto_8h.html#a5886ff22671894280f68df49b5da6e6b',1,'AL_Get_size(int, int *):&#160;al_sz_get.c'],['../al__sz__get_8c.html#abebf2d3be04972c3b5203ee9e420ad55',1,'AL_Get_size(int isz, int *size):&#160;al_sz_get.c']]],
   ['al_5fget_5fstaggered_5fdim',['AL_Get_staggered_dim',['../al__proto_8h.html#aa94f7679fbe2c18feb1a0613c95ecab3',1,'AL_Get_staggered_dim(int, int *):&#160;al_sz_get.c'],['../al__sz__get_8c.html#a93f15c0db834697e9a0bdc112c418b72',1,'AL_Get_staggered_dim(int isz, int *stagger):&#160;al_sz_get.c']]],
   ['al_5fget_5fstride',['AL_Get_stride',['../al__proto_8h.html#afc7a1f1143d3af540963e518c675a3ae',1,'AL_Get_stride(int, int *):&#160;al_sz_get.c'],['../al__sz__get_8c.html#af4a8ea13cb7df71fc81ab15a7e6a3b1b',1,'AL_Get_stride(int sz_ptr, int *stride):&#160;al_sz_get.c']]],
-  ['al_5fget_5ftype',['AL_Get_type',['../al__sz__get_8c.html#af8eb7fc63e5aabfd7e2c0abb83525436',1,'al_sz_get.c']]],
+  ['al_5fget_5ftype',['AL_Get_type',['../al__proto_8h.html#a2a5988aef83dded65f42fc77196bc044',1,'AL_Get_type(int, AL_Datatype *):&#160;al_sz_get.c'],['../al__sz__get_8c.html#afd3adc708f070d3951738dfca7de77ac',1,'AL_Get_type(int isz, AL_Datatype *type):&#160;al_sz_get.c']]],
   ['al_5fget_5ftype_5fsize',['AL_Get_type_size',['../al__sz__get_8c.html#a2908a8dd83298dc09e547173de0d89a1',1,'al_sz_get.c']]],
   ['al_5fglobal_5fto_5flocal_5f',['AL_Global_to_local_',['../al__decompose_8c.html#a6b3d0da70670fad07ec2d35a324f7937',1,'al_decompose.c']]],
   ['al_5finit',['AL_Init',['../al__init_8c.html#ace3ddff67bdb300cee59968d847c0460',1,'AL_Init(int *argc, char ***argv):&#160;al_init.c'],['../al__proto_8h.html#ace66d1efd645417640dccfef8fc49b4f',1,'AL_Init(int *, char ***):&#160;al_init.c']]],
@@ -51,7 +52,7 @@ var searchData=
   ['al_5fset_5fparallel_5fdim',['AL_Set_parallel_dim',['../al__proto_8h.html#a03c5e31907a71343116802439e1f8ed1',1,'AL_Set_parallel_dim(int *, int):&#160;al_sz_set.c'],['../al__sz__set_8c.html#a190aebf90f0575fca50a61a9e26dc2f3',1,'AL_Set_parallel_dim(int *pardims, int isz):&#160;al_sz_set.c']]],
   ['al_5fset_5fperiodic_5fdim',['AL_Set_periodic_dim',['../al__proto_8h.html#a7ccd7def34748f7e8672a8c735740419',1,'AL_Set_periodic_dim(int *, int):&#160;al_sz_set.c'],['../al__sz__set_8c.html#a2e5ac779b18cd96dc54bbcaccf43adb4',1,'AL_Set_periodic_dim(int *periods, int isz):&#160;al_sz_set.c']]],
   ['al_5fset_5fstaggered_5fdim',['AL_Set_staggered_dim',['../al__proto_8h.html#a06bb98e7dfece7e83be1bcf239a6838a',1,'AL_Set_staggered_dim(int *, int):&#160;al_sz_set.c'],['../al__sz__set_8c.html#ab0eec3b1621ffdf4a69a403bf901c9c3',1,'AL_Set_staggered_dim(int *stagger, int isz):&#160;al_sz_set.c']]],
-  ['al_5fset_5ftype',['AL_Set_type',['../al__sz__set_8c.html#a4824c034b653c157fcf8d9a4c8de5bfb',1,'al_sz_set.c']]],
+  ['al_5fset_5ftype',['AL_Set_type',['../al__proto_8h.html#ad918afdd700a6f524b418ccddd2d3947',1,'AL_Set_type(AL_Datatype, int, int):&#160;al_sz_set.c'],['../al__sz__set_8c.html#a6e18a6420f30069f982ffb5a115855fc',1,'AL_Set_type(AL_Datatype type, int nelem, int isz):&#160;al_sz_set.c']]],
   ['al_5fsort_5f',['AL_Sort_',['../al__proto_8h.html#a01aeaee661f24abf85ab519db8dfbc2d',1,'AL_Sort_(int, int *, int *):&#160;al_sort_.c'],['../al__sort___8c.html#a9bc2949b6c1d7d6bb1ea98cc5b165112',1,'AL_Sort_(int n, int *in, int *ind):&#160;al_sort_.c']]],
   ['al_5fsz_5ffree',['AL_Sz_free',['../al__proto_8h.html#a07ab06e6dab38972f65b53c84e6f0394',1,'AL_Sz_free(int):&#160;al_sz_free.c'],['../al__sz__free_8c.html#a286d11863b9e2c8dd40c778ffe112a38',1,'AL_Sz_free(int sz_ptr):&#160;al_sz_free.c']]],
   ['al_5fsz_5finit',['AL_Sz_init',['../al__proto_8h.html#a859681f4e5375a0e59036625bf045474',1,'AL_Sz_init(MPI_Comm, int *):&#160;al_sz_init.c'],['../al__sz__init_8c.html#aadec04e3db40747cfe07f9b4e7a6afa7',1,'AL_Sz_init(MPI_Comm comm, int *sz_ptr):&#160;al_sz_init.c']]],

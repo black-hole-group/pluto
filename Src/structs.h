@@ -29,21 +29,22 @@ typedef struct CMD_LINE {
    ********************************************************************* */
 typedef struct DATA{
   double ****Vc;  /**< The main four-index data array used for cell-centered
-                       primitive variables. The index order is Vc[nv][k][j][i],
-                       where nv gives the variable index, k,j and i are the
+                       primitive variables. The index order is
+                       <tt>Vc[nv][k][j][i]</tt> where \c nv gives the variable
+                       index while \c k,\c j and \c i are the
                        locations of the cell in the \f$x_3\f$,
                        \f$x_2\f$ and \f$x_1\f$ direction. */
   double ****Uc;  /**< The main four-index data array used for cell-centered
                        conservative variables. The index order is
-                       Uc[k][j][i][nv] (nv fast running index)
-                       where nv gives the variable index, k,j and i are the
-                       locations of the cell in the \f$x_3\f$,
+                       <tt>Uc[k][j][i][nv]</tt> (\c nv fast running index)
+                       where \c nv gives the variable index, \c k,\c j and \c i
+                       are the locations of the cell in the \f$x_3\f$,
                        \f$x_2\f$ and \f$x_1\f$ direction. */
   double ****Vs;  /**< The main four-index data array used for face-centered
                        staggered magnetic fields. 
-                       The index order is Vc[nv][k][j][i],
-                       where nv gives the variable index, k,j and i are the
-                       locations of the cell in the \f$x_3\f$,
+                       The index order is <tt>Vc[nv][k][j][i]</tt>,
+                       where \c nv gives the variable index, \c k,\c j and \c i
+                       are the locations of the cell in the \f$x_3\f$,
                        \f$x_2\f$ and \f$x_1\f$ direction. */
   double ****Vuser; /**< Array storing user-defined supplementary variables 
                          written to disk. */ 
@@ -73,6 +74,7 @@ typedef struct DATA{
     global, i.e., they refer to the whole computational stencil and 
     not to the local processor sub-domain.
    ********************************************************************* */
+
 typedef struct GRID{
   double xi, xf;        /**< Leftmost and rightmost point in the local domain. */
   double *x, *x_glob;   /**< Cell geometrical central points. */
@@ -171,7 +173,8 @@ typedef struct TABLE2D {
   char **defined;
   int nx;  /**< Number of columns or points in the x direction */
   int ny;  /**< Number of rows    or points in the y direction */  
-  int nf;  
+  int nf;
+  int interpolation;   /**< LINEAR/SPLINE1  */   
   int **i; 
   int id;
   double *x;  /**< array of x-values (not uniform) */
@@ -181,6 +184,12 @@ typedef struct TABLE2D {
   double *lnx; /**< array of log10(x) values (uniform) */
   double *lny; /**< array of log10(y) values (uniform) */
   double **f;
+
+  double **a;  /**< Spline coefficient (x^3) */ 
+  double **b;  /**< Spline coefficient (x^2) */
+  double **c;  /**< Spline coefficient (x)   */
+  double **d;  /**< Spline coefficiten (1)   */
+
   double **dfx;
   double **dfy;
   double *fmin;
@@ -201,7 +210,6 @@ typedef struct TABLE2D {
 /*! The Time_Step structure contains essential information for 
     determining the time step.
    ********************************************************************* */
-
 typedef struct TIME_STEP{
   double *cmax;     /**< Maximum signal velocity for hyperbolic eqns. */
   double inv_dta;   /**< Inverse of advection (hyperbolic) time step, 
@@ -240,44 +248,50 @@ typedef struct OUTPUT{
   char   fill[168];    /**< useless, just to make the structure size a power of 2 */
 } Output;
 
-typedef struct INPUT{
-  int    npoint[3];           /**< Global number of zones in the interior. */
-  int    lft_bound_side[3];       /* left  boundary type */
-  int    rgt_bound_side[3];      /* right boundary type */
-  int    grid_is_uniform[3];    /* = 1 when grid is uniform, 0 otherwise */
-  int    npatch[5];               /* number of grid patches  */
-  int    patch_npoint[5][16];     /* number of points per patch */
+/* ********************************************************************* */
+/*! The Runtime structure contains runtime initialization parameters
+    read from pluto.ini (or equivalent). 
+   ********************************************************************* */
+typedef struct RUNTIME{
+  int    npoint[3];           /**< Global number of zones in the interior domain */
+  int    left_bound[3];       /**< Array of left boundary types */
+  int    right_bound[3];      /**< Array of right boundary types */
+  int    grid_is_uniform[3];  /* = 1 when grid is uniform, 0 otherwise */
+  int    npatch[5];           /**< The number of grid patches  */
+  int    patch_npoint[5][16]; /* number of points per patch */
   int    patch_type[5][16];             
-  int    log_freq;              /* log frequency */
-  int    user_var;              /* number of additional user-variables being
-                                   held in memory and written to disk */
-  int    anl_dn;                /*  number of step increment for ANALYSIS */
-  char   solv_type[64];
+  int    log_freq;            /**< The log frequency (\c log) */
+  int    user_var;            /**< The number of additional user-variables being
+                                 held in memory and written to disk */
+  int    anl_dn;               /*  number of step increment for ANALYSIS */
+  char   solv_type[64];         /**< The Riemann solver (\c Solver) */
   char   user_var_name[128][128];
-  char   output_dir[256];
+  char   output_dir[256];         /**< The name of the output directory
+                                       (\c output_dir for static PLUTO,
+                                        \c Output_dir for PLUTO-Chombo)  */
   Output output[MAX_OUTPUT_TYPES];  
   double patch_left_node[5][16];  /*  self-expl. */
-  double  xbeg[3];
-  double  xend[3];
-  double  cfl;                    /* hyperbolic cfl number */
-  double  cfl_max_var;
-  double  cfl_par;           /* (STS) parabolic  cfl number */
-  double  rmax_par;          /* (STS) max ratio between current time
+  double  cfl;               /**< Hyperbolic cfl number (\c CFL) */
+  double  cfl_max_var;       /**< Maximum increment between consecutive time
+                                  steps (\c CFL_max_var). */
+  double  cfl_par;           /**< (STS) parabolic  cfl number */
+  double  rmax_par;          /**< (STS) max ratio between current time
                                 step and parabolic time step */
-  double  tstop;
-  double  first_dt;
-  double  anl_dt;          /* time step increment for ANALYSIS */
+  double  tstop;           /**< The final integration time (\c tstop) */
+  double  first_dt;        /**< The initial time step (\c first_dt) */
+  double  anl_dt;          /**< Time step increment for Analysis()
+                                ( <tt> analysis (double) </tt> )*/
   double  aux[32];         /* we keep aux inside this structure, 
                               since in parallel execution it has
                               to be comunicated to all processors  */
-} Input;
+} Runtime;
 
-typedef struct RUNTIME{
+typedef struct RESTART{
   int nstep;
   int nfile[MAX_OUTPUT_TYPES];
   double t;
   double dt;
-} Runtime;
+} Restart;
 
 typedef struct RGB{
   unsigned char r, g, b;
@@ -307,12 +321,10 @@ typedef struct INDEX{
   char fill[20]; /* useless, just to make the structure size a power of 2 */
 } Index;
 
-
 /* ********************************************************************* */
 /*! The List defines a collection of integer values typically used
     as argument to the FOR_EACH() macro.
    ********************************************************************* */
-
 typedef struct INT_LIST{
   int indx[2046]; /**< Array of integers containg variables indices. */
   int nvar;       /**< Number of variables. */
@@ -321,9 +333,10 @@ typedef struct INT_LIST{
 
 /* ********************************************************************* */
 /*! The RBox (= Rectangular Box) defines a rectangular portion of the 
-    domain in terms of the grid indices [ib,jb,kb] corresponding to 
-    the lower corner and [ie,je,ke] corresponding to the upper corner. 
-    The integer vpos specifies the variable location with respect to 
+    domain in terms of the grid indices <tt>[ib,jb,kb]</tt> corresponding
+    to the lower corner and <tt>[ie,je,ke]</tt> corresponding to the
+    upper corner. 
+    The integer \c vpos specifies the variable location with respect to 
     the grid (e.g. center/staggered). 
 
     \note The lower and upper grid indices may also be reversed 

@@ -7,10 +7,11 @@
   in those cells that have been flagged with ::FLAG_INTERNAL_BOUNDARY.
 
   \author A. Mignone (mignone@ph.unito.it)
-  \date   Oct 17, 2012
+  \date   July 22, 2015
 */
 /* ///////////////////////////////////////////////////////////////////// */
 #include "pluto.h"
+
 #if INTERNAL_BOUNDARY == YES
 /* *********************************************************************** */
 void InternalBoundaryReset (const State_1D *state, Time_Step *Dts, 
@@ -30,8 +31,8 @@ void InternalBoundaryReset (const State_1D *state, Time_Step *Dts,
   int i,nv;
   
   for (i = beg; i <= end; i++){
-    if (CheckZone(i, FLAG_INTERNAL_BOUNDARY)){
-      for (nv = NVAR; nv--;  ) state->rhs[i][nv] = 0.0;
+    if (state->flag[i] & FLAG_INTERNAL_BOUNDARY){
+      NVAR_LOOP(nv) state->rhs[i][nv] = 0.0;
 /*      Dts->cmax[i] = 0.0;   */
     }
   }

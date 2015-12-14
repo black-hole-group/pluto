@@ -113,7 +113,7 @@ void Init (double *v, double x1, double x2, double x3)
 
 /* v[PRS] = 20.0;  */
 
-  v[TR] = (y < 0.0 ? 1.0:-1.0);
+  v[TRC] = (y < 0.0 ? 1.0:-1.0);
 
   #if PHYSICS == MHD || PHYSICS == RMHD
 

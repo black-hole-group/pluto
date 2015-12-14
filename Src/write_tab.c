@@ -67,7 +67,7 @@ void WriteTabArray (Output *output, char *filename, Grid *grid)
       fprintf (fout, "\n");   /* newline */
     }
     #if DIMENSIONS > 1
-     fprintf (fout, "\n");   /* no need to skip empty line in 1D */
+     fprintf (fout, "\n");   /* skip one more empty line in 2D */
     #endif
   }
   fclose (fout);

@@ -14,7 +14,7 @@ this routine, refer to the IDL Online Help Navigator
 or type: <P>
 <PRE>     ? mk_html_help</PRE><P>
 at the IDL command line prompt.<P>
-<STRONG>Last modified: </STRONG>Wed Sep 24 10:38:55 2014.<P>
+<STRONG>Last modified: </STRONG>Mon Aug 17 11:13:56 2015.<P>
  
 <HR>
  
@@ -258,6 +258,8 @@ at the IDL command line prompt.<P>
       /YLOG      = set a logarithmic scaling for the y-axis.
                    CAUTION: the input grid must be regularly spaced in log scale.
 
+     /UNIFORM    = do not attempt to regrid the image and display as it is,
+                   without interpolating
      LFT,RGT     = these parameters can be used to specify the margin (in pixels)
      BOT,TOP       between the plot borders and the left (lft), right (rgt),
                    top (top) and bottom (bot) side of the window.
@@ -291,7 +293,7 @@ at the IDL command line prompt.<P>
       IDL&gt; display, img, x1 = x1, x2 = 0.5*!PI - x2, /polar, ims = [400,400]
 
 
-  LAST MODIFIED:   June 18, 2013 by A.Mignone (mignone@ph.unito.it)
+  LAST MODIFIED:   June 6, 2015 by A.Mignone (mignone@ph.unito.it)
 
 </PRE><P>
 <STRONG>(See display.pro)</STRONG><P>
@@ -303,7 +305,6 @@ at the IDL command line prompt.<P>
 <A HREF="#FIELD_LINE[1]">[Next Routine]</A>
 <A HREF="#ROUTINELIST">[List of Routines]</A>
 <PRE>
-
 
  NAME:      extrema
 
@@ -320,9 +321,6 @@ at the IDL command line prompt.<P>
             extrema of f.  
 
  KEYWORD:   none
-
-
-
 
 
 </PRE><P>
@@ -679,7 +677,7 @@ at the IDL command line prompt.<P>
             (e.g. display should have been called with x1=x1,x2=x2 keywords).
 
 
- SYNTAX:    OPLOTBOX, [, CTAB=integer][, CVAL=vector][, LRANGE=[min,max]][, /CURV]
+ SYNTAX:    OPLOTBOX, [, CTAB=integer][, CVAL=vector][, LRANGE=[min,max]][, /POLAR]
                       [,_EXTRA=extra]
                       
 
@@ -697,7 +695,7 @@ at the IDL command line prompt.<P>
    LRANGE = a two element integer array of the form [minlev, maxlev] giving
             the minimum and maximum levels to be plotted.
             
-   /CURV  = plot the AMR box layout over a /polar plot (spherical and polar coordinates) 
+   /POLAR  = plot the AMR box layout over a /POLAR display (spherical and polar coordinates) 
 
    OPLOTBOX also accepts keyword inheritance via the _EXTRA keyword to be passed to plots
 

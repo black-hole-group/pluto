@@ -74,7 +74,6 @@ void HLL_Solver (const State_1D *state, int beg, int end,
   Flux (state->uR, state->vR, a2R, fR, pR, beg, end);
 
   HLL_Speed (state->vL, state->vR, a2L, a2R, SL, SR, beg, end);
-
   for (i = beg; i <= end; i++) {
 
     scrh = MAX(fabs(SL[i]), fabs(SR[i]));
@@ -104,6 +103,5 @@ void HLL_Solver (const State_1D *state, int beg, int end,
       state->press[i] = (SR[i]*pL[i] - SL[i]*pR[i])*scrh;
 
     }
-
   } /* end loops on points */
 }

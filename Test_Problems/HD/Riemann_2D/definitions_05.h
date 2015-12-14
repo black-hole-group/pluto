@@ -4,12 +4,11 @@
 #define  GEOMETRY                CARTESIAN
 #define  BODY_FORCE              NO
 #define  COOLING                 NO
-#define  INTERPOLATION           MP5_FD
+#define  RECONSTRUCTION          MP5_FD
 #define  TIME_STEPPING           RK3
 #define  DIMENSIONAL_SPLITTING   NO
 #define  NTRACER                 0
 #define  USER_DEF_PARAMETERS     16
-#define  USER_DEF_CONSTANTS      0
 
 /* -- physics dependent declarations -- */
 
@@ -38,8 +37,10 @@
 #define  VY_PM                   14
 #define  PR_PM                   15
 
-/* -- user-defined symbolic constants -- */
+/* [Beg] user-defined constants (do not change this line) */
 
+
+/* [End] user-defined constants (do not change this line) */
 
 /* -- supplementary constants (user editable) -- */ 
 

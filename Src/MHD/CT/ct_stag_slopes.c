@@ -35,7 +35,7 @@ void CT_StoreVelSlopes (EMF *emf, const State_1D *state, int beg, int end)
 
   if (g_dir == IDIR){
 
-    for (i = beg; i <= end; i++) { 
+    for (i = beg; i <= end; i++) {
       emf->dvx_dx[k][j][i] = state->vp[i][VX1] - state->vm[i][VX1];
       emf->dvy_dx[k][j][i] = state->vp[i][VX2] - state->vm[i][VX2];
       #if DIMENSIONS == 3

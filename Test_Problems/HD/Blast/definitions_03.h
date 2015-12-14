@@ -4,12 +4,11 @@
 #define  GEOMETRY                POLAR
 #define  BODY_FORCE              NO
 #define  COOLING                 NO
-#define  INTERPOLATION           WENO3
+#define  RECONSTRUCTION          WENO3
 #define  TIME_STEPPING           RK3
 #define  DIMENSIONAL_SPLITTING   NO
 #define  NTRACER                 0
 #define  USER_DEF_PARAMETERS     2
-#define  USER_DEF_CONSTANTS      1
 
 /* -- physics dependent declarations -- */
 
@@ -24,17 +23,18 @@
 #define  RHO_IN                  0
 #define  PRS_IN                  1
 
-/* -- user-defined symbolic constants -- */
+/* [Beg] user-defined constants (do not change this line) */
 
 #define  ADD_TURBULENCE          YES
 
+/* [End] user-defined constants (do not change this line) */
+
 /* -- supplementary constants (user editable) -- */ 
 
-#define  INITIAL_SMOOTHING      NO
-#define  WARNING_MESSAGES       YES
-#define  PRINT_TO_FILE          NO
-#define  INTERNAL_BOUNDARY      NO
-#define  SHOCK_FLATTENING       NO
-#define  ARTIFICIAL_VISCOSITY   NO
-#define  CHAR_LIMITING          NO
-#define  LIMITER                MC_LIM
+#define  INITIAL_SMOOTHING   NO
+#define  WARNING_MESSAGES    YES
+#define  PRINT_TO_FILE       NO
+#define  INTERNAL_BOUNDARY   NO
+#define  SHOCK_FLATTENING    NO
+#define  CHAR_LIMITING       NO
+#define  LIMITER             MC_LIM

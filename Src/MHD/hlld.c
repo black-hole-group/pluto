@@ -94,7 +94,7 @@ void HLLD_Solver (const State_1D *state, int beg, int end,
    bgf = GetBackgroundField (beg, end, FACE_CENTER, grid);
   #endif
 
-  #if MHD_FORMULATION == EIGHT_WAVES
+  #if DIVB_CONTROL == EIGHT_WAVES
    print ("! hlld Riemann solver does not work with Powell's 8-wave\n");
    QUIT_PLUTO(1);
   #endif
@@ -133,7 +133,7 @@ state->uR = UR;
   #endif
 
 /* ----------------------------------------------------
-     compute sound speed & fluxes at zone interfaces
+     Compute sound speed & fluxes at zone interfaces
    ---------------------------------------------------- */
 
   SoundSpeed2 (VL, a2L, NULL, beg, end, FACE_CENTER, grid);
@@ -183,21 +183,18 @@ state->uR = UR;
  
     } else {
 
-      #if SHOCK_FLATTENING == MULTID
-
-      /* -- revert to HLL in proximity of strong shocks -- */
-
-       if (CheckZone(i, FLAG_HLL) || CheckZone(i+1, FLAG_HLL)){
-         scrh = 1.0/(SR[i] - SL[i]);
-         for (nv = NFLX; nv--; ){
-           state->flux[i][nv]  = SR[i]*SL[i]*(uR[nv] - uL[nv])
-                              +  SR[i]*fL[i][nv] - SL[i]*fR[i][nv];
-           state->flux[i][nv] *= scrh;
-         }
-         state->press[i] = (SR[i]*ptL[i] - SL[i]*ptR[i])*scrh;
-         continue;
-       }
-      #endif
+#if SHOCK_FLATTENING == MULTID
+    if ((state->flag[i] & FLAG_HLL) || (state->flag[i+1] & FLAG_HLL)){
+      scrh = 1.0/(SR[i] - SL[i]);
+      for (nv = NFLX; nv--; ){
+        state->flux[i][nv]  = SR[i]*SL[i]*(uR[nv] - uL[nv])
+                           +  SR[i]*fL[i][nv] - SL[i]*fR[i][nv];
+        state->flux[i][nv] *= scrh;
+      }
+      state->press[i] = (SR[i]*ptL[i] - SL[i]*ptR[i])*scrh;
+      continue;
+    }
+#endif
 
     /* ---------------------------
               Compute U*  
@@ -492,7 +489,7 @@ void HLLD_Solver (const State_1D *state, int beg, int end,
    bgf = GetBackgroundField (beg, end, FACE_CENTER, grid);
   #endif
 
-  #if MHD_FORMULATION == EIGHT_WAVES
+  #if DIVB_CONTROL == EIGHT_WAVES
    print ("! hlld Riemann solver does not work with Powell\n");
    QUIT_PLUTO(1);
   #endif
@@ -716,7 +713,7 @@ void HLLD_Solver (const State_1D *state, int beg, int end,
 
         #if VERIFY_CONSISTENCY_CONDITION == YES
          for (nv = NFLX; nv--; ){
-           if (nv == DN || nv == MXn || nv == BXn) continue;
+           if (nv == RHO || nv == MXn || nv == BXn) continue;
            scrh = (S1L - SL[i])*usL[nv]  + (S1R - S1L)*usc[nv] +
                   (SR[i] - S1R)*usR[nv] -
                   SR[i]*uR[nv] + SL[i]*uL[nv] + fR[i][nv] - fL[i][nv];

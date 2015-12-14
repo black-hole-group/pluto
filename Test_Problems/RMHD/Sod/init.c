@@ -59,7 +59,7 @@
 /* ///////////////////////////////////////////////////////////////////// */
 
 /* ********************************************************************* */
-void Init (double *us, double x1, double x2, double x3)
+void Init (double *v, double x1, double x2, double x3)
 /*
  *
  *
@@ -69,33 +69,24 @@ void Init (double *us, double x1, double x2, double x3)
   g_gamma = g_inputParam[GAMMA_EOS];
 
   if (x1 < 0.5){
-
-    us[RHO] = g_inputParam[RHO_LEFT];
-    us[VX1] = g_inputParam[VX_LEFT];
-    us[VX2] = g_inputParam[VY_LEFT];
-    us[VX3] = g_inputParam[VZ_LEFT];
-
-    us[BX1] = g_inputParam[BX_CONST];
-    us[BX2] = g_inputParam[BY_LEFT];
-    us[BX3] = g_inputParam[BZ_LEFT];
-    us[PRS] = g_inputParam[PR_LEFT];
-
+    v[RHO] = g_inputParam[RHO_LEFT];
+    v[VX1] = g_inputParam[VX_LEFT];
+    v[VX2] = g_inputParam[VY_LEFT];
+    v[VX3] = g_inputParam[VZ_LEFT];
+    v[BX1] = g_inputParam[BX_CONST];
+    v[BX2] = g_inputParam[BY_LEFT];
+    v[BX3] = g_inputParam[BZ_LEFT];
+    v[PRS] = g_inputParam[PR_LEFT];
   }else{
-
-    us[RHO] = g_inputParam[RHO_RIGHT];
-    us[VX1] = g_inputParam[VX_RIGHT];
-    us[VX2] = g_inputParam[VY_RIGHT];
-    us[VX3] = g_inputParam[VZ_RIGHT];
-    
-    us[BX1] = g_inputParam[BX_CONST];
-    us[BX2] = g_inputParam[BY_RIGHT];
-    us[BX3] = g_inputParam[BZ_RIGHT];
-    
-    us[PRS] = g_inputParam[PR_RIGHT];
- 
+    v[RHO] = g_inputParam[RHO_RIGHT];
+    v[VX1] = g_inputParam[VX_RIGHT];
+    v[VX2] = g_inputParam[VY_RIGHT];
+    v[VX3] = g_inputParam[VZ_RIGHT];    
+    v[BX1] = g_inputParam[BX_CONST];
+    v[BX2] = g_inputParam[BY_RIGHT];
+    v[BX3] = g_inputParam[BZ_RIGHT];    
+    v[PRS] = g_inputParam[PR_RIGHT]; 
   }
-
-
 }
 /* ********************************************************************* */
 void Analysis (const Data *d, Grid *grid)

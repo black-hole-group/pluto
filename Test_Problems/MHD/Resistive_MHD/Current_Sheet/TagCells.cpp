@@ -7,9 +7,9 @@ using std::string;
 
 
 #if (EOS != ISOTHERMAL) && (AMR_EN_SWITCH == NO)
- #define REF_VAR  EN
+ #define REF_VAR  ENG
 #else
- #define REF_VAR  DN
+ #define REF_VAR  RHO
 #endif
 
 

@@ -1,6 +1,5 @@
 #include "pluto.h"
 
-
 static void MakeZetaTables(double *, double *, int);
 
 /* Vibrational and Rotational Temperatures for molecular hydrogen  */
@@ -44,7 +43,6 @@ void GetFuncDum(double T, double *funcdum_val)
     funcdum = ARRAY_1D(nsteps, double);
     MakeZetaTables(lnT, funcdum, nsteps);
   }
-  
   y = log(T);
 
 /* -------------------------------------------------
@@ -160,7 +158,7 @@ void MakeZetaTables(double *lnT, double *funcdum, int nsteps)
   double alpha, beta, gamma;
   double dzO_zO_m, db, sum1, sum2;
 
-  print1 ("> MakeZetaTables: Generating Zeta Tables...\n");
+  print1 ("> MakeZetaTables(): generating Zeta tables...\n");
 
   if (ORTHO_PARA_MODE == 0){ 
     alpha = 1.0; beta = 0.0; gamma = 0.0;

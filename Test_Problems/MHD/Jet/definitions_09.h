@@ -4,20 +4,19 @@
 #define  GEOMETRY                CYLINDRICAL
 #define  BODY_FORCE              NO
 #define  COOLING                 H2_COOL
-#define  INTERPOLATION           LINEAR
+#define  RECONSTRUCTION          LINEAR
 #define  TIME_STEPPING           HANCOCK
 #define  DIMENSIONAL_SPLITTING   YES
 #define  NTRACER                 1
 #define  USER_DEF_PARAMETERS     6
-#define  USER_DEF_CONSTANTS      3
 
 /* -- physics dependent declarations -- */
 
 #define  EOS                     IDEAL
 #define  ENTROPY_SWITCH          NO
-#define  MHD_FORMULATION         NONE
+#define  DIVB_CONTROL            NO
 #define  BACKGROUND_FIELD        NO
-#define  RESISTIVE_MHD           NO
+#define  RESISTIVITY             NO
 #define  THERMAL_CONDUCTION      NO
 #define  VISCOSITY               NO
 #define  ROTATING_FRAME          NO
@@ -31,11 +30,13 @@
 #define  PERT_AMPLITUDE          4
 #define  PERT_PERIOD             5
 
-/* -- user-defined symbolic constants -- */
+/* [Beg] user-defined constants (do not change this line) */
 
 #define  UNIT_DENSITY            (CONST_amu*200.0)
 #define  UNIT_LENGTH             (2.5e15)
 #define  UNIT_VELOCITY           (1.e5)
+
+/* [End] user-defined constants (do not change this line) */
 
 /* -- supplementary constants (user editable) -- */ 
 
@@ -44,7 +45,6 @@
 #define  PRINT_TO_FILE             YES
 #define  INTERNAL_BOUNDARY         NO
 #define  SHOCK_FLATTENING          NO
-#define  ARTIFICIAL_VISCOSITY      NO
 #define  CHAR_LIMITING             NO
 #define  LIMITER                   VANLEER_LIM
 #define  ASSIGN_VECTOR_POTENTIAL   NO

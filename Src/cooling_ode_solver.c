@@ -109,9 +109,9 @@ double SolveODE_CK45 (double *v0, double *k1, double *v5th,
      ----------------------------------- */
 
     vscal[PRS] = fabs(v0[PRS]) + dt*fabs(k1[PRS]);
-    for (nv = NFLX; nv < NFLX + NIONS; nv++){
-      vscal[nv] = 1.0;  /* fabs(v0[nv]) + dt*fabs(k1[nv]) + 1.e-6; */    
-    }
+    
+    NIONS_LOOP(nv)  vscal[nv] = 1.0;  /* fabs(v0[nv]) + dt*fabs(k1[nv]) + 1.e-6; */    
+    
 
    /* -- do not take error on Fe -- */
 
@@ -262,9 +262,9 @@ double SolveODE_RKF12 (double *v0, double *k1, double *v2nd,
    ----------------------------------- */
 
   vscal[PRS] = fabs(v0[PRS]) + dt*fabs(k1[PRS]);
-  for (nv = NFLX; nv < NFLX + NIONS; nv++){
-    vscal[nv] = 1.0;  /* fabs(v0[nv]) + dt*fabs(k1[nv]) + 1.e-6; */    
-  }
+ 
+  NIONS_LOOP(nv) vscal[nv] = 1.0;  /* fabs(v0[nv]) + dt*fabs(k1[nv]) + 1.e-6; */    
+ 
 
   err = 0.0;
   FOR_EACH(nv,0,vars){
@@ -333,9 +333,9 @@ double SolveODE_RKF23 (double *v0, double *k1, double *v3rd,
    ----------------------------------- */
 
   vscal[PRS] = fabs(v0[PRS]) + dt*fabs(k1[PRS]);
-  for (nv = NFLX; nv < NFLX + NIONS; nv++){
-    vscal[nv] = 1.0;  /* fabs(v0[nv]) + dt*fabs(k1[nv]) + 1.e-6; */    
-  }
+  
+  NIONS_LOOP(nv) vscal[nv] = 1.0;  /* fabs(v0[nv]) + dt*fabs(k1[nv]) + 1.e-6; */    
+  
 
   err = 0.0;
   FOR_EACH(nv,0,vars){
@@ -556,7 +556,7 @@ double vbeg[NVAR];
     /* -- initialize solution vector continuing -- */
    
       v0[PRS]  = v4th[PRS];
-      for (nv = NFLX; nv < NFLX + NIONS; nv++) v0[nv] = v4th[nv];
+      NIONS_LOOP(nv) v0[nv] = v4th[nv];
       Radiat (v0, k1);
       Jacobian (v0, k1, J);   
 

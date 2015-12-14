@@ -7,13 +7,13 @@
   variable declarations used by the code.
 
   \author A. Mignone (mignone@ph.unito.it)
-  \date   Aug 16, 2012
+  \date   July 05, 2015
 */
 /* ///////////////////////////////////////////////////////////////////// */
 #ifndef PLUTO_H
 #define PLUTO_H
 
-#define PLUTO_VERSION  "4.1"
+#define PLUTO_VERSION  "4.2"
 
 #include <stdio.h>
 #include <stdarg.h>
@@ -22,11 +22,11 @@
 #include <stdlib.h>
 #include <time.h>
 
-#define YES      1
-#define NO       0
-#define DEFAULT -1
-#define TRUE    YES
-#define FALSE    NO
+#define YES        1
+#define NO         0
+#define DEFAULT   -1
+#define TRUE      YES
+#define FALSE     NO
 
 /* ---- Geometry Labels ( > 0) ----  */
 
@@ -48,6 +48,12 @@
 #define BAROTROPIC    4
 #define ISOTHERMAL    5
 
+/* ---- Entropy switch options ----- */
+
+#define  SELECTIVE      1
+#define  ALWAYS         2
+#define  CHOMBO_REGRID  3
+
 /* ---- Time stepping labels ----  */
 
 #define EULER                      1
@@ -56,6 +62,7 @@
 #define RK2                        5
 #define RK3                        6
 #define RK_MIDPOINT                7
+#define SSP_RK4                    8
 
 #define EXPLICIT             1 /* -- just a number different from 0 !!!  -- */
 #define SUPER_TIME_STEPPING  2 /* -- just a number different from EXPLICIT -- */ 
@@ -131,12 +138,20 @@
 #define SHEARING         6
 #define USERDEF          7
 
-#define X1_BEG           101
-#define X1_END           102
-#define X2_BEG           103
-#define X2_END           104
-#define X3_BEG           105
-#define X3_END           106
+/*! \name Labels identifying different boundary and domain regions. 
+   These are useful in Boundary() and when setting RBox structures
+   in different points of the code.
+*/
+/**@{ */
+#define X1_BEG        101   /**< Boundary region at X1 beg */
+#define X1_END        102   /**< Boundary region at X1 end */
+#define X2_BEG        103   /**< Boundary region at X2 beg */
+#define X2_END        104   /**< Boundary region at X2 end */
+#define X3_BEG        105   /**< Boundary region at X3 beg */
+#define X3_END        106   /**< Boundary region at X3 end */
+#define DOM           107   /**< Computational domain (interior) */
+#define TOT           108   /**< Computational domain (total) */
+/**@} */
 
 /* ---- LABELS FOR IMAGE SLICING ---- */
 
@@ -159,7 +174,6 @@
     Individual bits can also be turned off with the complement operator
 
     Individual bits can also be turned off, e.g., <tt> flag &= ~FLAG_XXX; </tt>
-
 */
 /**@{ */
 #define FLAG_MINMOD      1  /**< Reconstruct using MINMOD limiter. */
@@ -170,13 +184,9 @@
 #define FLAG_INTERNAL_BOUNDARY   32  /**< Zone belongs to an internal boundary
                                           region and should be excluded from 
                                           being updated in time              */
-#define FLAG_BIT7        64
-#define FLAG_BIT8       128  
+#define FLAG_CONS2PRIM_FAIL      64    
+#define FLAG_BIT8         128  
 /**@} */
-
-#define PRS_FAIL  1
-#define ENG_FAIL  2
-#define RHO_FAIL  4
 
 #define IDIR     0     /*   This sequence (0,1,2) should */
 #define JDIR     1     /*   never be changed             */
@@ -194,7 +204,7 @@
 #define FACE_CENTER    51
 #define EDGE_CENTER    52
 
-        /*  ----  SET LABELS FOR INTERPOLATION  ----   */
+        /*  ----  SET LABELS FOR RECONSTRUCTION  ----   */
 
 #define FLAT              1
 #define LINEAR            2
@@ -204,13 +214,14 @@
 #define MP5               6
 #define LimO3             7
 #define WENO3             8
+#define SPLINE1          30  /* Used by Table2D interpolation */
+#define SPLINE2          31  /* Used by Table2D interpolation */
 
 #define WENO3_FD             103
 #define WENO5_FD             105
 #define WENOZ_FD             106
 #define WENO7_FD             107
 #define MP5_FD               125
-#define PPM_FD               140
 #define LIMO3_FD             300
 
 #define ONED   1
@@ -227,13 +238,14 @@
 #define MC_LIM            7
 #define FOURTH_ORDER_LIM  8
 
+
 /*! \name Physical constants in c.g.s units.
      The following set of macros express some useful physical constants
      in c.g.s units (erg, cm and sec). Values have been taken from
      http://physic.nist.gov/cuu/Constants/index.html
 */
 /**@{ */
-#define CONST_AH      1.008              /**< Atomic weight of Hydrogen  */
+#define CONST_AH      1.008              /*!< Atomic weight of Hydrogen  */
 #define CONST_AHe     4.004              /**< Atomic weight of Helium  */
 #define CONST_AZ      30.0               /**< Mean atomic weight of heavy elements */
 #define CONST_amu     1.66053886e-24     /**<  Atomic mass unit.          */
@@ -260,75 +272,23 @@
 /**@} */
 
 /* **********************************************************
-    Start including header files here
+    Including header files here
    ********************************************************** */
 
 #include "definitions.h"   /* Problem-dependent header file  */
 
-/* *********************************************************************
-    Define unit density, length and velocity if not done before
-   ********************************************************************* */
-
-#ifndef UNIT_DENSITY
- #define UNIT_DENSITY (CONST_mp)  /**< Unit density in gr/cm^3. */
-#endif
-
-#ifndef UNIT_LENGTH
- #define UNIT_LENGTH   (CONST_au)  /**< Unit Legnth in cm. */
-#endif
-
-#ifndef UNIT_VELOCITY
- #define UNIT_VELOCITY (1.e5)  /**< Unit velocity in cm/sec. */
-#endif
-
-/*! Define the conversion constant between dimensionless 
-    temperature prs/rho and physical temperature in Kelvin,
-    T = (prs/rho)*KELVIN*mu                                   */
-#define KELVIN (UNIT_VELOCITY*UNIT_VELOCITY*CONST_amu/CONST_kB) 
-
-/* *********************************************************************
-    set to NO all undefined identifier that may appear in the code but
-    have not been defined in definitions.h
-   ********************************************************************* */
-
-#ifndef RESISTIVE_MHD 
- #define RESISTIVE_MHD   NO
-#endif
-
-#ifndef THERMAL_CONDUCTION
- #define THERMAL_CONDUCTION NO
-#endif
-
-#ifndef VISCOSITY
- #define VISCOSITY NO
-#endif
-
-#ifndef INCLUDE_PARTICLES
- #define INCLUDE_PARTICLES NO
-#endif
-
-#ifndef UPDATE_VECTOR_POTENTIAL
- #define UPDATE_VECTOR_POTENTIAL  NO
-#endif
+/* *******************************************************************
+    Set default values of fine-tuning macro-define constants.
+    This section of the code is for general-purpose macros although
+    other may exists elsewhere. 
+   ******************************************************************* */
 
 #ifndef BACKGROUND_FIELD
  #define BACKGROUND_FIELD NO
 #endif
 
-#ifndef USE_FOUR_VELOCITY
- #define USE_FOUR_VELOCITY NO
-#endif
-
 #ifndef CHAR_LIMITING
  #define CHAR_LIMITING  NO
-#endif
-
-#ifndef ARTIFICIAL_VISCOSITY 
- #define ARTIFICIAL_VISCOSITY  NO
-#endif
-
-#ifndef ROTATING_FRAME
- #define ROTATING_FRAME NO
 #endif
 
 #ifdef CH_SPACEDIM
@@ -337,13 +297,23 @@
  #ifndef CHOMBO_LOGR
   #define CHOMBO_LOGR NO
  #endif
-
+ 
+/* --------------------------------------------------------------------
+    By default we enable angular momentum conservation only if the 
+    entropy swtich is enabled.  
+    Otherwise angular momentum conservation is not enforced during
+    refluxing / prolongation / restriction operations since this has
+    been shown to lead to the appearance of negative pressures.
+    (Simultaneous energy and angular momentum conservation in Chombo 
+     does not seem to be vary robust)
+   -------------------------------------------------------------------- */
+   
  #ifndef CHOMBO_CONS_AM
-  #if (GEOMETRY == CYLINDRICAL) && (COMPONENTS == 3) && (CHOMBO_EN_SWITCH == YES)
+  #if (GEOMETRY == CYLINDRICAL) && (COMPONENTS == 3) && (ENTROPY_SWITCH)
    #define CHOMBO_CONS_AM YES
-  #elif (GEOMETRY == SPHERICAL) && (COMPONENTS == 3) && (CHOMBO_EN_SWITCH == YES)
+  #elif (GEOMETRY == SPHERICAL) && (COMPONENTS == 3) && (ENTROPY_SWITCH)
    #define CHOMBO_CONS_AM YES
-  #elif (GEOMETRY == POLAR) && (COMPONENTS > 1) && (CHOMBO_EN_SWITCH == YES)
+  #elif (GEOMETRY == POLAR) && (COMPONENTS > 1) && (ENTROPY_SWITCH)
    #define CHOMBO_CONS_AM YES
   #else
    #define CHOMBO_CONS_AM NO
@@ -355,8 +325,76 @@
  #else
   #define CHOMBO_NDV  1
  #endif
-
 #endif
+
+#ifndef DUST
+ #define DUST   NO
+#endif
+
+#ifndef ENTROPY_SWITCH
+ #define ENTROPY_SWITCH  NO
+#endif 
+
+#ifndef EOS
+ #define EOS  -1
+#endif
+
+#ifndef INCLUDE_PARTICLES
+ #define INCLUDE_PARTICLES NO
+#endif
+
+#ifndef RECONSTRUCT_4VEL
+  #define RECONSTRUCT_4VEL   NO  /**< When set to YES, reconstruct 4-velocity
+                                      rather than 3-velocity (only for RHD and
+                                      RMHD physics modules)  */
+#endif  
+
+#ifndef RESISTIVITY 
+ #define RESISTIVITY   NO
+#endif
+
+#ifndef ROTATING_FRAME
+ #define ROTATING_FRAME NO
+#endif
+
+#ifndef THERMAL_CONDUCTION
+ #define THERMAL_CONDUCTION NO
+#endif
+
+#ifndef UNIT_DENSITY
+ #define UNIT_DENSITY (CONST_mp)  /**< Unit density in gr/cm^3. */
+#endif
+
+#ifndef UNIT_LENGTH
+ #define UNIT_LENGTH   (CONST_au)  /**< Unit Length in cm. */
+#endif
+
+#ifndef UNIT_VELOCITY
+ #define UNIT_VELOCITY (1.e5)  /**< Unit velocity in cm/sec. */
+#endif
+
+#ifndef UPDATE_VECTOR_POTENTIAL
+ #define UPDATE_VECTOR_POTENTIAL  NO
+#endif
+
+#ifndef VISCOSITY
+ #define VISCOSITY NO
+#endif
+
+/* -------------------------------------------------------------------
+    Set HAVE_ENERGY to YES if an energy equation exists
+   -------------------------------------------------------------------- */
+
+#if (EOS == IDEAL) || (EOS == PVTE_LAW) || (EOS == TAUB)  
+  #define HAVE_ENERGY       YES
+#else
+  #define HAVE_ENERGY      NO
+#endif
+
+/*! Define the conversion constant between dimensionless 
+    temperature prs/rho and physical temperature in Kelvin,
+    T = (prs/rho)*KELVIN*mu                                   */
+#define KELVIN (UNIT_VELOCITY*UNIT_VELOCITY*CONST_amu/CONST_kB) 
 
 /* ******************************************************
     Debug switches
@@ -365,7 +403,8 @@
 /* -- CHECK_EIGENVECTORS: used in eigenv.c in HD/, MHD/, RHD/
       to check orthogonality and the correctness through 
       the relation the A = L*\Lambda*R  -- */
-#define CHECK_EIGENVECTORS      NO
+
+#define CHECK_EIGENVECTORS     NO
 
 /* -- CHECK_CONSERVATIVE_VAR: used in RHD/mappers.c to 
       check that conservative vars are physical -- */
@@ -398,8 +437,8 @@
     slightly larger time increments.
    ------------------------------------------------------------ */
 
-#if ((TIME_STEPPING == RK2) || (TIME_STEPPING == RK3) || \
-     (TIME_STEPPING == RK_MIDPOINT)) && DIMENSIONAL_SPLITTING == NO
+#if ((TIME_STEPPING == RK2) || (TIME_STEPPING == RK3)) \
+      && DIMENSIONAL_SPLITTING == NO
  #define GET_MAX_DT    NO
 #else
  #define GET_MAX_DT    YES
@@ -420,7 +459,7 @@
       11   --> mixed: there is at least one explicit and sts operator
    ********************************************************************* */
 
-#define PARABOLIC_FLUX (RESISTIVE_MHD|THERMAL_CONDUCTION|VISCOSITY)
+#define PARABOLIC_FLUX (RESISTIVITY|THERMAL_CONDUCTION|VISCOSITY)
 
 /* ********************************************************
     Include more header files
@@ -448,20 +487,8 @@ typedef void Limiter        (double *, double *, double *, int, int, Grid *);
 typedef double Reconstruct  (double *, double, int);
 typedef double ****Data_Arr;
 
-#ifndef EOS
- #define EOS  -1
-#endif
-
-/* -- Set HAVE_ENERGY to YES if energy equation exists -- */
-#if (EOS == IDEAL) || (EOS == PVTE_LAW) || (EOS == TAUB)  
-  #define HAVE_ENERGY  YES
-#else
-  #define HAVE_ENERGY  NO
-#endif
-#define HAVE_PRESSURE  HAVE_ENERGY
-
 /* ********************************************************
-    Include yet more header files
+    Include physics module header files
    ******************************************************** */
 
 #include "mod_defs.h"  /* Include physics header file (search path is set
@@ -470,10 +497,18 @@ typedef double ****Data_Arr;
  #include "MHD/ShearingBox/shearingbox.h"
 #endif
 
-#if COOLING != NO    
- #include "cooling.h"               /* Include cooling header file */
+#if COOLING != NO
+  #include "cooling.h"
+  #define RHOE   PRS
 #endif
-#define RHOE PRS
+
+#if DUST == YES
+  #include "Dust/dust.h"            /* Dust header file */
+#endif
+
+#ifdef FARGO
+ #include "Fargo/fargo.h"           /* FARGO header file */
+#endif
 
 #if THERMAL_CONDUCTION != NO 
  #include "Thermal_Conduction/tc.h" /* Thermal conduction header file */
@@ -483,57 +518,64 @@ typedef double ****Data_Arr;
  #include "Viscosity/viscosity.h"   /* Viscosity header file */
 #endif
 
-#ifdef FARGO
- #include "Fargo/fargo.h"           /* FARGO header file */
-#endif
-
 #include "States/plm_coeffs.h"      /* PLM header file */
-#if INTERPOLATION == PARABOLIC 
+#if RECONSTRUCTION == PARABOLIC 
  #include "States/ppm_coeffs.h"     /* PPM header file */
 #endif
-
 #include "Math_Tools/math_tools.h"  /* Math tools header file */
 
 /* *********************************************************************
-    Define total number of variables to be integrated;
-    this includes:
+    Define mass fractions (H_MASS_FRAC and He_MASS_FRAC).
+    
+    For H2_COOL,  Proto-Solar Mass Fractions for Hydrogen
+    and Helium  (Lodders, ApJ 591, 2003 )  are used.
 
-     NFLX     = Number of equations defining the system of 
-                conservation laws. For example, for the 
-                HD module, it consists of density, momentum and energy.
-                It is defined in the physics module header file mod_defs.h.
-
-     NTRACER  = Number of user-defined tracers; defined in the problem
-                directory header file definitions.h
-
-     NIONS = Number of chemical species; defined in the cooling modules 
-             cooling.h, if present.
-
-  nv = 0...NFLX - 1; NFLX...NFLX+NIONS-1; TRC...TRC + NTRACER-1; ENTR; 
-       <----------> <------------------> <-------------------->  
-          NFLX              NIONS               NTRACER              
-
-                    <----------------------------------------------->
-                                         NSCL
-                                         
-       <------------------------------------------------------------>
-                                   NVAR
-
+    Define also the number fractions (relative to hydrogen)
+    as FRAC_He and FRAC_Z (FRAC_H = 1.0).
    ********************************************************************* */
 
-#ifndef ENTROPY_SWITCH
- #define ENTROPY_SWITCH  NO 
-#endif 
-
-#ifndef NIONS
- #define NIONS 0
+#ifndef H_MASS_FRAC  /* Sets default values  */
+  #define H_MASS_FRAC       0.7110
 #endif
 
-#define TRC  (NFLX + NIONS)
-#define TR    TRC    /* for backward compatibility */
-#define NSCL (NTRACER + NIONS + ENTROPY_SWITCH)
+#if (EOS == PVTE_LAW) && (COOLING == NO)
+  #define  He_MASS_FRAC  (1 - H_MASS_FRAC) /* Effective Y and not 0.2741
+                                              Baraffe (2008) */
+#endif
 
-#if ENTROPY_SWITCH == YES
+#ifndef He_MASS_FRAC
+  #define He_MASS_FRAC      0.2741
+#endif
+
+#define Z_MASS_FRAC (1.0 - H_MASS_FRAC - He_MASS_FRAC)  
+#define FRAC_He     (He_MASS_FRAC/CONST_AHe*CONST_AH/H_MASS_FRAC)
+#define FRAC_Z      (Z_MASS_FRAC /CONST_AZ *CONST_AH/H_MASS_FRAC)
+
+
+#ifndef NIONS
+  #define NIONS 0
+#endif
+
+/* ********************************************************************* */
+/*! The number of scalars (passive tracers).
+    This includes
+    - \c NTRACER (user-supplied)
+    - \c NIONS chemical fractions (added by cooling modules)
+    - Entropy 
+    In total, there are <tt>NSCL = NIONS+NTRACER+(ENTROPY</tt> passive
+    scalar to be advected.
+  ********************************************************************** */
+#define NSCL        (NTRACER + NIONS + (ENTROPY_SWITCH != 0))
+
+#ifndef NDUST
+  #define NDUST  0
+#endif
+#define NDUST_BEG   (NFLX + NSCL)
+#define NDUST_END   (NDUST_BEG + NDUST - 1)
+
+/* -- Additional variable names -- */
+#define TRC   (NFLX + NIONS)
+#if ENTROPY_SWITCH
  #define ENTR  (TRC + NTRACER)
 #else
  #if HAVE_ENERGY
@@ -541,9 +583,61 @@ typedef double ****Data_Arr;
  #endif
 #endif
 
-/* -- define total number of variables to be evolved in time -- */
+/* ********************************************************************* */
+/*! The total number of variables that are evolved in time.
+    This includes:
+    - \c NFLX: number of equations defining the system of conservation laws.
+      For example, for the HD module, it consists of density, momentum and energy.
+                It is defined in the physics module header file mod_defs.h.
+    - \c NIONS: number of chemical species; defined in the cooling modules 
+                cooling.h, if present.
+    - \c NTRACER: number of user-defined tracers; defined in the problem
+                  directory header file definitions.h
+    \verbatim  
+           NFLX    NIONS    NTRACER    ENTR    NDUST
+                   <---------------------->
+                              NSCL
+           <--------------------------------------->
+                    NVAR
+    \endverbatim
+   ********************************************************************* */
 
-#define NVAR (NFLX + NSCL)
+#define NVAR (NFLX + NSCL + NDUST)
+
+/* -- Loop Macros -- */
+
+#define NFLX_LOOP(n)     for ((n) = NFLX;   (n)--;  )
+#define NIONS_LOOP(n)    for ((n) = NFLX;   (n) < (NFLX+NIONS); (n)++)
+#define NTRACER_LOOP(n)  for ((n) = TRC;    (n) < (TRC+NTRACER); (n)++)
+#define NSCL_LOOP(n)     for ((n) = NFLX;   (n) < (NFLX+NSCL); (n)++)
+#define NDUST_LOOP(n)    for ((n) = NDUST_BEG;  (n) <= NDUST_END; (n)++)
+#define NVAR_LOOP(n)     for ((n) = NVAR;   (n)--;       )
+
+/* -- IF_XXXX() Macros for simpler coding -- */
+  
+#if DUST == YES
+ #define IF_DUST(a)  a
+#else 
+ #define IF_DUST(a)  
+#endif
+
+#if HAVE_ENERGY
+ #define IF_ENERGY(a)  a
+#else 
+ #define IF_ENERGY(a)  
+#endif
+
+#if (defined FARGO) && (!defined SHEARINGBOX)
+ #define IF_FARGO(a)  a
+#else 
+ #define IF_FARGO(a)  
+#endif
+
+#if ROTATING_FRAME == YES
+ #define IF_ROTATING_FRAME(a)  a
+#else 
+ #define IF_ROTATING_FRAME(a)  
+#endif
 
 /* ----------------------------------------------------------
     Include module header files: EOS
@@ -577,6 +671,11 @@ extern long int NMAX_POINT;
 extern int VXn, VXt, VXb;
 extern int MXn, MXt, MXb;
 extern int BXn, BXt, BXb;
+#if DUST == YES
+  extern int VXn_D, VXt_D, VXb_D;
+  extern int MXn_D, MXt_D, MXb_D;
+#endif
+
 
 extern int g_i, g_j, g_k;
 

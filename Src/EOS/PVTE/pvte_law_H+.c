@@ -16,6 +16,9 @@
 #include "pluto.h" 
 
 static double SahaXFrac(double T, double rho);
+#define DIFF_ORDER  4   /* = 2 or 4 for 2nd or 4th accurate approximations
+                           to derivatives in Gamma1()  */
+#define INTE_EXACT 1    /* Compute internal energy exactly in Gamma1() */
 
 /* ***************************************************************** */
 double InternalEnergyFunc(double *v, double T)
@@ -141,9 +144,106 @@ double Gamma1(double *v)
 {
   double gmm1, T;
   double cv, mu, chirho = 1.0, chiT = 1.0, rho, rhoe;
-  double ep, em, delta = 1.e-2;
-  double Tp, Tm, mup, mum, rhop, rhom;
+  double epp, emm, ep, em, delta = 1.e-3;
+  double Tpp, Tmm, Tp, Tm, mupp, mumm, mup, mum, rhopp, rhomm, rhop, rhom;
   double dmu_dT, dmu_drho, de_dT;
 
-  return 1.6667; 
+  return 1.666667; 
+  
+/* ---------------------------------------------
+    Obtain temperature and fractions.
+   --------------------------------------------- */
+   
+  #if NIONS == 0
+   GetPV_Temperature(v, &T);
+   GetMu(T, v[RHO], &mu);
+  #else
+   mu  = MeanMolecularWeight(v); 
+   T   = v[PRS]/v[RHO]*KELVIN*mu;
+  #endif
+
+/* ---------------------------------------------------
+    Compute cV (Specific heat capacity for constant 
+    volume) using centered derivative. 
+    cV will be in code units. The corresponding cgs 
+    units will be the same velocity^2/Kelvin.
+   --------------------------------------------------- */
+  
+  Tp = T*(1.0 + delta);
+  Tm = T*(1.0 - delta);
+  Tmm = T*(1.0 - 2.0*delta);
+  Tpp = T*(1.0 + 2.0*delta);
+
+  #if INTE_EXACT
+   emm = InternalEnergyFunc(v, Tmm)/v[RHO]; /* in code units */
+   em  = InternalEnergyFunc(v, Tm)/v[RHO]; /* in code units */
+   ep  = InternalEnergyFunc(v, Tp)/v[RHO]; /* in code units */
+   epp = InternalEnergyFunc(v, Tpp)/v[RHO]; /* in code units */
+  #else
+   emm = InternalEnergy(v, Tmm)/v[RHO]; /* in code units */
+   em  = InternalEnergy(v, Tm)/v[RHO]; /* in code units */
+   ep  = InternalEnergy(v, Tp)/v[RHO]; /* in code units */
+   epp = InternalEnergy(v, Tpp)/v[RHO]; /* in code units */
+  #endif
+ 
+  #if DIFF_ORDER == 2
+   de_dT = (ep - em)/(2.0*delta*T);
+  #elif DIFF_ORDER == 4  
+   de_dT = (emm - 8.0*em + 8.0*ep - epp)/(12.0*delta*T);
+  #else
+   #error Order not allowed in Gamma1()  
+  #endif
+ 
+  cv    = de_dT;  /* this is code units. */
+
+  #if NIONS == 0
+   rho = v[RHO];
+
+   GetMu(Tp, rho, &mup);
+   GetMu(Tm, rho, &mum);
+   GetMu(Tpp, rho, &mupp);
+   GetMu(Tmm, rho, &mumm);
+
+   #if DIFF_ORDER == 2
+    dmu_dT = (mup - mum)/(2.0*delta*T);      
+   #elif DIFF_ORDER == 4
+    dmu_dT = (mumm - 8.0*mum + 8.0*mup - mupp)/(12.0*delta*T);
+   #else
+    #error Order not allowed in Gamma1()     
+   #endif   
+
+   chiT  = 1.0 - T/mu*dmu_dT;
+
+   rhop = rho*(1.0 + delta);
+   rhom = rho*(1.0 - delta);
+   rhopp = rho*(1.0 + 2.0*delta);
+   rhomm = rho*(1.0 - 2.0*delta);
+
+   GetMu(T, rhop, &mup);
+   GetMu(T, rhom, &mum);
+   GetMu(T, rhopp, &mupp);
+   GetMu(T, rhomm, &mumm);
+
+   #if DIFF_ORDER == 2
+    dmu_drho = (mup - mum)/(2.0*delta*rho);      
+   #elif DIFF_ORDER == 4
+    dmu_drho = (mumm - 8.0*mum + 8.0*mup - mupp)/(12.0*delta*rho); 
+   #else
+    #error Order not allowed in Gamma1()     
+   #endif   
+   chirho   = 1.0 - rho/mu*dmu_drho;
+  #endif
+
+/* --------------------------------------------
+    Compute first adiabatic index
+   -------------------------------------------- */
+/*  
+printf ("gmm1:  prs = %12.6e, T = %12.6e, chiT = %12.6e, chirho = %12.6e\n",
+        v[PRS], T, chiT, chirho);
+*/
+  gmm1   = v[PRS]/(cv*T*v[RHO])*chiT*chiT  + chirho;
+
+//printf ("gmm1 = %f\n",gmm1);
+  return gmm1;
+  
 }

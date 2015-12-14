@@ -1,55 +1,15 @@
 /* ///////////////////////////////////////////////////////////////////// */
 /*!
   \file
-  \brief Flag zones where pressure is updated using entropy.
-
-  Flag cells where pressure has to be updated from the conserved
-  entropy density and compute entropy at the beginning of each
-  integration stage.
-  
-  The flagging strategy is based on two switches designed to detect 
-  the presence of compressive motion or shock waves in the fluid:
-  - \f$ \nabla\cdot\vec{v} < 0 \f$
-  - \f$ |\nabla p|/p > 0.1 \f$
-  
-  By default, if at least one of the switch is \e FALSE, we flag the 
-  computational zone by turning the ::FLAG_ENTROPY bit of the 
-  \c d->flag array on.
-  In this way, the default strategy is to evolve the entropy equation
-  everywhere, except at shocks (where both switches are \e TRUE).
-
-  This flag will be checked later in the ConsToPrim() functions in 
-  order to recover pressure from the entropy density rather than 
-  from the total energy density.
-  The update process is:
- 
-  - start with a vector of primitive variables  <tt> {V,s} </tt>
-    where \c s is the entropy;
-  - set boundary condition on \c {V}; 
-    compute \c {s} from \c {V};
-    flag zones where entropy may be used (flag = 1);
-  - evolve equations for one time step;
-  - convert <tt> {U,S} </tt> to primitive:
-   
-        where (flag == 0) {
-          p = p(E);
-        }else{  
-          p = p(S);
-          correct E using new p;
-        }
-                         
-  \b Reference
-     - "Maintaining Pressure Positivity in Magnetohydrodynamics Simulations"
-       Balsara \& Spicer, JCP (1999) 148, 133
- 
+  \brief Compute entropy after boundary condition have been set.
 
   \author A. Mignone (mignone@ph.unito.it)
-  \date   Aug 16, 2012
+  \date   July 28, 2015
 */
 /* ///////////////////////////////////////////////////////////////////// */
 #include"pluto.h"
 
-#if HAVE_ENERGY && (ENTROPY_SWITCH == YES)
+#if HAVE_ENERGY && ENTROPY_SWITCH
 /* ********************************************************************* */
 void ComputeEntropy (const Data *d, Grid *grid)
 /*!
@@ -80,12 +40,12 @@ void ComputeEntropy (const Data *d, Grid *grid)
 void EntropyOhmicHeating (const Data *d, Data_Arr UU, double dt, Grid *grid)
 /*! 
  * Add Ohmic heating term to the conservative entropy equation when
- * RESISTIVE_MHD is set to YES.
+ * RESISTIVITY is set to YES.
  *
  * \return  This function has no return value.
  *********************************************************************** */
 {
-#if PHYSICS == MHD && (RESISTIVE_MHD == EXPLICIT) /* at the moment ... remove later ! */
+#if PHYSICS == MHD && (RESISTIVITY == EXPLICIT) /* at the moment ... remove later ! */
   int    i,j,k,nv;
   double rho, rhog, gm1, vc[NVAR];
   double Jc[3], eta[3], J2eta;

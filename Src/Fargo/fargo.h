@@ -88,4 +88,4 @@ int      FARGO_HasTotalVelocity ();
 void     FARGO_SubtractVelocity(const Data *, Grid *);
 void     FARGO_ShiftSolution(Data_Arr, Data_Arr, Grid *);
 double   FARGO_SetVelocity(double, double);
-void     FARGO_ADD_SOURCE(const State_1D *, int, int, double, Grid *);
+void     FARGO_Source(Data_Arr, double, Grid *);

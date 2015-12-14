@@ -15,9 +15,9 @@
 
 void   CompEquil(double n, double T, double *v);
 double GetMaxRate (double *, double *, double);
-double MeanMolecularWeight  (double *);
 void   Radiat (double *, double *);
 void   NormalizeIons (double *);
+void   H2RateTables(double, double *);
 
 /* ############################################################
 
@@ -25,13 +25,7 @@ void   NormalizeIons (double *);
 
  ############################################################## */
 
-/* Proto-Solar Mass Fractions for Hydrogen and Helium  
- * (Lodders, ApJ 591, 2003 )                                       */
-
-#define H_MASS_FRAC       0.7110
-#define He_MASS_FRAC      0.2741
-
 #define NIONS    3
 #define X_HI     (NFLX)
-#define X_H2     (NFLX+1)
-#define X_HII    (NFLX+2)
+#define X_H2     (NFLX + 1)
+#define X_HII    (NFLX + 2)

@@ -28,7 +28,7 @@ double CompEquil (double N, double T, double *v0)
 
 /* -- Copy solution vector before any modification -- */
 
-  VAR_LOOP(nv) v[nv] = v0[nv];  
+  NVAR_LOOP(nv) v[nv] = v0[nv];  
 
   sT = sqrt(T);
 /*   N  = find_N(rho);   -- Total number density -- */

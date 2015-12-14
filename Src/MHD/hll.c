@@ -43,7 +43,7 @@ void HLL_Solver (const State_1D *state, int beg, int end,
 {
   int    nv, i, xdface;
   double scrh;
-  double *uL, *uR, *SR, *SL;
+  double *vL, *vR, *uL, *uR, *SR, *SL;
   static double **fL, **fR, **Uhll;
   static double **VL, **VR, **UL, **UR;
   static double *pL, *pR, *a2L, *a2R;
@@ -145,7 +145,7 @@ void HLL_Solver (const State_1D *state, int beg, int end,
                initialize source term
    ----------------------------------------------------- */
 
-  #if MHD_FORMULATION == EIGHT_WAVES
+  #if DIVB_CONTROL == EIGHT_WAVES
 /*
    ROE_DIVB_SOURCE (state, beg, end, grid);
 */

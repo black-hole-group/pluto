@@ -34,7 +34,7 @@
 /* ///////////////////////////////////////////////////////////////////// */
 #include "pluto.h"
 
-#if MHD_FORMULATION == EIGHT_WAVES
+#if DIVB_CONTROL == EIGHT_WAVES
 /* ********************************************************************* */
 void Roe_DivBSource (const State_1D *state, int is, int ie, Grid *grid)
 /*!

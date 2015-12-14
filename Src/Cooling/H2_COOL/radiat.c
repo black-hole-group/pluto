@@ -2,11 +2,15 @@
 
 #define POW10(x)  (pow(10.0, x))
 #define TABLE_NPT   2048
-static void Make_RateTables(double, double *);
 
 /* ********************************************************************* */
-void Make_RateTables(double T, double *krvals)
-/*
+void H2RateTables(double T, double *krvals)
+/*!
+ *  On first call, compute and store rate coefficient arrays 
+ *  needed for the H2_COOL module.
+ *  On subsequent calls, use linear interpolation between adjacent
+ *  tabulated values to obtain the coefficients at the desired 
+ *  temperature T. 
  *********************************************************************** */
 {
   int i, indx_lo, indx_hi;
@@ -116,7 +120,7 @@ void Radiat (double *v, double *rhs)
     frac_He  = (He_MASS_FRAC/CONST_AHe)*(CONST_AH/H_MASS_FRAC);
     frac_Z   = ((1 - H_MASS_FRAC - He_MASS_FRAC)/CONST_AZ)*(CONST_AH/H_MASS_FRAC);
     N_tot  =  N_H_rho*(1.0 + frac_He + frac_Z);
-    Make_RateTables(100.0, krvalues);
+    H2RateTables(100.0, krvalues);
     first_call = 0;
   }
 
@@ -124,7 +128,7 @@ void Radiat (double *v, double *rhs)
     Force fneut and fmol to stay between [0,1]
    --------------------------------------------- */
 
-  for (nv = NFLX; nv < (NFLX + NIONS); nv++){
+  NIONS_LOOP(nv){
     v[nv] = MAX(v[nv], 0.0);
     v[nv] = MIN(v[nv], 1.0);
   }
@@ -171,7 +175,7 @@ void Radiat (double *v, double *rhs)
  
 /* The Units of kr1, kr2, kr3, kr4, cr, ci = cm^{3}s^{-1}*/
   
-  Make_RateTables(T, krvalues);
+  H2RateTables(T, krvalues);
   kr1 = krvalues[0];
   kr2 = krvalues[1];
   kr3 = krvalues[2];
@@ -258,7 +262,7 @@ void Radiat (double *v, double *rhs)
 
 /* Cooling due to gas grain cooling */
 
-  em[11] = krvalues[8]*N_H*N_H; //3.8e-33*st*(T-Tdust)*(1.0 - 0.8*exp(-75.0/T))*N_H*N_H;
+  em[11] = krvalues[8]*N_H*N_H*fn*fn; //3.8e-33*st*(T-Tdust)*(1.0 - 0.8*exp(-75.0/T))*N_H*N_H;
 
   em[13]  = em[11] + em[10] + em[7] + (em[8] + em[9])*n_el*N_H;    
      
@@ -275,74 +279,6 @@ void Radiat (double *v, double *rhs)
   rhs[RHOE] *= 1.0/(1.0 + exp(-(T - g_minCoolingTemp)/100.0)); /* -- lower cutoff -- */
 }
 
-/* ********************************************************************* */
-double MeanMolecularWeight (double *V)
-/*
- *   Compute the mean molecular weight as function of the 
- *   composition of the gas.
- *   The definitiion of the mean molecular weight \mu is 
- *   the standard one:
- *
- *     1     \sum_k f_k n_k
- *    --- = ----------------     (Clayton, pag 82-83)
- *    \mu    \sum_k f_k A_k
- * 
- *   where 
- *
- *    f_k   : is the fractional abundance (by number) with
- *            respect to hydrogen, f_k = N_k/N_H
- *
- *    A_K   : is the atomic weight
- *
- *    n_k   : is the number of free particles 
- *            contributed to the gas by element k
- *
- *   The mean molecular weight satifies 
- *
- *               \rho = \mu m_{amu} N_{tot}
- *   
- *   where N_{tot} is the total number of particles
- *
- *   For the ``Raymond'' cooling module \mu is calculated
- *   as follows:
- *
- *            A_H + f_He*A_He + f_Z*A_z
- *    \mu =  ---------------------------
- *             2 - fn + f_He + 2*f_Z
- *
- * 
- * ARGUMENTS
- *
- *   V:   a set of primitive variables
- *
- *********************************************************************** */
-{
-  int nv;
-  double munum, muden;
- 
-  for (nv = NFLX; nv < (NFLX + NIONS); nv++){
-    V[nv] = MAX(V[nv], 0.0);
-    V[nv] = MIN(V[nv], 1.0);
-  }
-
-  V[X_H2] = MIN(V[X_H2], 0.5);
-  
-  double N_H  = (H_MASS_FRAC/CONST_AH);  
-  double N_He = (He_MASS_FRAC/CONST_AHe); 
-  double N_Z  = ((1.0-H_MASS_FRAC-He_MASS_FRAC)/CONST_AZ);  
-
-  double fracHe = N_He/N_H;
-  double fracZ  = N_Z/N_H;
-  
-  double fn = V[X_HI];
-  double gn = V[X_H2];
-  double hn = V[X_HII];
- 
-  munum = 1.0 + CONST_AHe*(fracHe) + CONST_AZ*(fracZ);
-  muden = fn + gn + 2*hn + fracHe + fracZ + 0.5*CONST_AZ*(fracZ);
-
-  return munum/muden;
-}
 
 #ifdef CHOMBO
 /* ********************************************************************* */

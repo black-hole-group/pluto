@@ -108,7 +108,7 @@ void UpdateStage(const Data *d, Data_Arr UU, double **aflux,
    2a. Compute current arrays 
    ------------------------------------------------ */
 
-  #if (RESISTIVE_MHD == EXPLICIT) && (defined STAGGERED_MHD)
+  #if (RESISTIVITY == EXPLICIT) && (defined STAGGERED_MHD)
    GetCurrent (d, -1, grid);
   #endif
 
@@ -131,7 +131,7 @@ void UpdateStage(const Data *d, Data_Arr UU, double **aflux,
     SetIndexes (&indx, grid);  /* -- set normal and transverse indices -- */
     ResetState (d, &state, grid);
 
-    #if (RESISTIVE_MHD == EXPLICIT) && !(defined STAGGERED_MHD)
+    #if (RESISTIVITY == EXPLICIT) && !(defined STAGGERED_MHD)
      GetCurrent(d, dir, grid);
     #endif
 
@@ -139,6 +139,7 @@ void UpdateStage(const Data *d, Data_Arr UU, double **aflux,
       g_i = i;  g_j = j;  g_k = k;
       for ((*ip) = 0; (*ip) < indx.ntot; (*ip)++) {
         VAR_LOOP(nv) state.v[(*ip)][nv] = d->Vc[nv][k][j][i];
+        state.flag[*ip] = d->flag[k][j][i];
         #ifdef STAGGERED_MHD
          state.bn[(*ip)] = d->Vs[g_dir][k][j][i];
         #endif
@@ -212,7 +213,7 @@ void UpdateStage(const Data *d, Data_Arr UU, double **aflux,
    4. Additional terms here
    ------------------------------------------------------------------- */
 
-  #if (ENTROPY_SWITCH == YES)  && (RESISTIVE_MHD == EXPLICIT)
+  #if (ENTROPY_SWITCH)  && (RESISTIVITY == EXPLICIT)
    EntropyOhmicHeating(d, UU, dt, grid);
   #endif
 
@@ -274,147 +275,148 @@ void SaveAMRFluxes (const State_1D *state, double **aflux,
 
   for (i = beg; i <= end; i++) state->flux[i][MXn] += state->press[i];
 
-  #if (GEOMETRY == CARTESIAN) && (CH_SPACEDIM > 1)
-   if ((g_dir == IDIR) && (g_stretch_fact != 1.)) {
-     for (i = beg; i <= end; i++) {
-      VAR_LOOP(nv) state->flux[i][nv] *= g_stretch_fact;
-     }
-   }
-   #if (CH_SPACEDIM == 3)
-    if ((g_dir == JDIR) && (g_x3stretch != 1.)) {
-      for (i = beg; i <= end; i++) {
-       VAR_LOOP(nv) state->flux[i][nv] *= g_x3stretch;
-      }
+#if (GEOMETRY == CARTESIAN) && (CH_SPACEDIM > 1)
+  if ((g_dir == IDIR) && (g_stretch_fact != 1.)) {
+    for (i = beg; i <= end; i++) {
+      NVAR_LOOP(nv) state->flux[i][nv] *= g_stretch_fact;
     }
-    if ((g_dir == KDIR) && (g_x2stretch != 1.)) {
-      for (i = beg; i <= end; i++) {
-       VAR_LOOP(nv) state->flux[i][nv] *= g_x2stretch;
-      }
-    }  
-   #endif
+  }
+  #if (CH_SPACEDIM == 3)
+  if ((g_dir == JDIR) && (g_x3stretch != 1.)) {
+    for (i = beg; i <= end; i++) {
+     NVAR_LOOP(nv) state->flux[i][nv] *= g_x3stretch;
+    }
+  }
+  if ((g_dir == KDIR) && (g_x2stretch != 1.)) {
+    for (i = beg; i <= end; i++) {
+     NVAR_LOOP(nv) state->flux[i][nv] *= g_x2stretch;
+    }
+  }  
   #endif
+#endif
 
-  #if GEOMETRY == CYLINDRICAL
-   if (g_dir == IDIR){
-     for (i = beg; i <= end; i++) {
-       VAR_LOOP(nv) {
+#if GEOMETRY == CYLINDRICAL
+  if (g_dir == IDIR){
+    for (i = beg; i <= end; i++) {
+      NVAR_LOOP(nv) {
         state->flux[i][nv] *= grid[IDIR].A[i];
         #if CH_SPACEDIM > 1
-         state->flux[i][nv] *= g_x2stretch;
+        state->flux[i][nv] *= g_x2stretch;
         #endif
-       }
-     }
-   }else{
-     area = fabs(grid[IDIR].x[g_i]);
-     for (i = beg; i <= end; i++) {
-       VAR_LOOP(nv) state->flux[i][nv] *= area;
-     }
-   }
-  #endif
+      }
+    }
+  }else{
+    area = fabs(grid[IDIR].x[g_i]);
+    for (i = beg; i <= end; i++) {
+      NVAR_LOOP(nv) state->flux[i][nv] *= area;
+    }
+  }
+#endif
 
-  #if GEOMETRY == SPHERICAL
-   if (g_dir == IDIR){
-    #if CH_SPACEDIM > 1
-     area = grid[JDIR].dV[g_j]/g_level_dx;
-     #if CH_SPACEDIM == 3
-      area *= g_x3stretch;
-     #endif
-    #endif 
-     for (i = beg; i <= end; i++) {
-       VAR_LOOP(nv) {
-         state->flux[i][nv] *= grid[IDIR].A[i];
+#if GEOMETRY == SPHERICAL
+  if (g_dir == IDIR){
+  #if CH_SPACEDIM > 1
+    area = grid[JDIR].dV[g_j]/g_level_dx;
+    #if CH_SPACEDIM == 3
+    area *= g_x3stretch;
+    #endif
+  #endif 
+    for (i = beg; i <= end; i++) {
+      NVAR_LOOP(nv) {
+        state->flux[i][nv] *= grid[IDIR].A[i];
         #if CH_SPACEDIM > 1
-         state->flux[i][nv] *= area;
+        state->flux[i][nv] *= area;
         #endif
-       }
-      #if (COMPONENTS == 3) && (CHOMBO_EN_SWITCH == YES)
-       state->flux[i][iMPHI] *= grid[IDIR].xr[i]*sin(grid[JDIR].x[g_j]);
-      #endif
-     }
-   }
-   if (g_dir == JDIR){
-     area = fabs(grid[IDIR].x[g_i]);
-     #if CHOMBO_LOGR == YES
+      }
+    #if (COMPONENTS == 3) && CHOMBO_CONS_AM
+      state->flux[i][iMPHI] *= grid[IDIR].xr[i]*sin(grid[JDIR].x[g_j]);
+    #endif
+    }
+  }
+  if (g_dir == JDIR){
+    area = fabs(grid[IDIR].x[g_i]);
+  #if CHOMBO_LOGR == YES
+    area *= grid[IDIR].dx[g_i]/g_level_dx;
+  #endif
+  #if CH_SPACEDIM == 3
+    area *= g_x3stretch;
+  #endif
+    for (i = beg; i <= end; i++) {
+      NVAR_LOOP(nv) {
+        state->flux[i][nv] *= grid[JDIR].A[i]*area;
+      }
+  #if (COMPONENTS == 3) && CHOMBO_CONS_AM
+      state->flux[i][iMPHI] *= grid[IDIR].x[g_i]*sin(grid[JDIR].xr[i]);
+  #endif
+    }
+  }
+  if (g_dir == KDIR){
+    for (i = beg; i <= end; i++) {
+      area = g_x2stretch* fabs(grid[IDIR].x[g_i]);
+    #if CHOMBO_LOGR == YES
       area *= grid[IDIR].dx[g_i]/g_level_dx;
+    #endif
+      NVAR_LOOP(nv) {
+        state->flux[i][nv] *= area;
+      }
+    #if (COMPONENTS == 3) && CHOMBO_CONS_AM
+      state->flux[i][iMPHI] *= grid[IDIR].x[g_i]*sin(grid[JDIR].x[g_j]);
      #endif
-     #if CH_SPACEDIM == 3
-      area *= g_x3stretch;
-     #endif
-     for (i = beg; i <= end; i++) {
-       VAR_LOOP(nv) {
-         state->flux[i][nv] *= grid[JDIR].A[i]*area;
-       }
-      #if (COMPONENTS == 3) && (CHOMBO_EN_SWITCH == YES)
-       state->flux[i][iMPHI] *= grid[IDIR].x[g_i]*sin(grid[JDIR].xr[i]);
-      #endif
-     }
-   }
-   if (g_dir == KDIR){
-     for (i = beg; i <= end; i++) {
-       area = g_x2stretch* fabs(grid[IDIR].x[g_i]);
-       #if CHOMBO_LOGR == YES
-        area *= grid[IDIR].dx[g_i]/g_level_dx;
-       #endif
-       VAR_LOOP(nv) {
-         state->flux[i][nv] *= area;
-       }
-      #if (COMPONENTS == 3) && (CHOMBO_EN_SWITCH == YES)
-       state->flux[i][iMPHI] *= grid[IDIR].x[g_i]*sin(grid[JDIR].x[g_j]);
-      #endif
-     }
-   }
-  #endif
+    }
+  }
+#endif
 
-  #if GEOMETRY == POLAR
-   if (g_dir == IDIR){
-     for (i = beg; i <= end; i++) {
-       VAR_LOOP(nv) {
-         state->flux[i][nv] *= grid[IDIR].A[i];
+#if GEOMETRY == POLAR
+  if (g_dir == IDIR){
+    for (i = beg; i <= end; i++) {
+      NVAR_LOOP(nv) {
+        state->flux[i][nv] *= grid[IDIR].A[i];
         #if CH_SPACEDIM > 1
-         state->flux[i][nv] *= g_x2stretch;
+        state->flux[i][nv] *= g_x2stretch;
         #endif
         #if CH_SPACEDIM == 3
-         state->flux[i][nv] *= g_x3stretch; 
+        state->flux[i][nv] *= g_x3stretch; 
         #endif
-       }
-      #if (COMPONENTS > 1) && (CHOMBO_EN_SWITCH == YES)
-       state->flux[i][iMPHI] *= grid[IDIR].xr[i];
+      }
+      #if (COMPONENTS > 1) && CHOMBO_CONS_AM
+      state->flux[i][iMPHI] *= grid[IDIR].xr[i];
       #endif
-     }
-   }
-   if (g_dir == JDIR){
-     area = g_x3stretch;
-     #if CHOMBO_LOGR == YES
-      area *= grid[IDIR].dx[g_i]/g_level_dx;
-     #endif
-     #if CH_SPACEDIM == 3
-      area *= g_x3stretch;
-     #endif 
-     if (area != 1.) {
+    }
+  }
+  if (g_dir == JDIR){
+    area = g_x3stretch;
+    #if CHOMBO_LOGR == YES
+    area *= grid[IDIR].dx[g_i]/g_level_dx;
+    #endif
+    #if CH_SPACEDIM == 3
+    area *= g_x3stretch;
+    #endif 
+    if (area != 1.) {
       for (i = beg; i <= end; i++) {
-        VAR_LOOP(nv) {
+        NVAR_LOOP(nv) {
           state->flux[i][nv] *= area;
         }
-     }}
-     #if (COMPONENTS > 1) && (CHOMBO_EN_SWITCH == YES)
-      for (i = beg; i <= end; i++) state->flux[i][iMPHI] *= grid[IDIR].x[g_i];
-     #endif
-   }
-   if (g_dir == KDIR){
-     for (i = beg; i <= end; i++) {
-       area = g_x2stretch*fabs(grid[IDIR].x[g_i]);
-       #if CHOMBO_LOGR == YES
-        area *= grid[IDIR].dx[g_i]/g_level_dx;
-       #endif
-       VAR_LOOP(nv) {
-         state->flux[i][nv] *= area;
-       }
-      #if (COMPONENTS > 1) && (CHOMBO_EN_SWITCH == YES)
-       state->flux[i][iMPHI] *= grid[IDIR].x[g_i];
+      }
+    }
+    #if (COMPONENTS > 1) && CHOMBO_CONS_AM
+    for (i = beg; i <= end; i++) state->flux[i][iMPHI] *= grid[IDIR].x[g_i];
+    #endif
+  }
+  if (g_dir == KDIR){
+    for (i = beg; i <= end; i++) {
+      area = g_x2stretch*fabs(grid[IDIR].x[g_i]);
+      #if CHOMBO_LOGR == YES
+      area *= grid[IDIR].dx[g_i]/g_level_dx;
       #endif
-     }
-   }
-  #endif
+      NVAR_LOOP(nv) {
+        state->flux[i][nv] *= area;
+      }
+      #if (COMPONENTS > 1) && CHOMBO_CONS_AM
+      state->flux[i][iMPHI] *= grid[IDIR].x[g_i];
+      #endif
+    }
+  }
+#endif
   
 /* -- store fluxes for re-fluxing operation -- */
 
@@ -426,11 +428,11 @@ void SaveAMRFluxes (const State_1D *state, double **aflux,
   nyb = grid[JDIR].lbeg - (g_dir == JDIR);
   nzb = grid[KDIR].lbeg - (g_dir == KDIR);
 
-  #if TIME_STEPPING == RK2 
-   wflux = 0.5;
-  #else
-   wflux = 1.0;
-  #endif
+#if TIME_STEPPING == RK2 
+  wflux = 0.5;
+#else
+  wflux = 1.0;
+#endif
  
   i = g_i; j = g_j; k = g_k;
   if (g_dir == IDIR) in = &i;
@@ -438,13 +440,10 @@ void SaveAMRFluxes (const State_1D *state, double **aflux,
   if (g_dir == KDIR) in = &k;
   
   for ((*in) = beg; (*in) <= end; (*in)++) {
-    #if CHOMBO_EN_SWITCH == YES
-     state->flux[*in][ENG] = 0.0;
-    #endif
-    #if ENTROPY_SWITCH == YES
+    #if HAVE_ENERGY && ENTROPY_SWITCH
      state->flux[*in][ENTR] = 0.0;
     #endif
-    VAR_LOOP(nv) {
+    NVAR_LOOP(nv) {
       indf = nv*nzf*nyf*nxf + (k - nzb)*nyf*nxf + (j - nyb)*nxf + (i - nxb);
       aflux[g_dir][indf] = wflux*state->flux[(*in)][nv];
     }
@@ -467,7 +466,7 @@ intList TimeStepIndexList()
   #if VISCOSITY == EXPLICIT
    cdt.indx[i++] = MX1;
   #endif
-  #if RESISTIVE_MHD == EXPLICIT
+  #if RESISTIVITY == EXPLICIT
    EXPAND(cdt.indx[i++] = BX1;  ,
           cdt.indx[i++] = BX2;  ,
           cdt.indx[i++] = BX3;)

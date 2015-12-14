@@ -4,20 +4,19 @@
 #define  GEOMETRY                CARTESIAN
 #define  BODY_FORCE              NO
 #define  COOLING                 NO
-#define  INTERPOLATION           MP5_FD
+#define  RECONSTRUCTION          MP5_FD
 #define  TIME_STEPPING           RK3
 #define  DIMENSIONAL_SPLITTING   NO
 #define  NTRACER                 0
-#define  USER_DEF_PARAMETERS     4
-#define  USER_DEF_CONSTANTS      0
+#define  USER_DEF_PARAMETERS     3
 
 /* -- physics dependent declarations -- */
 
 #define  EOS                     IDEAL
 #define  ENTROPY_SWITCH          NO
-#define  MHD_FORMULATION         DIV_CLEANING
+#define  DIVB_CONTROL            DIV_CLEANING
 #define  BACKGROUND_FIELD        NO
-#define  RESISTIVE_MHD           NO
+#define  RESISTIVITY             NO
 #define  THERMAL_CONDUCTION      NO
 #define  VISCOSITY               NO
 #define  ROTATING_FRAME          NO
@@ -27,10 +26,12 @@
 #define  EPS                     0
 #define  VEL0                    1
 #define  PR0                     2
-#define  ALPHA_GLM               3
 
-/* -- user-defined symbolic constants -- */
+/* [Beg] user-defined constants (do not change this line) */
 
+#define  GLM_ALPHA               0.2
+
+/* [End] user-defined constants (do not change this line) */
 
 /* -- supplementary constants (user editable) -- */ 
 

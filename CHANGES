@@ -1,4 +1,107 @@
-CURRENT RELEASE: 4.1 (October 2014)
+CURRENT RELEASE: 4.2 (August 2015)
+
+**********************************************************
+*           CHANGES from 4.1
+**********************************************************
+
+Version 4.2 contains some small addition and a whole lot of bug fixes.
+
+Structural Changes:
+===================
+
+- User defined constants have been removed from the python script and
+  can now be added manually by editing a dedicated section in definitions.h.
+
+- The old array indexing style using a two-letter index (e.g. DN, PR, VX,...)
+  is no longer supported. Use RHO, PRS, VX1, ... instead.
+
+- The macro STS_nu has been changed to STS_NU, it has been removed from the
+  python script and it can be inserted manually in the user-defined
+  constant section of definitions.h
+
+- ENTROPY_SWITCH does not take the value YES/NO anymore but it has more
+  options, see the documentation.
+
+- The Shearing Box module has been changed:
+  o It works with FARGO+IDEAL EoS.
+  o The functions BodyForceVector() and BodyForcePotential() are slightly
+    different from before (check Test_Problems/MHD/Shearing_Box/init.c).
+  o The shear parameter and orbital frequency are no longer assigned by the
+    global variables sb_q and qb_Omega but using the macros SB_Q and SB_OMEGA
+    which, by default, take the values 1.5 and 1.0.
+    
+- Userguide has been re-organized.
+
+- Added the MeanMolecularWeight() function and gas composition, see userguide.
+
+- The global variable g_stepNumber now works with PLUTO-Chombo.
+
+- Chombo HDF5 files can be written by specifying the output interval in
+  clock time (hours/minutes/seconds) as well as the output directory. 
+
+- Added GLM_ALPHA to the list of user-defined constants;
+
+- Runtime structure renamed to Restart;
+
+- Input structure renamed to Runtime  and setup.c renamed to runtime_setup.c;
+
+- Suppressed / replaced constant names:
+  
+  o ARTIFICIAL_VISCOSITY --> ARTIFICIAL_VISC (see appendix in the userguide) 
+  o CHOMBO_EN_SWITCH      (suppressed, replaced by the new ENTROPY_SWITCH)
+  o CH_TRACING_REF_STATE --> CHTR_REF_STATE
+  o DN, PR  are no longer supported --> use RHO and PRS instead
+  o EGLM                 --> GLM_EXTENDED
+  o INTERPOLATION        --> RECONSTRUCTION
+  o MHD_FORMULATION      --> DIVB_CONTROL
+  o RESISTIVE_MHD        --> RESISTIVITY
+  o STS_nu               --> STS_NU
+  o USE_FOUR_VELOCITY    --> RECONSTRUCT_4VEL (works for both RHD and RMHD)
+
+- RHD primitive variables always contain the 3 velocity although 4-vel can
+  be reconstructed by enabling the RECONSTRUCT_4VEL switch.
+
+- Src/Cooling/Tab changed to  Src/Cooling/TABULATED
+
+- The HD/ and MHD/ modules share the same RightHandSide() function inside
+  MHD/rhs.c. Likewise, source terms have been separately implemented in
+  MHD/rhs_source.c
+
+- Runtime information can now be accessed from anywhere in the code
+  using the RuntimeGet() function which gives access to a copy of
+  the runtime structure, e.g., RuntimeGet()->cfl.
+
+- RMHD module allows faster computation of eigenvalues using approximate
+  expressions (RMHD_FAST_EIGENVALUES).
+
+- Added the macro RECONSTRUCT_4VEL (YES/NO) which allows to reconstruct
+  the 4-velocity rather than the 3-velocity. It works for for RHD and RMHD.
+
+Fixed Bugs:
+===========
+
+- IDL pload function with var=".." now works also for multiple files;
+- Fixed a number of minor bugs in H2_COOL module and improved
+  CompEquil() function;
+- PPM method works correctly for non-uniform grid in any coordinate system;
+- FlagShock now called when using chombo (MULTID shock flattening and
+  ENTROPY_SWITCH)
+- PLUTO-Chombo now writes plotfiles correctly when restarting from a
+  checkpoint file (changed AMR.cpp in library) 
+- GLM complained with Background field splitting: print removed;
+- Resistivity + background can be used (removed QUIT statement from
+  MHD/bckgrnd_file.c);
+- PathCTU.1D has been removed and all 1D AMR computations are done
+  with PatchCTU.cpp or PatchEuler.cpp;
+- VTK files can now be visualized with PARAVIEW;
+- PVTE_LAW now uses cubic spline interpolation rather than linear 
+  along the temperature axis;
+- Chombo "LevelPluto::step: alpha < 0" crash has been partially solved.
+- Tabulated cooling takes into account the mean molecular weight.
+
+
+
+
 
 **********************************************************
 *           CHANGES from 4.0

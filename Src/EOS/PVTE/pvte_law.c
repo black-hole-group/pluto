@@ -208,7 +208,7 @@ void GetHFracs(double *v, double *f)
    f[DEG_y] = 1.0;
   #elif COOLING == H2_COOL
    /* Ionization Fraction. */
-   f[DEG_x] = v[X_HII]/(v[X_HII] + v[X_HI]); 
+   f[DEG_x] = v[X_HII]/(v[X_HII] + v[X_HI] + 1.e-40); 
 
  /* ----------------------------------------------------------
      Dissociation Fraction y = 1.0 - mol. fraction,
@@ -218,7 +218,7 @@ void GetHFracs(double *v, double *f)
      Further it satisfies :  y -> 1.0 as T -> Infinity. 
     ---------------------------------------------------------- */
       
-   f[DEG_y] = 1.0 - 2.0*v[X_H2]/(2.0*v[X_H2] + v[X_HI] + 1.0e-12);
+   f[DEG_y] = 1.0 - 2.0*v[X_H2]/(2.0*v[X_H2] + v[X_HI] + 1.0e-40);
 
   #else
    print1 ("! GetHFracs: not defined for this cooling\n");

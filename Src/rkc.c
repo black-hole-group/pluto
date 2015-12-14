@@ -52,7 +52,6 @@
   \date    Oct 29, 2012
 */
 /* ///////////////////////////////////////////////////////////////////// */
-
 #include "pluto.h"
 
 /* ********************************************************************* */
@@ -103,14 +102,14 @@ void RKC (const Data *d, Time_Step *Dts, Grid *grid)
           var_list[i++] = MX3;)
   #endif
 
-  #if RESISTIVE_MHD == RK_CHEBYSHEV
+  #if RESISTIVITY == RK_CHEBYSHEV
    EXPAND(var_list[i++] = BX1;  ,
           var_list[i++] = BX2;  ,
           var_list[i++] = BX3;)
   #endif
   #if    (THERMAL_CONDUCTION == RK_CHEBYSHEV)  \
       || (VISCOSITY     == RK_CHEBYSHEV && EOS == IDEAL) \
-      || (RESISTIVE_MHD == RK_CHEBYSHEV && EOS == IDEAL)
+      || (RESISTIVITY == RK_CHEBYSHEV && EOS == IDEAL)
    
    var_list[i++] = ENG;
   #endif

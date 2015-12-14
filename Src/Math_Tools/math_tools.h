@@ -50,6 +50,11 @@ void LUBackSubst (double **, int, int *, double b[]);
 
 double BesselJ0(double);
 double BesselJ1(double);
+double BesselIO(double);
+double BesselI1(double);
+double BesselKO(double);
+double BesselK1(double);
+double BesselKn(int, double);
 double RandomNumber (double, double);
 void   VectorCartesianComponents(double *, double, double, double);
 
@@ -59,6 +64,7 @@ void ODE_Solve(double *, int, double, double, double,
                void (*rhs)(double, double *, double *), int method);
 
 /* -- Functions contained in math_qr_decomp.c -- */
+
 void QRUpdate(double **, double **, int , double *, double *);
 void RSolve(double **, int , double *, double *);
 void QRSolve(double **, int , double *, double *, double *);
@@ -92,5 +98,15 @@ void FinalizeTable2D   (Table2D *);
 int  Table2DInterpolate   (Table2D *, double, double, double *);
 int  InverseLookupTable2D (Table2D *, double, double, double *);
 void WriteBinaryTable2D (char *, Table2D *);
+
+/* -- Functions containd in math_interp.c -- */
+
+void MonotoneSplineCoeffs (double *x, double *y, double *dydx, int n,
+                           double *a, double *b, double *c, double *d);
+
+void SplineCoeffs (double *x, double *f, double dfL, double dfR, int n,
+                   double *a, double *b, double *c, double *d);
+
+void TridiagonalSolve(double *, double *, double *, double *,  double *, int);
 
 /* \endcond */

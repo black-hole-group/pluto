@@ -26,7 +26,7 @@
 
   \authors A. Mignone (mignone@ph.unito.it)\n
            P. Tzeferacos (petros.tzeferacos@ph.unito.it)
-  \date   Oct 30, 2012
+  \date    April 02, 2015
 */
 /* ///////////////////////////////////////////////////////////////////// */
 #include "pluto.h"
@@ -53,10 +53,6 @@ void MaxSignalSpeed (double **v, double *cs2, double *cmin, double *cmax,
   double cf;
   double b1, b2, b3;
 
-  #if EOS == BAROTROPIC
-   SOUND_SPEED2 (v, cs2, NULL, beg, end);
-  #endif
-    
   b1 = b2 = b3 = 0.0;
   for (i = beg; i <= end; i++) {
 
@@ -65,11 +61,11 @@ void MaxSignalSpeed (double **v, double *cs2, double *cmin, double *cmax,
       a couple of tests from reproducing the same log files
      ---------------------------------------------------------- */
 
-    #if EOS == IDEAL
-     gpr = g_gamma*v[i][PRS];
-    #else
-     gpr = cs2[i]*v[i][RHO];
-    #endif
+#if EOS == IDEAL
+    gpr = g_gamma*v[i][PRS];
+#else
+    gpr = cs2[i]*v[i][RHO];
+#endif
 
   /* -- get total field -- */
 
@@ -77,11 +73,11 @@ void MaxSignalSpeed (double **v, double *cs2, double *cmin, double *cmax,
             b2 = v[i][BXt];  ,
             b3 = v[i][BXb];)
 
-    #if BACKGROUND_FIELD == YES
-     EXPAND (b1 += bgf[i][BXn]; ,
-             b2 += bgf[i][BXt]; ,
-             b3 += bgf[i][BXb];)
-    #endif
+#if BACKGROUND_FIELD == YES
+    EXPAND (b1 += bgf[i][BXn]; ,
+            b2 += bgf[i][BXt]; ,
+            b3 += bgf[i][BXb];)
+#endif
     Btmag2 = b2*b2 + b3*b3;
     Bmag2  = b1*b1 + Btmag2;
 
@@ -151,32 +147,32 @@ void Eigenvalues(double **v, double *csound2, double **lambda,
     lambda[i][KFASTM] = u - cf;
     lambda[i][KFASTP] = u + cf;
 
-    #if EOS == IDEAL 
-     lambda[i][KENTRP] = u;
-    #endif
+#if EOS == IDEAL 
+    lambda[i][KENTRP] = u;
+#endif
 
-    #ifndef GLM_MHD
-     #if MHD_FORMULATION == EIGHT_WAVES
-      lambda[i][KDIVB] = u;
-     #else  
-      lambda[i][KDIVB] = 0.0;
-     #endif
-    #endif
+#ifndef GLM_MHD
+  #if DIVB_CONTROL == EIGHT_WAVES
+    lambda[i][KDIVB] = u;
+  #else  
+    lambda[i][KDIVB] = 0.0;
+  #endif
+#endif
 
-    #if COMPONENTS > 1
-     lambda[i][KSLOWM] = u - cs;
-     lambda[i][KSLOWP] = u + cs;
-    #endif
+#if COMPONENTS > 1
+    lambda[i][KSLOWM] = u - cs;
+    lambda[i][KSLOWP] = u + cs;
+#endif
 
-    #if COMPONENTS == 3
-     lambda[i][KALFVM] = u - ca;
-     lambda[i][KALFVP] = u + ca;
-    #endif
+#if COMPONENTS == 3
+    lambda[i][KALFVM] = u - ca;
+    lambda[i][KALFVP] = u + ca;
+#endif
 
-    #ifdef GLM_MHD
-     lambda[i][KPSI_GLMM] = -glm_ch;
-     lambda[i][KPSI_GLMP] =  glm_ch;
-    #endif
+#ifdef GLM_MHD
+    lambda[i][KPSI_GLMM] = -glm_ch;
+    lambda[i][KPSI_GLMP] =  glm_ch;
+#endif
   }
 }
 /* ********************************************************************* */
@@ -239,18 +235,10 @@ void PrimEigenvectors(double *q, double a2, double h, double *lambda,
   double alpha_f, alpha_s, beta_y, beta_z;
   double sqrt_rho;
 
-  #if BACKGROUND_FIELD == YES
-   print ("! Background field does not support characteristic limiting\n");
-   QUIT_PLUTO(1);
-  #endif
-  #if EOS == BAROTROPIC
-   print ("! PrimEigenvectors: not defined for barotropic MHD\n");
-   QUIT_PLUTO(1);
-  #endif
-  #if EOS == PVTE_LAW
-   print1( "! PrimEigenvectors: cannot be used presently with PVTE_LAW EoS\n");
-   QUIT_PLUTO(1);  
-  #endif
+#if BACKGROUND_FIELD == YES
+  print1 ("! Background field does not support characteristic limiting\n");
+  QUIT_PLUTO(1);
+#endif
 
   u   = q[VXn];
   tau = 1.0/q[RHO];
@@ -332,23 +320,24 @@ void PrimEigenvectors(double *q, double a2, double h, double *lambda,
          RR[BXt][k] = scrh1*beta_y;  ,
          RR[BXb][k] = scrh1*beta_z;)
 
-  #if EOS == IDEAL
-   scrh4 = alpha_f*g_gamma*q[PRS];
-   RR[PRS][k] = scrh4;
-  #endif
+#if HAVE_ENERGY
+//  scrh4 = alpha_f*g_gamma*q[PRS];
+  scrh4 = alpha_f*a2*q[RHO];
+  RR[PRS][k] = scrh4;
+#endif
 
-  #if EOS == ISOTHERMAL
-   LL[k][RHO] = 0.5*alpha_f/q[RHO];
-  #endif
+#if EOS == ISOTHERMAL
+  LL[k][RHO] = 0.5*alpha_f/q[RHO];
+#endif
   EXPAND(LL[k][VXn] = RR[VXn][k]*scrh2; ,
          LL[k][VXt] = RR[VXt][k]*scrh2; ,
          LL[k][VXb] = RR[VXb][k]*scrh2;) 
-  EXPAND(                           ; , 
+  EXPAND(                             ; , 
          LL[k][BXt] = RR[BXt][k]*scrh3; ,
          LL[k][BXb] = RR[BXb][k]*scrh3;)
-  #if EOS == IDEAL
-   LL[k][PRS] = alpha_f*scrh3;
-  #endif
+#if HAVE_ENERGY
+  LL[k][PRS] = alpha_f*scrh3;
+#endif
 
   /* -------------------------
       FAST WAVE,  (u + c_f)
@@ -360,145 +349,146 @@ void PrimEigenvectors(double *q, double a2, double h, double *lambda,
   EXPAND(RR[VXn][k] = -RR[VXn][KFASTM];  ,
          RR[VXt][k] = -RR[VXt][KFASTM];  ,
          RR[VXb][k] = -RR[VXb][KFASTM];)
-  EXPAND(                          ;  ,
-         RR[BXt][k] = RR[BXt][KFASTM];  ,
+  EXPAND(                            ;   ,
+         RR[BXt][k] = RR[BXt][KFASTM];   ,
          RR[BXb][k] = RR[BXb][KFASTM];)
-  #if EOS == IDEAL
-   RR[PRS][k] = RR[PRS][KFASTM];
-  #endif
+#if HAVE_ENERGY
+  RR[PRS][k] = RR[PRS][KFASTM];
+#endif
 
-  #if EOS == ISOTHERMAL
-   LL[k][RHO] = LL[KFASTM][RHO];
-  #endif
+#if EOS == ISOTHERMAL
+  LL[k][RHO] = LL[KFASTM][RHO];
+#endif
   EXPAND(LL[k][VXn] = -LL[KFASTM][VXn];  ,
          LL[k][VXt] = -LL[KFASTM][VXt];  ,
          LL[k][VXb] = -LL[KFASTM][VXb];) 
-  EXPAND(                          ;  ,                         
-         LL[k][BXt] = LL[KFASTM][BXt];  ,
+  EXPAND(                            ;   ,                         
+         LL[k][BXt] = LL[KFASTM][BXt];   ,
          LL[k][BXb] = LL[KFASTM][BXb];)
-  #if EOS == IDEAL
-   LL[k][PRS] = LL[KFASTM][PRS]; 
-  #endif
+#if HAVE_ENERGY
+  LL[k][PRS] = LL[KFASTM][PRS]; 
+#endif
 
   /* -------------------------
       entropy wave,  (u) only
       in ideal MHD
      -------------------------  */
 
-  #if EOS == IDEAL 
-   k = KENTRP;
-   lambda[k] = u;
-   RR[RHO][k] =   1.0;
-   LL[k][RHO] =   1.0; 
-   LL[k][PRS] = - 1.0/a2;
-  #endif
+#if HAVE_ENERGY 
+  k = KENTRP;
+  lambda[k] = u;
+  RR[RHO][k] =   1.0;
+  LL[k][RHO] =   1.0; 
+  LL[k][PRS] = - 1.0/a2;
+#endif
 
   /* -------------------------
         magnetic flux, (u)
      -------------------------  */
 
-  #ifndef GLM_MHD
-   k = KDIVB;
-   #if MHD_FORMULATION == EIGHT_WAVES
-    lambda[k] = u;
-    RR[BXn][k] = 1.0;
-    LL[k][BXn] = 1.0;
-   #else  
-    lambda[k] = 0.0;
-   #endif
+#ifndef GLM_MHD
+  k = KDIVB;
+  #if DIVB_CONTROL == EIGHT_WAVES
+  lambda[k] = u;
+  RR[BXn][k] = 1.0;
+  LL[k][BXn] = 1.0;
+  #else  
+  lambda[k] = 0.0;
   #endif
+#endif
 
-  #if COMPONENTS > 1
+#if COMPONENTS > 1
 
   /* -------------------------
       SLOW WAVE,  (u - c_s)
      -------------------------  */
 
-   k = KSLOWM;
-   lambda[k] = u - cs;
-   scrh0 = alpha_f*cf*S;
-   scrh1 = alpha_f*sqrt_rho*a;
+  k = KSLOWM;
+  lambda[k] = u - cs;
+  scrh0 = alpha_f*cf*S;
+  scrh1 = alpha_f*sqrt_rho*a;
 
-   RR[RHO][k] = q[RHO]*alpha_s;
-   EXPAND(RR[VXn][k] = -cs*alpha_s;     ,
-          RR[VXt][k] = -scrh0*beta_y;   ,
-          RR[VXb][k] = -scrh0*beta_z;)
-   EXPAND(                         ;  ,
-          RR[BXt][k] = -scrh1*beta_y;  ,
-          RR[BXb][k] = -scrh1*beta_z;)
-   #if EOS == IDEAL
-    scrh4 = alpha_s*g_gamma*q[PRS]; 
-    RR[PRS][k] = scrh4;
-   #endif
+  RR[RHO][k] = q[RHO]*alpha_s;
+  EXPAND(RR[VXn][k] = -cs*alpha_s;     ,
+         RR[VXt][k] = -scrh0*beta_y;   ,
+         RR[VXb][k] = -scrh0*beta_z;)
+  EXPAND(                         ;  ,
+         RR[BXt][k] = -scrh1*beta_y;  ,
+         RR[BXb][k] = -scrh1*beta_z;)
+  #if HAVE_ENERGY
+//  scrh4 = alpha_s*g_gamma*q[PRS]; 
+  scrh4 = alpha_s*a2*q[RHO]; 
+  RR[PRS][k] = scrh4;
+  #endif
 
-   #if EOS == ISOTHERMAL
-    LL[k][RHO] = 0.5*alpha_s/q[RHO];
-   #endif
-   EXPAND(LL[k][VXn] = RR[VXn][k]*scrh2; ,
-          LL[k][VXt] = RR[VXt][k]*scrh2; ,
-          LL[k][VXb] = RR[VXb][k]*scrh2;) 
-   EXPAND(                           ; ,
-          LL[k][BXt] = RR[BXt][k]*scrh3; ,
-          LL[k][BXb] = RR[BXb][k]*scrh3;) 
+  #if EOS == ISOTHERMAL
+  LL[k][RHO] = 0.5*alpha_s/q[RHO];
+  #endif
+  EXPAND(LL[k][VXn] = RR[VXn][k]*scrh2; ,
+         LL[k][VXt] = RR[VXt][k]*scrh2; ,
+         LL[k][VXb] = RR[VXb][k]*scrh2;) 
+  EXPAND(                           ; ,
+         LL[k][BXt] = RR[BXt][k]*scrh3; ,
+         LL[k][BXb] = RR[BXb][k]*scrh3;) 
 
-   #if EOS == IDEAL
-    LL[k][PRS] = alpha_s*scrh3;
-   #endif
+  #if HAVE_ENERGY
+  LL[k][PRS] = alpha_s*scrh3;
+  #endif
 
   /* -------------------------
       SLOW WAVE,  (u + c_s)
      -------------------------  */
 
-   k = KSLOWP;
-   lambda[k] = u + cs;
+  k = KSLOWP;
+  lambda[k] = u + cs;
 
-   RR[RHO][k] = RR[RHO][KSLOWM];
-   EXPAND(RR[VXn][k] = -RR[VXn][KSLOWM];   ,
-          RR[VXt][k] = -RR[VXt][KSLOWM];   ,
-          RR[VXb][k] = -RR[VXb][KSLOWM];)
+  RR[RHO][k] = RR[RHO][KSLOWM];
+  EXPAND(RR[VXn][k] = -RR[VXn][KSLOWM];   ,
+         RR[VXt][k] = -RR[VXt][KSLOWM];   ,
+         RR[VXb][k] = -RR[VXb][KSLOWM];)
 
-   EXPAND(                          ;  ,
-          RR[BXt][k] = RR[BXt][KSLOWM];  ,
-          RR[BXb][k] = RR[BXb][KSLOWM];)
-   #if EOS == IDEAL
-    RR[PRS][k] = scrh4;
-   #endif
-
-   #if EOS == ISOTHERMAL
-    LL[k][RHO] = LL[KSLOWM][RHO];
-   #endif
-   EXPAND(LL[k][VXn] = -LL[KSLOWM][VXn];   ,
-          LL[k][VXt] = -LL[KSLOWM][VXt];   ,
-          LL[k][VXb] = -LL[KSLOWM][VXb];) 
-   EXPAND(                          ;   ,
-          LL[k][BXt] = LL[KSLOWM][BXt];   ,
-          LL[k][BXb] = LL[KSLOWM][BXb];) 
-
-   #if EOS == IDEAL
-    LL[k][PRS] = LL[KSLOWM][PRS];
-   #endif
+  EXPAND(                          ;  ,
+         RR[BXt][k] = RR[BXt][KSLOWM];  ,
+         RR[BXb][k] = RR[BXb][KSLOWM];)
+  #if HAVE_ENERGY
+  RR[PRS][k] = scrh4;
   #endif
 
-  #if COMPONENTS == 3
+  #if EOS == ISOTHERMAL
+  LL[k][RHO] = LL[KSLOWM][RHO];
+  #endif
+  EXPAND(LL[k][VXn] = -LL[KSLOWM][VXn];   ,
+         LL[k][VXt] = -LL[KSLOWM][VXt];   ,
+         LL[k][VXb] = -LL[KSLOWM][VXb];) 
+  EXPAND(                          ;   ,
+         LL[k][BXt] = LL[KSLOWM][BXt];   ,
+         LL[k][BXb] = LL[KSLOWM][BXb];) 
+
+  #if HAVE_ENERGY
+  LL[k][PRS] = LL[KSLOWM][PRS];
+  #endif
+#endif
+
+#if COMPONENTS == 3
 
   /* -------------------------
       Alfven WAVE,  (u - c_a)
      -------------------------  */
    
-   k = KALFVM;
-   lambda[k] = u - ca;
-   scrh2 = beta_y*sqrt_1_2;
-   scrh3 = beta_z*sqrt_1_2;
+  k = KALFVM;
+  lambda[k] = u - ca;
+  scrh2 = beta_y*sqrt_1_2;
+  scrh3 = beta_z*sqrt_1_2;
 
-   RR[VXt][k] = -scrh3;  
-   RR[VXb][k] =  scrh2;
-   RR[BXt][k] = -scrh3*sqrt_rho*S;   
-   RR[BXb][k] =  scrh2*sqrt_rho*S;   
+  RR[VXt][k] = -scrh3;  
+  RR[VXb][k] =  scrh2;
+  RR[BXt][k] = -scrh3*sqrt_rho*S;   
+  RR[BXb][k] =  scrh2*sqrt_rho*S;   
 
-   LL[k][VXt] = RR[VXt][k]; 
-   LL[k][VXb] = RR[VXb][k]; 
-   LL[k][BXt] = RR[BXt][k]*tau;
-   LL[k][BXb] = RR[BXb][k]*tau; 
+  LL[k][VXt] = RR[VXt][k]; 
+  LL[k][VXb] = RR[VXb][k]; 
+  LL[k][BXt] = RR[BXt][k]*tau;
+  LL[k][BXb] = RR[BXb][k]*tau; 
 
   /* -------------------------
       Alfven WAVE,  (u + c_a)
@@ -506,60 +496,58 @@ void PrimEigenvectors(double *q, double a2, double h, double *lambda,
       defined by Gardiner Stone)
      -------------------------  */
 
-   k = KALFVP;
-   lambda[k] = u + ca;
-   RR[VXt][k] =   RR[VXt][KALFVM]; 
-   RR[VXb][k] =   RR[VXb][KALFVM]; 
-   RR[BXt][k] = - RR[BXt][KALFVM]; 
-   RR[BXb][k] = - RR[BXb][KALFVM]; 
+  k = KALFVP;
+  lambda[k] = u + ca;
+  RR[VXt][k] =   RR[VXt][KALFVM]; 
+  RR[VXb][k] =   RR[VXb][KALFVM]; 
+  RR[BXt][k] = - RR[BXt][KALFVM]; 
+  RR[BXb][k] = - RR[BXb][KALFVM]; 
 
-   LL[k][VXt] =   LL[KALFVM][VXt];
-   LL[k][VXb] =   LL[KALFVM][VXb];
-   LL[k][BXt] = - LL[KALFVM][BXt];
-   LL[k][BXb] = - LL[KALFVM][BXb];
+  LL[k][VXt] =   LL[KALFVM][VXt];
+  LL[k][VXb] =   LL[KALFVM][VXb];
+  LL[k][BXt] = - LL[KALFVM][BXt];
+  LL[k][BXb] = - LL[KALFVM][BXb];
 
-  /* -------------------------------------------------------------------
-      HotFix: when B=0 in a 2D plane and only Bz != 0, enforce zero
-      jumps in BXt. This is useful with CharTracing since 2 equal and
-      opposite jumps may accumulate due to round-off.
-      It also perfectly consistent, since no (Bx,By) can be generated.  
-     ------------------------------------------------------------------- */
+/* -------------------------------------------------------------------
+    HotFix: when B=0 in a 2D plane and only Bz != 0, enforce zero
+    jumps in BXt. This is useful with CharTracing since 2 equal and
+    opposite jumps may accumulate due to round-off.
+    It also perfectly consistent, since no (Bx,By) can be generated.  
+   ------------------------------------------------------------------- */
 
-   #if DIMENSIONS <= 2
-    if (q[BXn] == 0 && q[BXt] == 0.0) 
-      for (k = 0; k < NFLX; k++) RR[BXt][k] = 0.0;
-   #endif
-
+  #if DIMENSIONS <= 2
+  if (q[BXn] == 0 && q[BXt] == 0.0) for (k = 0; k < NFLX; k++) RR[BXt][k] = 0.0;
   #endif
+#endif
 
 
-  #ifdef GLM_MHD
+#ifdef GLM_MHD
 
-  /* -------------------------
-      GLM wave,  -glm_ch
-     -------------------------  */
+/* -------------------------
+    GLM wave,  -glm_ch
+   -------------------------  */
 
-   k = KPSI_GLMM;
-   lambda[k] = -glm_ch;
-   RR[BXn][k]      =  1.0;
-   RR[PSI_GLM][k] = -glm_ch;
+  k = KPSI_GLMM;
+  lambda[k] = -glm_ch;
+  RR[BXn][k]      =  1.0;
+  RR[PSI_GLM][k] = -glm_ch;
 
-   LL[k][BXn]      =  0.5;
-   LL[k][PSI_GLM] = -0.5/glm_ch;
+  LL[k][BXn]      =  0.5;
+  LL[k][PSI_GLM] = -0.5/glm_ch;
 
-  /* -------------------------
-      GLM wave,  +glm_ch
-     -------------------------  */
+/* -------------------------
+    GLM wave,  +glm_ch
+   -------------------------  */
 
-   k = KPSI_GLMP;
-   lambda[k] = glm_ch;
-   RR[BXn][k]      =  1.0;
-   RR[PSI_GLM][k] =  glm_ch;
+  k = KPSI_GLMP;
+  lambda[k] = glm_ch;
+  RR[BXn][k]      =  1.0;
+  RR[PSI_GLM][k] =  glm_ch;
 
-   LL[k][BXn]      =  0.5;
-   LL[k][PSI_GLM] =  0.5/glm_ch;
+  LL[k][BXn]      =  0.5;
+  LL[k][PSI_GLM] =  0.5/glm_ch;
 
-  #endif
+#endif
 
 /* ------------------------------------------------------------
     Verify eigenvectors consistency by
@@ -594,7 +582,7 @@ void PrimEigenvectors(double *q, double a2, double h, double *lambda,
     A[i][j] = ALR[i][j] = 0.0;
   }}
 
-  #if EOS == IDEAL
+  #if HAVE_ENERGY
 
    A[RHO][RHO] = q[VXn]; A[RHO][VXn] = q[RHO];
    A[VXn][VXn] = q[VXn]; A[VXn][BXt] =  q[BXt]*tau; A[VXn][BXb] = q[BXb]*tau; A[VXn][PRS] = tau;
@@ -602,7 +590,7 @@ void PrimEigenvectors(double *q, double a2, double h, double *lambda,
    A[VXb][VXb] = q[VXn]; A[VXb][BXb] = -q[BXn]*tau; 
    A[BXt][VXn] = q[BXt]; A[BXt][VXt] = -q[BXn]; A[BXt][BXn] = -q[VXt]; A[BXt][BXt] = q[VXn];
    A[BXb][VXn] = q[BXb]; A[BXb][VXb] = -q[BXn]; A[BXb][BXn] = -q[VXb]; A[BXb][BXb] = q[VXn];
-   A[PRS][VXn] = g_gamma*q[PRS]; A[PRS][PRS] =  q[VXn];
+   A[PRS][VXn] = a2*q[RHO]; A[PRS][PRS] =  q[VXn];
 
   #elif EOS == ISOTHERMAL
 
@@ -659,7 +647,7 @@ void PrimEigenvectors(double *q, double a2, double h, double *lambda,
 
   for (i = 0; i < NFLX; i++){
   for (j = 0; j < NFLX; j++){
-    #if MHD_FORMULATION == NONE || MHD_FORMULATION == CONSTRAINED_TRANSPORT
+    #if (DIVB_CONTROL == NO) || (DIVB_CONTROL == CONSTRAINED_TRANSPORT)
      if (i == KDIVB || j == KDIVB) continue;
     #endif
     a = 0.0;
@@ -965,7 +953,7 @@ void ConsEigenvectors (double *u, double *v, double a2,
 
   #ifndef GLM_MHD
    k = KDIVB;
-   #if MHD_FORMULATION == EIGHT_WAVES
+   #if DIVB_CONTROL == EIGHT_WAVES
     lambda[k] = vx;
     Rc[BXn][k] = 1.0;
     Lc[k][BXn] = 1.0;
@@ -1281,7 +1269,7 @@ void ConsEigenvectors (double *u, double *v, double a2,
 
   for (i = 0; i < NFLX; i++){
   for (j = 0; j < NFLX; j++){
-    #if MHD_FORMULATION == NONE || MHD_FORMULATION == CONSTRAINED_TRANSPORT
+    #if (DIVB_CONTROL == NO) || (DIVB_CONTROL == CONSTRAINED_TRANSPORT)
      if (i == KDIVB || j == KDIVB) continue;
     #endif
     a = 0.0;
@@ -1323,7 +1311,7 @@ void PrimToChar (double **Lp, double *v, double *w)
 
   L = Lp[KFASTM];
   wv = EXPAND(L[VXn]*v[VXn], + L[VXt]*v[VXt], + L[VXb]*v[VXb]); 
-  #if EOS == IDEAL
+  #if HAVE_ENERGY
    wB = EXPAND(L[PRS]*v[PRS], + L[BXt]*v[BXt], + L[BXb]*v[BXb]); 
   #elif EOS == ISOTHERMAL
    wB = EXPAND(L[RHO]*v[RHO], + L[BXt]*v[BXt], + L[BXb]*v[BXb]); 
@@ -1333,14 +1321,14 @@ void PrimToChar (double **Lp, double *v, double *w)
 
 /* -- entropy -- */
 
-  #if EOS == IDEAL
+  #if HAVE_ENERGY
    L = Lp[KENTRP];
    w[KENTRP] = L[RHO]*v[RHO] + L[PRS]*v[PRS];
   #endif
 
   #ifndef GLM_MHD
    L = Lp[KDIVB];
-   #if MHD_FORMULATION == EIGHT_WAVES
+   #if DIVB_CONTROL == EIGHT_WAVES
     w[KDIVB] = v[BXn];
    #else
     w[KDIVB] = 0.0;
@@ -1351,7 +1339,7 @@ void PrimToChar (double **Lp, double *v, double *w)
    L = Lp[KSLOWM];
    wv = EXPAND(L[VXn]*v[VXn], + L[VXt]*v[VXt], + L[VXb]*v[VXb]); 
 
-   #if EOS == IDEAL
+   #if HAVE_ENERGY
     wB = EXPAND(L[PRS]*v[PRS], + L[BXt]*v[BXt], + L[BXb]*v[BXb]); 
    #elif EOS == ISOTHERMAL
     wB = EXPAND(L[RHO]*v[RHO], + L[BXt]*v[BXt], + L[BXb]*v[BXb]); 
@@ -1375,17 +1363,15 @@ void PrimToChar (double **Lp, double *v, double *w)
    w[KPSI_GLMP] = L[BXn]*v[BXn] + L[PSI_GLM]*v[PSI_GLM];
   #endif
 
-  /* ----------------------------------------------- 
-       For passive scalars, the characteristic 
-       variable is equal to the primitive one, 
-       since  l = r = (0,..., 1 , 0 ,....)
-     ----------------------------------------------- */		   
+/* ----------------------------------------------- 
+     For passive scalars, the characteristic 
+     variable is equal to the primitive one, 
+     since  l = r = (0,..., 1 , 0 ,....)
+   ----------------------------------------------- */		   
 
-  #if NFLX != NVAR
-   for (k = NFLX; k < NVAR; k++){
-     w[k] = v[k];
-   }
-  #endif   
+#if NSCL > 0 
+  NSCL_LOOP(k) w[k] = v[k];
+#endif   
 
 /* -------------------------------------------------
     verify that the previous simplified expressions 

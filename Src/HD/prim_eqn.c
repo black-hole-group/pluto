@@ -22,7 +22,7 @@
   implements the source term part.
 
   \author A. Mignone (mignone@ph.unito.it)
-  \date   July 15, 2014
+  \date   April 02, 2015
 */
 /* ///////////////////////////////////////////////////////////////////// */
 #include "pluto.h"
@@ -60,8 +60,11 @@ void PrimRHS (double *v, double *dv, double cs2, double h, double *Adv)
   #endif
 
  /* ---- scalars  ---- */
-     			    
-  for (nv = NFLX; nv < NVAR; nv++) Adv[nv] = u*dv[nv];
+
+#if NSCL > 0     			    
+  NSCL_LOOP(nv) Adv[nv] = u*dv[nv];
+#endif
+
 }
 
 /* ********************************************************************* */
@@ -103,8 +106,8 @@ void PrimSource (const State_1D *state, int beg, int end,
   double g[3], scrh;
 
 #if ROTATING_FRAME == YES
- print1 ("! PrimSource: does not work with rotations\n");
- QUIT_PLUTO(1);
+  print1 ("! PrimSource(): does not work with rotations\n");
+  QUIT_PLUTO(1);
 #endif
 
 /* ----------------------------------------------------------
@@ -205,13 +208,23 @@ void PrimSource (const State_1D *state, int beg, int end,
        - Body forces
    ---------------------------------------------------------- */
 
-  #if (GEOMETRY == CARTESIAN) && (defined SHEARINGBOX)
-   if (g_dir == IDIR){
-     for (i = beg; i <= end; i++) src[i][VX1] =  2.0*state->v[i][VX2]*sb_Omega;
-   }else if (g_dir == JDIR){
-     for (j = beg; j <= end; j++) src[j][VX2] = -2.0*state->v[j][VX1]*sb_Omega;
-   }
-  #endif
+#ifdef SHEARINGBOX
+
+  if (g_dir == IDIR){
+    for (i = beg; i <= end; i++) {
+      src[i][VX1] =  2.0*state->v[i][VX2]*SB_OMEGA;
+    } 
+  }else if (g_dir == JDIR){
+    for (j = beg; j <= end; j++) {
+    #ifdef FARGO 
+      src[j][VX2] = (SB_Q - 2.0)*state->v[j][VX1]*SB_OMEGA;
+    #else
+      src[j][VX2] = -2.0*state->v[j][VX1]*SB_OMEGA;
+    #endif
+    }
+  }
+
+#endif
 
   #if (BODY_FORCE != NO)
    if (g_dir == IDIR) {

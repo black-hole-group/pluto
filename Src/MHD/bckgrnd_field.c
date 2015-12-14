@@ -23,20 +23,16 @@ double **GetBackgroundField (int beg, int end, int where, Grid *grid)
    print1 ("! Background field splitting works with RK integrators ONLY \n");
    QUIT_PLUTO(1);
   #endif
-  #if MHD_FORMULATION == EIGHT_WAVES
+  #if DIVB_CONTROL == EIGHT_WAVES
    print1 ("! Background field splitting works with CT or GLM ONLY \n");
    QUIT_PLUTO(1);
-  #elif MHD_FORMULATION == CONSTRAINED_TRANSPORT
+  #elif DIVB_CONTROL == CONSTRAINED_TRANSPORT
    #if (CT_EMF_AVERAGE != ARITHMETIC) && (CT_EMF_AVERAGE != UCT_HLL)
     print1 ("! Background field splitting works with ARITHMETIC or");
     print1 (" UCT_HLL averages only\n");
     QUIT_PLUTO(1);
    #endif
   #endif
-  #if RESISTIVE_MHD != NO 
-    print1 ("! Background field splitting works with Ideal MHD only\n");
-    QUIT_PLUTO(1);
-  #endif  
 
   if (bck_fld == NULL) {
     bck_fld = ARRAY_2D(NMAX_POINT, NVAR, double);

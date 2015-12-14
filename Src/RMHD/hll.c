@@ -123,7 +123,7 @@ void HLL_Solver (const State_1D *state, int beg, int end,
               initialize source term
    -------------------------------------------------------- */
  
-  #if MHD_FORMULATION == EIGHT_WAVES
+  #if DIVB_CONTROL == EIGHT_WAVES
 /*
    POWELL_DIVB_SOURCE (state, beg, end, grid);
 */

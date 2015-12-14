@@ -36,7 +36,7 @@ void Init (double *us, double x1, double x2, double x3)
     vj   = sqrt(1.0 - 1.0/100.);
     cs   = sqrt(g_gamma*pe/(us[RHO] + pe*g_gamma/(g_gamma-1.0)));
     Mach = vj/cs;
-    printf ("Mach number = %12.6e\n",Mach);
+    print ("Mach number = %12.6e\n",Mach);
 
 /* ----- estimate jet velocity --------- */
     
@@ -50,12 +50,12 @@ void Init (double *us, double x1, double x2, double x3)
 
     eta  = rhob*hb/(rhom*hm)*lor*lor;
     vjet = sqrt(eta)/(1.0 + sqrt(eta))*vy_in;
-    printf (" Estimated jet velocity = %f\n",vjet);
+    print (" Estimated jet velocity = %f\n",vjet);
 
 /* ---- estimate sigma (= b^2/rho) ---- */
 
     sigma = g_inputParam[RM]*g_inputParam[RM]*(0.5 - 2.0*log(g_inputParam[RM]));
-    printf (" sigma = %f\n",1.0/sigma);
+    print (" sigma = %f\n",1.0/sigma);
 
   }
 }

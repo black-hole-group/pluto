@@ -1,6 +1,6 @@
 var searchData=
 [
-  ['ch_5ftracing_5fref_5fstate',['CH_TRACING_REF_STATE',['../char__tracing_8c.html#afb834d3f8409e309d01be24e2fa2d56e',1,'char_tracing.c']]],
+  ['chtr_5fref_5fstate',['CHTR_REF_STATE',['../char__tracing_8c.html#a5b7d680b504abf9f1d8af9769651ae8a',1,'char_tracing.c']]],
   ['const_5fah',['CONST_AH',['../pluto_8h.html#a77004533ea9f81c0dd00988c84689207',1,'pluto.h']]],
   ['const_5fahe',['CONST_AHe',['../pluto_8h.html#ab655d1cc5b88744d28f6787ab3111bb7',1,'pluto.h']]],
   ['const_5famu',['CONST_amu',['../pluto_8h.html#aec4d3bfe18a158cf2d8a4d24c82d4749',1,'pluto.h']]],

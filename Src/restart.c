@@ -8,17 +8,17 @@
   version of the code.
 
   \author A. Mignone (mignone@ph.unito.it)
-  \date   Aug 16, 2012
+  \date   Aug 24, 2015
 */
 /* ///////////////////////////////////////////////////////////////////// */
 #include "pluto.h"
 
 /* *********************************************************************  */
-void Restart (Input *ini, int nrestart, int type, Grid *grid)
+void RestartFromFile (Runtime *ini, int nrestart, int type, Grid *grid)
 /*!
  * Read input binary / hdf5 data.
  *
- * \param [in] ini
+ * \param [in] ini       
  * \param [in] nrestart
  * \param [in] type specifies the output data type (type should be 
  *             either DBL_OUTPUT or DBL_H5_OUTPUT).
@@ -26,7 +26,6 @@ void Restart (Input *ini, int nrestart, int type, Grid *grid)
  *
  ***********************************************************************  */
 {
-  int     i,j,k;
   int     nv, single_file, origin, nlines=0;
   int     swap_endian=0;
   char    fname[512], fout[512], str[512];
@@ -36,7 +35,7 @@ void Restart (Input *ini, int nrestart, int type, Grid *grid)
   FILE   *fbin;
 
 /* ----------------------------------------------------------
-    get the pointer to the output format specified by "type"
+    Get the pointer to the output format specified by "type"
    ---------------------------------------------------------- */
 
   for (nv = 0; nv < MAX_OUTPUT_TYPES; nv++){
@@ -45,7 +44,7 @@ void Restart (Input *ini, int nrestart, int type, Grid *grid)
   }
 
 /* -------------------------------------------------------
-    compare the endianity of the restart file (by reading
+    Compare the endianity of the restart file (by reading
     the corresponding entry in dbl.out or dbl.h5.out) 
     with that of the current architecture.
     Turn swap_endian to 1 if they're different.
@@ -85,7 +84,7 @@ void Restart (Input *ini, int nrestart, int type, Grid *grid)
   #endif
 
 /* ---------------------------------------------
-    read restart.out and get RunTime structure
+    Read restart.out and get Restart structure
    --------------------------------------------- */
 
   RestartGet (ini, nrestart, type, swap_endian);
@@ -175,17 +174,17 @@ void Restart (Input *ini, int nrestart, int type, Grid *grid)
 static int counter = -1;
 
 /* ********************************************************************* */
-void RestartGet (Input *ini, int nrestart, int out_type,
+void RestartGet (Runtime *ini, int nrestart, int out_type,
                   int swap_endian)
 /*!
- * Collect runtime information needed for (potential)
+ * Collect restart information needed for (potential)
  * later restarts.
  *
  *********************************************************************** */
 {
   int  origin, n, k;
   char fout[512];
-  Runtime runtime;
+  Restart restart;
   FILE *fr;
 
   if (nrestart < 0){
@@ -216,11 +215,11 @@ void RestartGet (Input *ini, int nrestart, int out_type,
         print("! RestartGet: end of file encountered.\n");
         QUIT_PLUTO(1);
       }
-      fseek (fr, k*sizeof(Runtime), origin);
-      fread (&runtime, sizeof (Runtime), 1, fr);
+      fseek (fr, k*sizeof(Restart), origin);
+      fread (&restart, sizeof (Restart), 1, fr);
       for (n = 0; n < MAX_OUTPUT_TYPES; n++){
-        if (swap_endian) SWAP_VAR(runtime.nfile[n]);
-        if (ini->output[n].type == out_type && runtime.nfile[n] == nrestart){
+        if (swap_endian) SWAP_VAR(restart.nfile[n]);
+        if (ini->output[n].type == out_type && restart.nfile[n] == nrestart){
           counter = k;
         }
       }
@@ -228,68 +227,64 @@ void RestartGet (Input *ini, int nrestart, int out_type,
     }
     fclose(fr);
     if (swap_endian){
-      SWAP_VAR(runtime.t);
-      SWAP_VAR(runtime.dt);
-      SWAP_VAR(runtime.nstep);
+      SWAP_VAR(restart.t);
+      SWAP_VAR(restart.dt);
+      SWAP_VAR(restart.nstep);
     }
   }
 
 /* printf ("counter = %d\n",counter); */
 
   #ifdef PARALLEL
-   MPI_Bcast (&runtime, sizeof (Runtime), MPI_BYTE, 0, MPI_COMM_WORLD);
+   MPI_Bcast (&restart, sizeof (Restart), MPI_BYTE, 0, MPI_COMM_WORLD);
   #endif
 
-  g_time = runtime.t;
-  g_dt   = runtime.dt;
-  g_stepNumber     = runtime.nstep;
+  g_time       = restart.t;
+  g_dt         = restart.dt;
+  g_stepNumber = restart.nstep;
 
-/*printf ("Getting Runtime Structure\n"); */
   for (n = 0; n < MAX_OUTPUT_TYPES; n++){
-    ini->output[n].nfile = runtime.nfile[n];
-/* if (runtime.nfile[n] >= 0)  printf ("output = %d, nfile = %d\n",n,runtime.nfile[n]);  */
+    ini->output[n].nfile = restart.nfile[n];
   }
 }
 /* ********************************************************************* */
-void RestartDump (Input *ini)
+void RestartDump (Runtime *ini)
 /*!
- * Write runtime information needed for (potential) later restarts.
+ * Write restart information needed for later restarts.
  *
  *********************************************************************** */
 {
   int n;
   char fout[512];
-  Runtime runtime;
+  Restart restart;
   FILE *fr;
 
 /* --------------------------------------------------
-    define runtime structure elements here
+    Define restart structure elements here
    -------------------------------------------------- */
 
-  runtime.t  = g_time;
-  runtime.dt = g_dt;
-  runtime.nstep = g_stepNumber;
+  restart.t  = g_time;
+  restart.dt = g_dt;
+  restart.nstep = g_stepNumber;
   for (n = 0; n < MAX_OUTPUT_TYPES; n++){
-    runtime.nfile[n] = ini->output[n].nfile;
-/* if (runtime.nfile[n] >= 0) printf ("output = %d, nfile = %d\n",n,runtime.nfile[n]); */
+    restart.nfile[n] = ini->output[n].nfile;
   }  
 
 /* --------------------------------------------------
-         dump structure to disk
+    Dump structure to disk
    -------------------------------------------------- */
 
   counter++;
-/* printf ("Dumping Runtime Structure; counter = %d\n", counter);  */
   if (prank == 0) {
     sprintf (fout,"%s/restart.out",ini->output_dir);
     if (counter == 0) {
       fr = fopen (fout, "wb");
     }else {
       fr = fopen (fout, "r+b");
-      fseek (fr, counter*sizeof(Runtime), SEEK_SET); 
+      fseek (fr, counter*sizeof(Restart), SEEK_SET); 
     }
 
-    fwrite (&runtime, sizeof(Runtime), 1, fr);
+    fwrite (&restart, sizeof(Restart), 1, fr);
     fclose(fr);
   }
 }

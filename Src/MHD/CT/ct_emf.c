@@ -128,7 +128,7 @@ void CT_StoreEMF (const State_1D *state, int beg, int end, Grid *grid)
 
       #if CT_EMF_AVERAGE == RIEMANN_2D
        emf.ezi[g_k][g_j][i] = -2.0*(state->pnt_flx[i][BX2] + 
-                                          state->dff_flx[i][BX2]); 
+                                    state->dff_flx[i][BX2]); 
       #endif
 
     }
@@ -138,7 +138,7 @@ void CT_StoreEMF (const State_1D *state, int beg, int end, Grid *grid)
     emf.jbeg = beg; emf.jend = end;
     for (j = beg; j <= end; j++) {
 
-      D_EXPAND(                                                ;   ,
+      D_EXPAND(                                           ;   ,
                emf.ezj[g_k][j][g_i] =  state->flux[j][BX1];   ,
                emf.exj[g_k][j][g_i] = -state->flux[j][BX3]; )
 
@@ -157,7 +157,7 @@ void CT_StoreEMF (const State_1D *state, int beg, int end, Grid *grid)
       #if CT_EMF_AVERAGE == RIEMANN_2D 
 //       emf.ezj[g_k][j][g_i] += state->dff_flx[j][BX1];  
        emf.ezj[g_k][j][g_i]   = 2.0*(state->pnt_flx[j][BX1] + 
-                                           state->dff_flx[j][BX1]); 
+                                     state->dff_flx[j][BX1]); 
       #endif
     }
 
@@ -221,7 +221,7 @@ EMF *CT_GetEMF (const Data *d, Grid *grid)
     super time stepping. 
    ----------------------------------------------------- */
 
-  #if RESISTIVE_MHD == SUPER_TIME_STEPPING
+  #if RESISTIVITY == SUPER_TIME_STEPPING
    if (g_operatorStep == PARABOLIC_STEP){
      TOT_LOOP(k,j,i) {
        #if DIMENSIONS == 3
@@ -295,7 +295,7 @@ EMF *CT_GetEMF (const Data *d, Grid *grid)
 
    for (k = emf.kbeg; k <= emf.kend + KOFFSET; k++){
    for (j = emf.jbeg; j <= emf.jend + JOFFSET; j++){
-   for (i = emf.ibeg; i <= emf.iend + IOFFSET; i++){      
+   for (i = emf.ibeg; i <= emf.iend + IOFFSET; i++){       
      #if DIMENSIONS == 3
       emf.exj[k][j][i] *= 2.0;
       emf.exk[k][j][i] *= 2.0;
@@ -327,7 +327,7 @@ EMF *CT_GetEMF (const Data *d, Grid *grid)
     time stepping.
    ------------------------------------------------------ */
 
-  #if RESISTIVE_MHD == EXPLICIT
+  #if RESISTIVITY == EXPLICIT
    CT_AddResistiveEMF(d, grid); 
   #endif
    
@@ -356,7 +356,7 @@ EMF *CT_GetEMF (const Data *d, Grid *grid)
   return (&emf);
 }
 
-#if RESISTIVE_MHD != NO
+#if RESISTIVITY != NO
 /* ********************************************************************* */
 void CT_AddResistiveEMF (const Data *d, Grid *grid)
 /*!
@@ -412,7 +412,7 @@ emf.ez[k][j][i] += Jz*g_inputParam[ETAZ];
 
   }}}
 }
-#endif /* RESISTIVE_MHD != NO */
+#endif /* RESISTIVITY != NO */
 
 #undef EX
 #undef EY

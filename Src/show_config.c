@@ -92,40 +92,71 @@ void ShowConfig (int argc, char *argv[], char *ini_file)
   if (PHYSICS == RHD)       print1 ("  PHYSICS:          RHD\n");
   if (PHYSICS == MHD)       print1 ("  PHYSICS:          MHD [div.B: ");
   if (PHYSICS == RMHD)      print1 ("  PHYSICS:          RMHD [div.B: ");
-
-  #if PHYSICS == MHD || PHYSICS == RMHD
-   #if MHD_FORMULATION == NONE
-    print1 ("None]\n");
-   #elif MHD_FORMULATION == EIGHT_WAVES
+#if PHYSICS == MHD || PHYSICS == RMHD
+  #if DIVB_CONTROL == NO
+  print1 ("None]\n");
+  #elif DIVB_CONTROL == EIGHT_WAVES
     print1 ("Powell's 8wave]\n");
-   #elif MHD_FORMULATION == DIV_CLEANING
-    #if EGLM == NO 
-     print1 ("Divergence Cleaning (GLM)]\n");
-    #elif EGLM == YES
-     print1 ("Divergence Cleaning (EGLM)]\n");
+  #elif DIVB_CONTROL == DIV_CLEANING
+    #if GLM_EXTENDED == NO 
+    print1 ("Divergence Cleaning (GLM)]\n");
+    #elif GLM_EXTENDED == YES
+    print1 ("Divergence Cleaning (Extended GLM)]\n");
     #endif
     
-   #elif MHD_FORMULATION == CONSTRAINED_TRANSPORT
-     print1 ("CT/");
+  #elif DIVB_CONTROL == CONSTRAINED_TRANSPORT
+    print1 ("CT/");
     #if CT_EMF_AVERAGE == ARITHMETIC
-     print1 ("Ar. average]\n");
+    print1 ("Ar. average]\n");
     #elif CT_EMF_AVERAGE == UCT_CONTACT
-     print1 ("UCT_CONTACT]\n");
+    print1 ("UCT_CONTACT]\n");
     #elif CT_EMF_AVERAGE == UCT0
-     print1 ("UCT0]\n");
+    print1 ("UCT0]\n");
     #elif CT_EMF_AVERAGE == UCT_HLL
-     print1 ("UCT_HLL]\n");
+    print1 ("UCT_HLL]\n");
     #endif
-   #endif
   #endif
+#endif
+
   print1 ("  DIMENSIONS:       %d\n", DIMENSIONS);
   print1 ("  COMPONENTS:       %d\n", COMPONENTS);
+
+  print1 ("  GEOMETRY:         ");
+  if (GEOMETRY == CARTESIAN)    print1 ("Cartesian\n");
+  if (GEOMETRY == CYLINDRICAL)  print1 ("Cylindrical\n");
+  if (GEOMETRY == POLAR)        print1 ("Polar\n");
+  if (GEOMETRY == SPHERICAL)    print1 ("Spherical\n");
+
+  print1 ("  BODY_FORCE:       ");
+  print1 (BODY_FORCE == NO ? "NO\n":"EXPLICIT\n");
+
+  print1 ("  RECONSTRUCTION:   ");
+#ifndef FINITE_DIFFERENCE
+   if (RECONSTRUCTION == FLAT)          print1 ("Flat");
+   if (RECONSTRUCTION == LINEAR)        print1 ("Linear TVD");
+   if (RECONSTRUCTION == LINEAR_MULTID) print1 ("Linear_Multid");
+   if (RECONSTRUCTION == LimO3)         print1 ("LimO3");
+   if (RECONSTRUCTION == WENO3)         print1 ("WENO 3rd order");
+   if (RECONSTRUCTION == PARABOLIC)     print1 ("Parabolic");
+ #ifdef CHAR_LIMITING
+   if (CHAR_LIMITING == YES) print1 (" (Characteristic lim)\n");
+   else                      print1 (" (Primitive lim)\n");
+ #endif
+#endif
+
+#ifdef FINITE_DIFFERENCE
+  if (RECONSTRUCTION == LIMO3_FD)     print1 ("LimO3 (FD), 3rd order\n");
+  if (RECONSTRUCTION == WENO3_FD)     print1 ("WENO3 (FD), 3rd order\n");
+  if (RECONSTRUCTION == WENOZ_FD)     print1 ("WENOZ (FD) 5th order\n");
+  if (RECONSTRUCTION == MP5_FD)       print1 ("MP5 (FD), 5th order\n");
+#endif
+
   print1 ("  TRACERS:          %d\n", NTRACER);
   print1 ("  VARIABLES:        %d\n", NVAR);
-  print1 ("  ENTROPY_SWITCH:   %s\n",(ENTROPY_SWITCH == YES ? "YES":"NO"));
-  #if PHYSICS == MHD 
-   print1 ("  BACKGROUND_FIELD: %s\n",(BACKGROUND_FIELD == YES ? "YES":"NO"));
-  #endif
+  print1 ("  ENTROPY_SWITCH:   %s\n",(ENTROPY_SWITCH != NO ? "ENABLED":"NO"));
+#if PHYSICS == MHD 
+  print1 ("  BACKGROUND_FIELD: %s\n",(BACKGROUND_FIELD == YES ? "YES":"NO"));
+#endif
 
   print1 ("  LOADED MODULES:\n");
   #if PHYSICS == MHD
@@ -152,15 +183,6 @@ void ShowConfig (int argc, char *argv[], char *ini_file)
   #endif
   print1 ("\n");
 
-  print1 ("  GEOMETRY:         ");
-  if (GEOMETRY == CARTESIAN)    print1 ("Cartesian\n");
-  if (GEOMETRY == CYLINDRICAL)  print1 ("Cylindrical\n");
-  if (GEOMETRY == POLAR)        print1 ("Polar\n");
-  if (GEOMETRY == SPHERICAL)    print1 ("Spherical\n");
-
-  print1 ("  BODY_FORCE:       ");
-  print1 (BODY_FORCE == NO ? "NO\n":"EXPLICIT\n");
-
   print1 ("  ROTATION:         ");
   print1(ROTATING_FRAME == YES ? "YES\n":"NO\n");
 
@@ -184,32 +206,12 @@ void ShowConfig (int argc, char *argv[], char *ini_file)
   if (DIMENSIONAL_SPLITTING == YES)  print1 ("Yes\n");
   else                               print1 ("No\n");
   
-  print1 ("  INTERPOLATION:    ");
-  #ifndef FINITE_DIFFERENCE
-   if (INTERPOLATION == FLAT)          print1 ("Flat");
-   if (INTERPOLATION == LINEAR)        print1 ("Linear TVD");
-   if (INTERPOLATION == LINEAR_MULTID) print1 ("Linear_Multid");
-   if (INTERPOLATION == LimO3)         print1 ("LimO3");
-   if (INTERPOLATION == WENO3)         print1 ("WENO 3rd order");
-   if (INTERPOLATION == PARABOLIC)     print1 ("Parabolic");
-   #ifdef CHAR_LIMITING
-    if (CHAR_LIMITING == YES) print1 (" (Characteristic lim)\n");
-    else                      print1 (" (Primitive lim)\n");
-   #endif
-  #endif
-
-  #ifdef FINITE_DIFFERENCE
-   if (INTERPOLATION == LIMO3_FD)     print1 ("LimO3 (FD), 3rd order\n");
-   if (INTERPOLATION == WENO3_FD)     print1 ("WENO3 (FD), 3rd order\n");
-   if (INTERPOLATION == WENOZ_FD)     print1 ("WENOZ (FD) 5th order\n");
-   if (INTERPOLATION == MP5_FD)       print1 ("MP5 (FD), 5th order\n");
-  #endif
 
   #if PARABOLIC_FLUX != NO
    print1 ("  DIFFUSION TERMS:");
-   #if (RESISTIVE_MHD == EXPLICIT) 
+   #if (RESISTIVITY == EXPLICIT) 
     print1 ("  Resistivity  [EXPLICIT]\n");  
-   #elif (RESISTIVE_MHD == SUPER_TIME_STEPPING)
+   #elif (RESISTIVITY == SUPER_TIME_STEPPING)
     print1 ("  Resistivity  [STS]\n");  
    #endif
 
@@ -229,11 +231,20 @@ void ShowConfig (int argc, char *argv[], char *ini_file)
   print1 ("\n");
 
 /* -----------------------------------------------------
-    Print runtime configuration info (from pluto.ini)
+    Print runtime configuration info (definitions.h 
+    and from pluto.ini)
    ----------------------------------------------------- */
-   
+/*   
+  print1 ("> Header file configuration (definitions.h):\n\n");
+  print1 ("  +----------------------------------------------------------\n");
+  fp = fopen("definitions.h","r");
+  while ( fgets(sline, 512, fp) != NULL ) {
+    print1 ("  | %s",sline);
+  }
+  fclose(fp);
+  print1 ("  +---------------------------------------------------------\n\n");
+*/
   print1 ("> Runtime configuration (%s):\n\n", ini_file);
-
   print1 ("  +----------------------------------------------------------\n");
   fp = fopen(ini_file,"r");
   while ( fgets(sline, 512, fp) != NULL ) {
@@ -241,6 +252,7 @@ void ShowConfig (int argc, char *argv[], char *ini_file)
   }
   fclose(fp);
   print1 ("  +---------------------------------------------------------\n");
+
 
 }
 
@@ -253,13 +265,13 @@ void ShowUnits ()
  *********************************************************************** */
 {
 
-  #if COOLING != NO
-   print1 ("> Cooling Module:    ");
-   if (COOLING == SNEq)  print1 (" SNEq\n");
-   if (COOLING == MINEq) print1 (" MINEq\n");
-   if (COOLING == TABULATED) print1 (" TABULATED\n");
-   if (COOLING == H2_COOL) print1 (" H2_COOL \n");
-  #endif
+#if COOLING != NO
+  print1 ("> Cooling Module:    ");
+  if (COOLING == SNEq)  print1 (" SNEq\n");
+  if (COOLING == MINEq) print1 (" MINEq\n");
+  if (COOLING == TABULATED) print1 (" TABULATED\n");
+  if (COOLING == H2_COOL) print1 (" H2_COOL \n");
+#endif
 
   print1 ("> Normalization Units:\n\n");
   print1 ("  [Density]:      %8.3e (gr/cm^3), %8.3e (1/cm^3)\n",
@@ -271,10 +283,10 @@ void ShowUnits ()
   print1 ("  [Temperature]:  %8.3e X (p/rho*mu) (K)\n",KELVIN);
   print1 ("  [Time]:         %8.3e (sec), %8.3e (yrs) \n",
        UNIT_LENGTH/UNIT_VELOCITY, UNIT_LENGTH/UNIT_VELOCITY/86400./365.);
-  #if PHYSICS == MHD || PHYSICS == RMHD
-   print1 ("  [Mag Field]:    %8.3e (Gauss)\n",
-            UNIT_VELOCITY*sqrt(4.0*CONST_PI*UNIT_DENSITY));
-  #endif
+#if PHYSICS == MHD || PHYSICS == RMHD
+  print1 ("  [Mag Field]:    %8.3e (Gauss)\n",
+           UNIT_VELOCITY*sqrt(4.0*CONST_PI*UNIT_DENSITY));
+#endif
 
   print1 (" \n");
 }
@@ -430,10 +442,16 @@ void CheckConfig()
 
   #if DIMENSIONAL_SPLITTING == NO && DIMENSIONS == 1
    #ifndef CH_SPACEDIM
-    print1 ("! Cannot integrate a 1-D problem with an unsplit method \n");
+    print1 ("! CheckConfig(): Cannot integrate a 1-D problem with an unsplit method \n");
     QUIT_PLUTO(1);
    #endif
   #endif
+
+#if (defined STAGGERED_MHD) && (DIMENSIONAL_SPLITTING == YES)
+  print1 ("! CheckConfig(): CT requires dimensional unsplit scheme.\n");
+  QUIT_PLUTO(1); 
+#endif
+
 
 /*
   #if GEOMETRY == SPHERICAL || GEOMETRY == POLAR

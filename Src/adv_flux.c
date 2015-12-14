@@ -8,12 +8,7 @@
   \f[ \partial_tq + v\cdot \nabla q = 0 
       \qquad\Longleftrightarrow\qquad
       \partial_t(\rho q) + \nabla\cdot(\rho\vec{v}q) = 0 
-  \f]
-  Passive scalars include \c NIONS chemical fractions, \c NTRACER 
-  user-defined tracers and the entropy (if present).
-  In total, there are <tt>NSCL = NIONS+NTRACER+(ENTROPY?)</tt> passive
-  scalar to be advected.
-  
+  \f]  
   Fluxes are computed using an upwind selection rule based on the 
   density flux, already computed during a previous Riemann solver:
   \f[ 
@@ -35,7 +30,7 @@
   
   \author A. Mignone (mignone@ph.unito.it)\n
           O. Tesileanu
-  \date   14 Aug, 2012
+  \date   02 April, 2015
 
   \b Reference\n
      "The consistent multi-fluid advection method"
@@ -44,30 +39,9 @@
 /* /////////////////////////////////////////////////////////////////// */
 #include "pluto.h"
 
-#define USE_CMA NO
-
-/*  Do we actually need these ? Aren't they already defined in cooling.h ??
-
-#ifndef C_IONS
- #define C_IONS 5
+#ifndef USE_CMA
+  #define USE_CMA NO
 #endif
-
-#ifndef N_IONS
- #define N_IONS 5
-#endif
-
-#ifndef O_IONS
- #define O_IONS 5
-#endif
-
-#ifndef Ne_IONS
- #define Ne_IONS 5
-#endif
-
-#ifndef S_IONS
- #define S_IONS 5
-#endif
-*/
 
 /* ********************************************************************* */
 void AdvectFlux (const State_1D *state, int beg, int end, Grid *grid)
@@ -96,9 +70,7 @@ void AdvectFlux (const State_1D *state, int beg, int end, Grid *grid)
 
     ts = flux[RHO] > 0.0 ? vL:vR;
 
-    for (nv = NFLX; nv < (NFLX + NSCL); nv++){
-      flux[nv] = flux[RHO]*ts[nv];
-    }
+    NSCL_LOOP(nv) flux[nv] = flux[RHO]*ts[nv];
     
     #if COOLING == MINEq
 
@@ -146,11 +118,11 @@ void AdvectFlux (const State_1D *state, int beg, int end, Grid *grid)
 
     #if USE_CMA == YES  /* -- only for tracers -- */
      phi = 0.0;
-     for (nv = TR; nv < (TR+NTRACER); nv++) phi += ts[nv];
-     for (nv = TR; nv < (TR+NTRACER); nv++) flux[nv] /= phi;
+     NTRACER_LOOP(nv) phi += ts[nv];
+     NTRACER_LOOP(nv) flux[nv] /= phi;
     #endif
 
-    #if ENTROPY_SWITCH == YES
+    #if ENTROPY_SWITCH
      if (flux[RHO] >= 0.0) flux[ENTR] = state->vL[i][ENTR]*flux[RHO];
      else                  flux[ENTR] = state->vR[i][ENTR]*flux[RHO];
     #endif

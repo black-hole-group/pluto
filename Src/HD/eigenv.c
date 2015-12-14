@@ -10,11 +10,11 @@
   The function MaxSignalSpeed() computes the maximum and minimum
   characteristic signal velocity for the HD equations.
 
-  The function Eigenvalues() computes the 3 characteristic waves.
+  The function Eigenvalues() computes the 3 characteristic wave speed
 
   The function PrimEigenvectors() calculates left and right eigenvectors
   and the corresponding eigenvalues for the \e primitive form the the
-  HD equations with an adiabatic or isothermal EoS.
+  HD equations with an adiabatic, general convex or isothermal EoS.
 
   The function ConsEigenvectors() provides the characteristic decomposition
   of the convervative HD equations.
@@ -25,7 +25,7 @@
   variables is stored in the vector w = L.v
 
   \author A. Mignone (mignone@ph.unito.it)
-  \date   Oct 30, 2012
+  \date   April 02, 2015
 */
 /* ///////////////////////////////////////////////////////////////////// */
 #include "pluto.h"
@@ -70,9 +70,9 @@ void Eigenvalues(double **v, double *csound2, double **lambda, int beg, int end)
  *
  * \param [in]  v        1-D array of primitive variables
  * \param [out] csound2  1-D array containing the square of sound speed
- * \param [out] lambda    1-D array [i][nv] containing the eigenvalues
- * \param [in]  beg   starting index of computation
- * \param [in]  end   final   index of computation
+ * \param [out] lambda   1-D array [i][nv] containing the eigenvalues
+ * \param [in]  beg      starting index of computation
+ * \param [in]  end      final    index of computation
  *
  *********************************************************************** */
 {
@@ -80,14 +80,6 @@ void Eigenvalues(double **v, double *csound2, double **lambda, int beg, int end)
   double cs;
 
   for (i = beg; i <= end; i++){
-/*
-  #if EOS == IDEAL
-   cs = g_gamma*v[PRS]/v[RHO];
-   cs = sqrt(cs);
-  #elif EOS == ISOTHERMAL
-   cs = g_isoSoundSpeed;
-  #endif
-*/
     cs = sqrt(csound2[i]);
     lambda[i][0] = v[i][VXn] - cs;  
     lambda[i][1] = v[i][VXn] + cs;  
@@ -100,15 +92,15 @@ void  PrimEigenvectors (double *q, double cs2, double h, double *lambda,
                         double **LL, double **RR)
 /*!
  * Provide left and right eigenvectors and corresponding
- * eigenvalues for the PRIMITIVE form of the HD equations
- * (adiabatic & isothermal cases).
+ * eigenvalues for the primitive form of the HD equations
+ * (adiabatic, pvte & isothermal cases).
  *
  * \param [in]       q  vector of primitive variables
- * \param [in]      a2  sound speed squared
+ * \param [in]     cs2  sound speed squared
  * \param [in]       h  enthalpy
  * \param [out] lambda  eigenvalues
- * \param [out]     LL  left primitive eigenvectors
- * \param [out]     RR  right primitive eigenvectors
+ * \param [out]     LL  matrix containing left primitive eigenvectors (rows)
+ * \param [out]     RR  matrix containing right primitive eigenvectors (columns)
  *
  * \note It is highly recommended that LL and RR be initialized to
  *       zero *BEFORE* since only non-zero entries are treated here.
@@ -123,7 +115,7 @@ void  PrimEigenvectors (double *q, double cs2, double h, double *lambda,
  *
  * \b References:
  *    - "Riemann Solvers and Numerical Methods for Fluid Dynamics", \n
- *      Toro, 1997 Springer-Verlag
+ *      Toro, 1997 Springer-Verlag, Eq. [3.18]
  *
  *********************************************************************** */
 {
@@ -133,98 +125,74 @@ void  PrimEigenvectors (double *q, double cs2, double h, double *lambda,
   double Aw1[NFLX], Aw0[NFLX], AA[NFLX][NFLX], a;
 #endif
 
-  #if EOS == PVTE_LAW
-   print1( "! PrimEigenvectors: cannot be used presently\n");
-   QUIT_PLUTO(1);  
-  #endif
-
-/*
-  #if EOS == IDEAL
-   cs = sqrt(cs2);
-  #elif EOS == ISOTHERMAL
-   cs = g_isoSoundSpeed;
-  #endif
-*/
   cs = sqrt(cs2);
 
   rhocs  = q[RHO]*cs;
   rho_cs = q[RHO]/cs;
 
-/* ======================================================
-                RIGHT EIGENVECTORS  
-   ====================================================== */
+/* ------------------------------------------------------
+   1. Compute RIGHT eigenvectors 
+   ------------------------------------------------------ */
 
-/*       lambda = u - c       */
-
-  lambda[0] = q[VXn] - cs;
-
+  lambda[0]  = q[VXn] - cs;  /*  lambda = u - c   */
   RR[RHO][0] =  0.5*rho_cs;
   RR[VXn][0] = -0.5;
-  #if EOS == IDEAL
-   RR[PRS][0] =  0.5*rhocs;
-  #endif
-     
-/*       lambda = u + c       */
+#if HAVE_ENERGY
+  RR[PRS][0] =  0.5*rhocs;
+#endif
 
-  lambda[1] = q[VXn] + cs;
-
+  lambda[1]  = q[VXn] + cs;  /*  lambda = u + c   */  
   RR[RHO][1] = 0.5*rho_cs;
   RR[VXn][1] = 0.5; 
-  #if EOS == IDEAL
-   RR[PRS][1] = 0.5*rhocs;
-  #endif
+#if HAVE_ENERGY
+  RR[PRS][1] = 0.5*rhocs;
+#endif
 
-/*       lambda = u        */
 
-  for (k = 2; k < NFLX; k++) lambda[k] = q[VXn];
-  #if EOS == IDEAL
-   EXPAND(RR[RHO][2] = 1.0;  ,
-          RR[VXt][3] = 1.0;  ,
-          RR[VXb][4] = 1.0;)
-  #elif EOS == ISOTHERMAL
-   EXPAND(                  ,
-          RR[VXt][2] = 1.0;  ,
-          RR[VXb][3] = 1.0;)
-  #endif
+  for (k = 2; k < NFLX; k++) lambda[k] = q[VXn];  /*  lambda = u   */
 
-/* ======================================================
-                LEFT EIGENVECTORS  
-   ====================================================== */
+#if HAVE_ENERGY
+  EXPAND(RR[RHO][2] = 1.0;  ,
+         RR[VXt][3] = 1.0;  ,
+         RR[VXb][4] = 1.0;)
+#elif EOS == ISOTHERMAL
+  EXPAND(                   ,
+         RR[VXt][2] = 1.0;  ,
+         RR[VXb][3] = 1.0;)
+#endif
 
-/*       lambda = u - c       */
+/* ------------------------------------------------------
+   2. Compute LEFT eigenvectors 
+   ------------------------------------------------------ */
 
-  LL[0][VXn] = -1.0; 
-  #if EOS == IDEAL
-   LL[0][PRS] =  1.0/rhocs;
-  #elif EOS == ISOTHERMAL
-   LL[0][RHO] =  1.0/rhocs;
-  #endif
+  LL[0][VXn] = -1.0;  
+#if HAVE_ENERGY
+  LL[0][PRS] =  1.0/rhocs;
+#elif EOS == ISOTHERMAL
+  LL[0][RHO] =  1.0/rhocs;
+#endif
 
-/*       lambda = u + c       */
+  LL[1][VXn] = 1.0;  
+#if HAVE_ENERGY
+  LL[1][PRS] = 1.0/rhocs;
+#elif EOS == ISOTHERMAL
+  LL[1][RHO] = 1.0/rhocs;
+#endif
 
-  LL[1][VXn] = 1.0; 
-  #if EOS == IDEAL
-   LL[1][PRS] = 1.0/rhocs;
-  #elif EOS == ISOTHERMAL
-   LL[1][RHO] = 1.0/rhocs;
-  #endif
+#if HAVE_ENERGY
+  EXPAND(LL[2][RHO] = 1.0; ,
+         LL[3][VXt] = 1.0; ,
+         LL[4][VXb] = 1.0;)
 
-/*       lambda = u       */
-
-  #if EOS == IDEAL
-   EXPAND(LL[2][RHO] = 1.0; ,
-          LL[3][VXt] = 1.0; ,
-          LL[4][VXb] = 1.0;)
-
-   LL[2][PRS] = -1.0/cs2;
-  #elif EOS == ISOTHERMAL
-   EXPAND(                 ,
-          LL[2][VXt] = 1.0; ,
-          LL[3][VXb] = 1.0;)
-  #endif
+  LL[2][PRS] = -1.0/cs2;
+#elif EOS == ISOTHERMAL
+  EXPAND(                  ,
+         LL[2][VXt] = 1.0; ,
+         LL[3][VXb] = 1.0;)
+#endif
 
 /* ------------------------------------------------------------
-    Verify eigenvectors consistency by
+   3. If required, verify eigenvectors consistency by
 
     1) checking that A = L.Lambda.R, where A is
        the Jacobian dF/dU
@@ -240,7 +208,7 @@ void  PrimEigenvectors (double *q, double cs2, double h, double *lambda,
     A   = ARRAY_2D(NFLX, NFLX, double);
     ALR = ARRAY_2D(NFLX, NFLX, double);
     #if COMPONENTS != 3
-     print ("! PrimEigenvectors: eigenvector check requires 3 components\n");
+     print1 ("! PrimEigenvectors(): eigenvector check requires 3 components\n");
     #endif
   }
   #if COMPONENTS != 3
@@ -256,12 +224,12 @@ void  PrimEigenvectors (double *q, double cs2, double h, double *lambda,
     A[i][j] = ALR[i][j] = 0.0;
   }}
 
-  #if EOS == IDEAL
+  #if HAVE_ENERGY
    A[RHO][RHO] = q[VXn]    ; A[RHO][VXn] = q[RHO];
    A[VXn][VXn] = q[VXn]    ; A[VXn][PRS] = 1.0/q[RHO];
    A[VXt][VXt] = q[VXn]    ;  
    A[VXb][VXb] = q[VXn]    ;  
-   A[PRS][VXn] = g_gamma*q[PRS]; A[PRS][PRS] =  q[VXn];
+   A[PRS][VXn] = cs2*q[RHO]; A[PRS][PRS] =  q[VXn];
   #elif EOS == ISOTHERMAL
    A[RHO][RHO] = q[VXn]; A[RHO][VXn] = q[RHO];
    A[VXn][VXn] = q[VXn];
@@ -281,8 +249,9 @@ void  PrimEigenvectors (double *q, double cs2, double h, double *lambda,
     dA = ALR[i][j] - A[i][j];
     if (fabs(dA) > 1.e-8){
       print ("! PrimEigenvectors: eigenvectors not consistent\n");
-      print ("! A[%d][%d] = %16.9e, R.Lambda.AR[%d][%d] = %16.9e\n",
+      print ("! A[%d][%d] = %16.9e, R.Lambda.L[%d][%d] = %16.9e\n",
                 i,j, A[i][j], i,j,ALR[i][j]);
+      print ("! cs2 = %12.6e\n",cs2);
       print ("\n\n A = \n");   ShowMatrix(A, NFLX, 1.e-8);
       print ("\n\n R.Lambda.L = \n"); ShowMatrix(ALR, NFLX, 1.e-8);
       QUIT_PLUTO(1);
@@ -346,7 +315,7 @@ void ConsEigenvectors (double *u, double *v, double a2,
    u[MX1] = v[RHO]*v[VX1];
    u[MX2] = v[RHO]*v[VX2];
    u[MX3] = v[RHO]*v[VX3];
-   #if EOS != ISOTHERMAL
+   #if EOS == IDEAL
     u[ENG] =   v[PRS]/(g_gamma-1.0)
             + 0.5*v[RHO]*(v[VX1]*v[VX1] + v[VX2]*v[VX2] + v[VX3]*v[VX3]);
    #endif
@@ -640,7 +609,7 @@ void PrimToChar (double **L, double *v, double *w)
 {
   int nv;
 
-  #if EOS == IDEAL
+  #if HAVE_ENERGY
    w[0] = L[0][VXn]*v[VXn] + L[0][PRS]*v[PRS];
    w[1] = L[1][VXn]*v[VXn] + L[1][PRS]*v[PRS];
    EXPAND( w[2] = v[RHO] + L[2][PRS]*v[PRS];  ,
@@ -654,15 +623,13 @@ void PrimToChar (double **L, double *v, double *w)
             w[3] = v[VXb];)
   #endif
 
-  /* ----------------------------------------------- 
-       For passive scalars, the characteristic 
-       variable is equal to the primitive one, 
-       since  l = r = (0,..., 1 , 0 ,....)
-     ----------------------------------------------- */		   
+/* ----------------------------------------------- 
+     For passive scalars, the characteristic 
+     variable is equal to the primitive one, 
+     since  l = r = (0,..., 1 , 0 ,....)
+   ----------------------------------------------- */		   
 
-  #if NFLX != NVAR
-   for (nv = NFLX; nv < NVAR; nv++){
-     w[nv] = v[nv];
-   }
-  #endif   
+#if NSCL > 0
+  NSCL_LOOP(nv)  w[nv] = v[nv];
+#endif   
 }

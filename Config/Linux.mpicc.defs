@@ -1,11 +1,11 @@
 ########################################################################
 #                                                
-#     Configuration file for mpicc
+#     Configuration file for mpicc (parallel)
 #             
 ########################################################################
 
 CC       = mpicc
-CFLAGS   = -c -finline-functions -Winline -Wundef -O
+CFLAGS   = -c -O3 
 LDFLAGS  = -lm
 
 PARALLEL = TRUE
@@ -17,7 +17,6 @@ USE_PNG  = FALSE
 #######################################
 
 ifeq ($(strip $(PARALLEL)), TRUE)
- USE_ASYNC_IO =    
 endif
 
 #######################################
@@ -34,4 +33,3 @@ endif
 ifeq ($(strip $(USE_PNG)), TRUE)
  LDFLAGS += -lpng
 endif
-

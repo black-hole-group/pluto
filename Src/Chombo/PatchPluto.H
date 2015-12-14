@@ -110,10 +110,6 @@ public:
 
   virtual void initialize(LevelData<FArrayBox>& a_U);
 
-  virtual void convertConsToPrim (Data_Arr, Data_Arr, int, int, int,
-                                  int, int, int, Grid *); 
-  virtual void convertPrimToCons (Data_Arr, Data_Arr, int, int, int,
-                                  int, int, int, Grid *); 
   virtual void convertFArrayBox(FArrayBox& U);
 
   virtual void saveFluxes (const State_1D *, int, int, Grid *);
@@ -128,23 +124,18 @@ public:
      speed. 
    */
 
-  virtual void updateSolution(FArrayBox&       a_U,
-                              FArrayBox&       a_Utmp,
-                              const FArrayBox& a_dV,
-                              FArrayBox&       a_split_tags,
-                              BaseFab<unsigned char>&   a_Flags,
-                              FluxBox&         a_F,
-                              Time_Step        *Dts,
-                              const Box&       a_box,
-                              Grid *grid);
+  virtual void advanceStep(FArrayBox&       a_U,
+                           FArrayBox&       a_Utmp,
+                           const FArrayBox& a_dV,
+                           FArrayBox&       a_split_tags,
+                           BaseFab<unsigned char>&   a_Flags,
+                           FluxBox&         a_F,
+                           Time_Step        *Dts,
+                           const Box&       a_box,
+                           Grid *grid);
 
-  #if DIMENSIONS == 1
-   virtual void getPrimitiveVars (double **, Data *d, Grid *grid);
-  #else
-   virtual void getPrimitiveVars (Data_Arr U, Data *d, Grid *grid);
-  #endif
+  virtual void getPrimitiveVars (Data_Arr U, Data *d, Grid *grid);
 
-  virtual void totEnergySwitch(Data_Arr, int, int, int, int, int, int, int);
   virtual void computeRefGradient(FArrayBox&, FArrayBox&, const FArrayBox &, const Box&);
 
   /// Number of conserved variables

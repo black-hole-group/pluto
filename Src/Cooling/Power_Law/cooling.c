@@ -100,8 +100,3 @@ void PowerLawCooling (Data_Arr VV, double dt, Time_Step *Dts, Grid *grid)
 
 }
 
-
-double MeanMolecularWeight (double *v)
-{
-  return(0.5);
-}

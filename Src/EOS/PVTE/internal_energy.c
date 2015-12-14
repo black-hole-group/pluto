@@ -22,7 +22,7 @@
   This requires the numerical inversion of the second equation
   <tt> T=(e,X(T,rho)) </tt> which can be carried out using either a root 
   finder algorithm (typically Brent's method) or, alternatively, lookup 
-  table together with bilinear interpolation (default).
+  table together with cubic/linear (default) or bilinear interpolation.
 
   For the root-finder version, a 2D table (::Trhoe_tab) giving
   <tt>T=T(rhoe,rho)</tt> is pre-computed in the function
@@ -38,24 +38,26 @@
   
   \author A. Mignone (mignone@ph.unito.it)\n
           B. Vaidya
-  \date   31 Aug, 2014
+  \date   7 Jan, 2015
 */
 /* /////////////////////////////////////////////////////////////////// */
 #include "pluto.h" 
 
 #ifndef TV_ENERGY_TABLE_NX   
- #define TV_ENERGY_TABLE_NX    4096
+ #define TV_ENERGY_TABLE_NX    1024
 #endif
 #ifndef TV_ENERGY_TABLE_NY   
  #define TV_ENERGY_TABLE_NY    512
 #endif
 
 static double rhoeFunc(double, void *);
+static double InternalEnergyDeriv (double rho, double T);
 
 #if TV_ENERGY_TABLE == YES
 static Table2D rhoe_tab; /**< A 2D table containing pre-computed values of 
                               internal energy stored at equally spaced node 
                               values of \c Log(T) and \c Log(rho) .*/
+
 /* ********************************************************************* */
 void MakeInternalEnergyTable()
 /*!
@@ -70,8 +72,9 @@ void MakeInternalEnergyTable()
   int i,j;
   double x, y, q;
   double T, rho, v[NVAR];
-  
-  print1 ("> MakeInternalEnergyTable: Generating table...\n");
+
+  print1 ("> MakeInternalEnergyTable(): Generating table (%d x %d points)\n",
+           TV_ENERGY_TABLE_NX, TV_ENERGY_TABLE_NY);
 
   InitializeTable2D(&rhoe_tab, 1.0, 1.e8, TV_ENERGY_TABLE_NX, 
                                1.e-6, 1.e6, TV_ENERGY_TABLE_NY);  
@@ -79,14 +82,89 @@ void MakeInternalEnergyTable()
   for (i = 0; i < rhoe_tab.nx; i++){
     T   = rhoe_tab.x[i];
     rho = rhoe_tab.y[j];
-
     v[RHO] = rho;
     rhoe_tab.f[j][i] = InternalEnergyFunc(v,T);
   }}
 
+  rhoe_tab.interpolation = SPLINE1;
+
+/* ----------------------------------------------------------------
+    Compute cubic spline coefficients
+   ---------------------------------------------------------------- */
+
+  static double *dfdx;
+
+  if (dfdx == NULL) dfdx = ARRAY_1D(TV_ENERGY_TABLE_NX, double);
+
+  for (j = 0; j < rhoe_tab.ny; j++){
+    rho = rhoe_tab.y[j]; 
+    for (i = 0; i < rhoe_tab.nx; i++){
+      T       = rhoe_tab.x[i]; 
+      dfdx[i] = InternalEnergyDeriv(rho, T);
+    }
+    if (rhoe_tab.interpolation == SPLINE1){
+      MonotoneSplineCoeffs(rhoe_tab.x, rhoe_tab.f[j], dfdx, rhoe_tab.nx,
+                           rhoe_tab.a[j], rhoe_tab.b[j], rhoe_tab.c[j],
+                           rhoe_tab.d[j]);
+    }else if (rhoe_tab.interpolation == SPLINE2){
+      SplineCoeffs(rhoe_tab.x, rhoe_tab.f[j],
+                   dfdx[0], dfdx[rhoe_tab.nx-1], rhoe_tab.nx,
+                   rhoe_tab.a[j], rhoe_tab.b[j], rhoe_tab.c[j], rhoe_tab.d[j]);
+    }
+  }
+
+/* let's plot the exact solutin and the spline using 20 points between
+   adjacent nodes */
+#if 0 
+int ii;
+double G, lnT, rhoe, rhoe_ex;
+FILE *fp;
+
+j = TV_ENERGY_TABLE_NY/2;
+
+/* -- write exact internal energy, rhoe(T) -- */
+
+fp  = fopen("rhoe.dat","w");
+v[RHO] = rho = rhoe_tab.y[j];
+for (i = 10; i < rhoe_tab.nx-11; i++){
+  for (ii = 0; ii < 20; ii++){   // Sub grid 
+    T   = rhoe_tab.x[i] + ii*rhoe_tab.dx[i]/20.0;
+    rhoe_ex = InternalEnergyFunc(v,T);
+    G       = FundamentalDerivative(v,T); 
+    Table2DInterpolate(&rhoe_tab, T, rho, &rhoe);
+    fprintf (fp, "%12.6e  %12.6e  %12.6e  %12.6e\n",T,rhoe_ex, rhoe, G);
+  }
+}
+fclose(fp);
+#endif
+
+
   FinalizeTable2D(&rhoe_tab);
   if (prank == 0) WriteBinaryTable2D("rhoe_tab.bin",&rhoe_tab);  
 }
+
+/* ********************************************************************* */
+double InternalEnergyDeriv (double rho, double T)
+/*!
+ * Compute derivative of internal energy using numerical
+ * differentiation
+ *
+ *********************************************************************** */
+{
+  double Epp, Emm, Ep, Em, dEdT;
+  double dT = 1.e-3, v[256];
+
+  v[RHO] = rho;
+  Epp   = InternalEnergyFunc(v,T*(1.0 + 2.0*dT));
+  Ep    = InternalEnergyFunc(v,T*(1.0 + 1.0*dT));
+  Em    = InternalEnergyFunc(v,T*(1.0 - 1.0*dT));
+  Emm   = InternalEnergyFunc(v,T*(1.0 - 2.0*dT));
+
+  dEdT = (-Epp + 8.0*Ep - 8.0*Em + Emm)/(12.0*T*dT);
+  return dEdT;
+}
+
+
 #endif /* TV_ENERGY_TABLE == YES */
 
 #if NIONS == 0 && TV_ENERGY_TABLE == NO
@@ -123,7 +201,7 @@ void MakeEV_TemperatureTable()
   double rhoe, rho, Tlo, Thi, T;
   struct func_param par;
 
-  print1 ("> MakeEV_TemperatureTable: Generating table...\n");
+  print1 ("> MakeEV_TemperatureTable(): Generating table...\n");
 
   InitializeTable2D(&Trhoe_tab, 1.e-9, 1.e9, 1200, 1.e-12, 1.e12, 1200);
   Tlo = 1.0;
@@ -142,6 +220,25 @@ void MakeEV_TemperatureTable()
 
     Trhoe_tab.f[j][i] = T;
   }}
+
+
+/* let's plot the exact solution and the fundamental derivative  */
+#if 0 
+int ii;
+double G, lnT, v[256];
+FILE *fp;
+
+/* -- write exact internal energy, rhoe(T) -- */
+fp  = fopen("rhoe.dat","w");
+v[RHO] = rho = 1.245197084735e+00;
+for (lnT = 2.0; lnT < 4.5; lnT += 1.e-3){
+  T    = pow(10.0, lnT);
+  rhoe = InternalEnergyFunc(v,T);
+  G    = FundamentalDerivative(v,T); 
+  fprintf (fp,"%12.6e  %12.6e  %12.6e\n",T,rhoe,G);
+}
+fclose(fp);
+#endif
 
 /* -------------------------------------------------------
     Compute forward differences 
@@ -176,9 +273,8 @@ double InternalEnergy(double *v, double T)
 
   rho    = v[RHO];
   status = Table2DInterpolate(&rhoe_tab, T, rho, &rhoe);
-  
   if (status != 0){
-    print ("! InternalEnergy: table interpolation failure (bound exceeded)\n");
+    print ("! InternalEnergy(): table interpolation failure (bound exceeded)\n");
     QUIT_PLUTO(1);
   }
   return rhoe;
@@ -224,7 +320,7 @@ int GetEV_Temperature(double rhoe, double *v, double *T)
   status = InverseLookupTable2D(&rhoe_tab, rho, rhoe, T);
   if (status != 0){
     WARNING(
-      print ("! GetEV_Temperature: table interpolation failure");
+      print ("! GetEV_Temperature(): table interpolation failure");
       print ("  [rho = %12.6e, rhoe = %12.6e]\n",rho,rhoe);
     )
     return 1;
@@ -244,19 +340,19 @@ int GetEV_Temperature(double rhoe, double *v, double *T)
     Constrain species to lie between [0,1]
    --------------------------------------------------- */
  
-  #if NIONS > 0
-   for (nv = NFLX; nv < NFLX + NIONS; nv++) {
-     v[nv] = MAX(v[nv],0.0);
-     v[nv] = MIN(v[nv],1.0);
-   }
-   #if COOLING == H2_COOL
+#if NIONS > 0
+  NIONS_LOOP(nv) {
+    v[nv] = MAX(v[nv],0.0);
+    v[nv] = MIN(v[nv],1.0);
+  }
+  #if COOLING == H2_COOL
     v[X_H2] = MIN(v[X_H2], 0.5);
-   #endif
   #endif
+#endif
  
   param.v[RHO] = v[RHO];  /* maybe set param.v to point to v ?? */
   param.rhoe   = rhoe;
-  for (nv = NFLX; nv < NVAR; nv++) param.v[nv] = v[nv];
+  NSCL_LOOP(nv) param.v[nv] = v[nv];
 
   #if NIONS == 0   /* No chemistry */
 
@@ -309,7 +405,7 @@ double rhoeFunc(double T, void *par)
     printf ("! rhoeFunc: T = %12.6e\n",T);
     exit(1);
   }
-  rhoe = InternalEnergy(p->v, T);
+  rhoe = InternalEnergyFunc(p->v, T);
   func = rhoe - p->rhoe;
   return func;
 }

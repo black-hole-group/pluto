@@ -23,7 +23,7 @@
   - Add time incerement v(n+1/2)-v(n) to left/right states
 
   \author A. Mignone (mignone@ph.unito.it)
-  \date   Oct 1, 2012
+  \date   June 24, 2015
 */
 /* ///////////////////////////////////////////////////////////////////// */
 #include "pluto.h"
@@ -56,7 +56,7 @@ void HancockStep (const State_1D *state, int beg, int end, Grid *grid)
          Check scheme compatibility
    ----------------------------------------- */
 
-  #if INTERPOLATION != LINEAR
+  #if RECONSTRUCTION != LINEAR
    print1 ("! MUSCL-Hancock scheme works with Linear reconstruction only\n");
    QUIT_PLUTO(1);
   #endif
@@ -122,10 +122,12 @@ void HancockStep (const State_1D *state, int beg, int end, Grid *grid)
     vc = state->vh[i];
     vp = state->vp[i];
     vm = state->vm[i];
-    for (nv = 0; nv < NVAR; nv++) {
-      vc[nv] = 0.5*(vp[nv] + vm[nv]);
-    }
+    NVAR_LOOP(nv) vc[nv] = 0.5*(vp[nv] + vm[nv]);
   }
+#if RECONSTRUCT_4VEL
+  ConvertTo3vel (state->vh, beg, end);
+#endif  
+
 }
 
 #elif PHYSICS == RMHD
@@ -147,23 +149,23 @@ void HancockStep (const State_1D *state, int beg, int end, Grid *grid)
   static double *pp, *pm, *hp, *hm;
   static double *lambda_max, *lambda_min;
 
-  #if GEOMETRY != CARTESIAN && GEOMETRY != CYLINDRICAL
-   print1 ("! Hancock does not work in this geometry \n");
-   QUIT_PLUTO(1);
-  #endif
-  #if BODY_FORCE != NO
-   print ("! Conservative Hancock scheme does not support gravity\n");
-   QUIT_PLUTO(1);
-  #endif
-  #if INTERPOLATION != LINEAR
-   print1 ("! The MUSCL-Hancock scheme works with Linear reconstruction only\n");
-   QUIT_PLUTO(1);
-  #endif
-  #if (PARABOLIC_FLUX & EXPLICIT)
-   print1 ("! Conservative MUSCL-Hancock incompatible with Explicit Diffusion\n");
-   QUIT_PLUTO(1);
-  #endif
-  
+#if GEOMETRY != CARTESIAN && GEOMETRY != CYLINDRICAL
+  print1 ("! Hancock does not work in this geometry \n");
+  QUIT_PLUTO(1);
+#endif
+#if BODY_FORCE != NO
+  print ("! Conservative Hancock scheme does not support gravity\n");
+  QUIT_PLUTO(1);
+#endif
+#if RECONSTRUCTION != LINEAR
+  print1 ("! The MUSCL-Hancock scheme works with Linear reconstruction only\n");
+  QUIT_PLUTO(1);
+#endif
+#if (PARABOLIC_FLUX & EXPLICIT)
+  print1 ("! Conservative MUSCL-Hancock incompatible with Explicit Diffusion\n");
+  QUIT_PLUTO(1);
+#endif
+
   if (fp == NULL){
     fp   = ARRAY_2D(NMAX_POINT, NVAR, double);
     fm   = ARRAY_2D(NMAX_POINT, NVAR, double);
@@ -178,6 +180,12 @@ void HancockStep (const State_1D *state, int beg, int end, Grid *grid)
     lambda_min = ARRAY_1D(NMAX_POINT, double);
   }
   rhs = state->rhs;
+
+#if RECONSTRUCT_4VEL
+  ConvertTo3vel (state->v, beg-1, end+1);
+  ConvertTo3vel (state->vp, beg, end);
+  ConvertTo3vel (state->vm, beg, end);
+#endif
 
 /* --------------------------------
          make fluxes  
@@ -240,17 +248,17 @@ void HancockStep (const State_1D *state, int beg, int end, Grid *grid)
 
   /* ---- add Powell source term ---- */
 
-    #if (PHYSICS == MHD || PHYSICS == RMHD) && (MHD_FORMULATION == EIGHT_WAVES)
+    #if (PHYSICS == MHD || PHYSICS == RMHD) && (DIVB_CONTROL == EIGHT_WAVES)
      dBx = (vp[BXn]*A[i] - vm[BXn]*A[i-1])/dV[i];
      EXPAND(rhs[i][BX1] -= dt*state->v[i][VX1]*dBx;  ,
             rhs[i][BX2] -= dt*state->v[i][VX2]*dBx;  ,
             rhs[i][BX3] -= dt*state->v[i][VX3]*dBx;)
     #endif
 
-  /* ---- Extended GLM (EGLM) source term ---- */
+  /* ---- Extended GLM source term ---- */
 
     #ifdef GLM_MHD
-     #if EGLM == YES
+     #if GLM_EXTENDED == YES
       dBx  = (vp[BXn]*A[i] - vm[BXn]*A[i-1])/dV[i];
       EXPAND(rhs[i][MX1] -= dt*state->v[i][BX1]*dBx;  ,
              rhs[i][MX2] -= dt*state->v[i][BX2]*dBx;  ,

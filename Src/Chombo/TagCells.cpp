@@ -7,7 +7,7 @@ using std::string;
 
 static void computeRefVar(double ***UU[], double ***q, double, RBox *Ubox);
 
-#if (EOS != ISOTHERMAL) && (CHOMBO_EN_SWITCH == NO)
+#if (EOS != ISOTHERMAL) && (ENTROPY_SWITCH == NO)
  #ifndef CHOMBO_REF_VAR  
   #define CHOMBO_REF_VAR ENG 
  #endif
@@ -55,18 +55,18 @@ void PatchPluto::computeRefGradient(FArrayBox& gFab, FArrayBox& UFab,
   double x2, dqy_p, dqy_m, dqy, d2qy, den_y;
   double x3, dqz_p, dqz_m, dqz, d2qz, den_z;
   double gr1, gr2, eps = 0.01;
- #if CHOMBO_REF_VAR == -1
+#if CHOMBO_REF_VAR == -1
   double ***UU[NVAR];
- #endif
+#endif
   double ***q, ***grad;
   RBox  Ubox, Gbox;
 
 /* -- check ref criterion -- */
 
-  #if REF_CRIT != 1 && REF_CRIT != 2
-   print ("! TagCells.cpp: Refinement criterion not valid\n");
-   QUIT_PLUTO(1);
-  #endif
+#if REF_CRIT != 1 && REF_CRIT != 2
+  print ("! TagCells.cpp: Refinement criterion not valid\n");
+  QUIT_PLUTO(1);
+#endif
 
 /* -----------------------------------------------------
    1. The solution array U is defined on the box 
@@ -93,61 +93,60 @@ void PatchPluto::computeRefGradient(FArrayBox& gFab, FArrayBox& UFab,
       To obtain U we must divide by volume.
    -------------------------------------------------------- */
 
+#if CHOMBO_REF_VAR == -1
+  FArrayBox tmpU(UFab.box(),NVAR);
+  tmpU.copy(UFab);
+#else
+  FArrayBox tmpU(UFab.box(),1);
+  tmpU.copy(UFab,CHOMBO_REF_VAR,0);
+#endif 
+
+#if GEOMETRY != CARTESIAN
+
   #if CHOMBO_REF_VAR == -1
-   FArrayBox tmpU(UFab.box(),NVAR);
-   tmpU.copy(UFab);
-  #else
-   FArrayBox tmpU(UFab.box(),1);
-   tmpU.copy(UFab,CHOMBO_REF_VAR,0);
-  #endif 
-
-  #if GEOMETRY != CARTESIAN
-
-   #if CHOMBO_REF_VAR == -1
 
     for (nv = 0; nv < NVAR; nv++) tmpU.divide(a_dV,0,nv);
-
     #if CHOMBO_CONS_AM == YES
-     #if ROTATING_FRAME == YES
-      Box curBox = UFab.box();
-      for(BoxIterator bit(curBox); bit.ok(); ++bit) {
-        const IntVect& iv = bit();
-        tmpU(iv,iMPHI) /= a_dV(iv,1);
-        tmpU(iv,iMPHI) -= tmpU(iv,RHO)*a_dV(iv,1)*g_OmegaZ;
-      }
-     #else
-      tmpU.divide(a_dV,1,iMPHI);
-     #endif
+      #if ROTATING_FRAME == YES
+        Box curBox = UFab.box();
+        for(BoxIterator bit(curBox); bit.ok(); ++bit) {
+          const IntVect& iv = bit();
+          tmpU(iv,iMPHI) /= a_dV(iv,1);
+          tmpU(iv,iMPHI) -= tmpU(iv,RHO)*a_dV(iv,1)*g_OmegaZ;
+        }
+      #else
+        tmpU.divide(a_dV,1,iMPHI);
+      #endif
     #endif
 
-   #else
+  #else
 
     tmpU.divide(a_dV,0,0);
 
-   #endif
+  #endif
 
-  #else
+#else
 
    if (g_stretch_fact != 1.) tmpU /= g_stretch_fact;
 
-  #endif
+#endif // GEOMETRY == CARTESIAN
 
 /* ---------------------------------------------
    3. Set refinement variable
    --------------------------------------------- */
 
-  #if CHOMBO_REF_VAR == -1
-   for (nv = 0; nv < NVAR; nv++)
-     UU[nv] = ArrayBoxMap(Ubox.kb, Ubox.ke,
-                          Ubox.jb, Ubox.je,
-                          Ubox.ib, Ubox.ie, tmpU.dataPtr(nv));
-   q = ArrayBox(Ubox.kb, Ubox.ke, Ubox.jb, Ubox.je, Ubox.ib, Ubox.ie);
-   computeRefVar(UU, q, m_dx, &Ubox);
-  #else
-   q = ArrayBoxMap(Ubox.kb, Ubox.ke,
-                   Ubox.jb, Ubox.je,
-                   Ubox.ib, Ubox.ie, tmpU.dataPtr(0));
-  #endif
+#if CHOMBO_REF_VAR == -1
+  for (nv = 0; nv < NVAR; nv++)
+    UU[nv] = ArrayBoxMap(Ubox.kb, Ubox.ke,
+                         Ubox.jb, Ubox.je,
+                         Ubox.ib, Ubox.ie, tmpU.dataPtr(nv));
+  q = ArrayBox(Ubox.kb, Ubox.ke, Ubox.jb, Ubox.je, Ubox.ib, Ubox.ie);
+  computeRefVar(UU, q, m_dx, &Ubox);
+#else
+  q = ArrayBoxMap(Ubox.kb, Ubox.ke,
+                  Ubox.jb, Ubox.je,
+                  Ubox.ib, Ubox.ie, tmpU.dataPtr(0));
+#endif
   
   grad = ArrayBoxMap(Gbox.kb, Gbox.ke, 
                      Gbox.jb, Gbox.je, 
@@ -161,13 +160,13 @@ void PatchPluto::computeRefGradient(FArrayBox& gFab, FArrayBox& UFab,
   BOX_LOOP(&Gbox, k, j, i){
     x3 = (k + 0.5)*m_dx*g_x3stretch + g_domBeg[KDIR];
     x2 = (j + 0.5)*m_dx*g_x2stretch + g_domBeg[JDIR];
-   #if CHOMBO_LOGR == NO
+#if CHOMBO_LOGR == NO
     x1 = (i + 0.5)*m_dx          + g_domBeg[IDIR];
-   #else
+#else
     double xl = g_domBeg[IDIR] + i*m_dx;
     double xr = xl + m_dx;
     x1 = g_domBeg[IDIR]*0.5*(exp(xr)+exp(xl));
-   #endif 
+#endif 
 
     D_EXPAND(dqx_p =    q[k][j][i+1] - q[k][j][i];
              dqx_m = - (q[k][j][i-1] - q[k][j][i]);  ,
@@ -197,46 +196,46 @@ void PatchPluto::computeRefGradient(FArrayBox& gFab, FArrayBox& UFab,
          Compute gradient using 1st derivative 
       ---------------------------------------------- */
 
-    #if REF_CRIT == 1
-     D_EXPAND(dqx = dqx_p + dqx_m;  ,
-              dqy = dqy_p + dqy_m;  ,
-              dqz = dqz_p + dqz_m;)
+#if REF_CRIT == 1
+    D_EXPAND(dqx = dqx_p + dqx_m;  ,
+             dqy = dqy_p + dqy_m;  ,
+             dqz = dqz_p + dqz_m;)
 
-     D_EXPAND(den_x = fabs(q[k][j][i+1]) + fabs(q[k][j][i-1]);  ,
-              den_y = fabs(q[k][j+1][i]) + fabs(q[k][j-1][i]);  ,
-              den_z = fabs(q[k+1][j][i]) + fabs(q[k-1][j][i]);)
+    D_EXPAND(den_x = fabs(q[k][j][i+1]) + fabs(q[k][j][i-1]);  ,
+             den_y = fabs(q[k][j+1][i]) + fabs(q[k][j-1][i]);  ,
+             den_z = fabs(q[k+1][j][i]) + fabs(q[k-1][j][i]);)
 
-     gr1  = D_EXPAND(dqx*dqx, + dqy*dqy, + dqz*dqz);
-     gr1 /= D_EXPAND(den_x*den_x, + den_y*den_y, + den_z*den_z);
+    gr1  = D_EXPAND(dqx*dqx, + dqy*dqy, + dqz*dqz);
+    gr1 /= D_EXPAND(den_x*den_x, + den_y*den_y, + den_z*den_z);
 
-     grad[k][j][i] = sqrt(gr1);
-    #endif
+    grad[k][j][i] = sqrt(gr1);
+#endif
 
   /* -----------------------------------------------
          Compute gradient using 2nd derivative 
       ---------------------------------------------- */
 
-    #if REF_CRIT == 2
-     D_EXPAND(d2qx = dqx_p - dqx_m;  ,
-              d2qy = dqy_p - dqy_m;  ,
-              d2qz = dqz_p - dqz_m;)
+#if REF_CRIT == 2
+    D_EXPAND(d2qx = dqx_p - dqx_m;  ,
+             d2qy = dqy_p - dqy_m;  ,
+             d2qz = dqz_p - dqz_m;)
 
-     D_EXPAND(
-       den_x = 2.0*fabs(q[k][j][i]) + fabs(q[k][j][i+1]) + fabs(q[k][j][i-1]);
-       den_x = fabs(dqx_p) + fabs(dqx_m) + eps*den_x;    ,
+    D_EXPAND(
+      den_x = 2.0*fabs(q[k][j][i]) + fabs(q[k][j][i+1]) + fabs(q[k][j][i-1]);
+      den_x = fabs(dqx_p) + fabs(dqx_m) + eps*den_x;    ,
 
-       den_y = 2.0*fabs(q[k][j][i]) + fabs(q[k][j+1][i]) + fabs(q[k][j-1][i]);
-       den_y = fabs(dqy_p) + fabs(dqy_m) + eps*den_y;    ,
+      den_y = 2.0*fabs(q[k][j][i]) + fabs(q[k][j+1][i]) + fabs(q[k][j-1][i]);
+      den_y = fabs(dqy_p) + fabs(dqy_m) + eps*den_y;    ,
 
-       den_z = 2.0*fabs(q[k][j][i]) + fabs(q[k+1][j][i]) + fabs(q[k-1][j][i]);
-       den_z = fabs(dqz_p) + fabs(dqz_m) + eps*den_z;
-     )
+      den_z = 2.0*fabs(q[k][j][i]) + fabs(q[k+1][j][i]) + fabs(q[k-1][j][i]);
+      den_z = fabs(dqz_p) + fabs(dqz_m) + eps*den_z;
+    )
 
-     gr2  = D_EXPAND(d2qx*d2qx,   + d2qy*d2qy,   + d2qz*d2qz);
-     gr2 /= D_EXPAND(den_x*den_x, + den_y*den_y, + den_z*den_z);
+    gr2  = D_EXPAND(d2qx*d2qx,   + d2qy*d2qy,   + d2qz*d2qz);
+    gr2 /= D_EXPAND(den_x*den_x, + den_y*den_y, + den_z*den_z);
 
-     grad[k][j][i] = sqrt(gr2);
-    #endif
+    grad[k][j][i] = sqrt(gr2);
+#endif
   }
 
 /* --------------------------------------------------------------
@@ -245,15 +244,15 @@ void PatchPluto::computeRefGradient(FArrayBox& gFab, FArrayBox& UFab,
    
   FreeArrayBoxMap(grad, Gbox.kb, Gbox.ke, Gbox.jb, Gbox.je, Gbox.ib, Gbox.ie);
 
-  #if CHOMBO_REF_VAR == -1
-   for (nv = 0; nv < NVAR; nv++){
-     FreeArrayBoxMap(UU[nv], Ubox.kb, Ubox.ke,
-                             Ubox.jb, Ubox.je, Ubox.ib, Ubox.ie);
-   }
-   FreeArrayBox(q, Ubox.kb, Ubox.jb, Ubox.ib);
-  #else
-   FreeArrayBoxMap(q, Ubox.kb, Ubox.ke, Ubox.jb, Ubox.je, Ubox.ib, Ubox.ie);
-  #endif
+#if CHOMBO_REF_VAR == -1
+  for (nv = 0; nv < NVAR; nv++){
+    FreeArrayBoxMap(UU[nv], Ubox.kb, Ubox.ke,
+                            Ubox.jb, Ubox.je, Ubox.ib, Ubox.ie);
+  }
+  FreeArrayBox(q, Ubox.kb, Ubox.jb, Ubox.ib);
+#else
+  FreeArrayBoxMap(q, Ubox.kb, Ubox.ke, Ubox.jb, Ubox.je, Ubox.ib, Ubox.ie);
+#endif
 
 }
 

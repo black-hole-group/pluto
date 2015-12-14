@@ -6,7 +6,7 @@
   This problem considers the propagation of a hydrodynamic jet into a
   static uniform medium with constant density and pressure.
   The ambient density, in units of the jet density, is prescribed to be
-  \f$ \rho = 1/\eta \f$ where \f$\eta\f$ is the jet/ambient density ratio.
+  \f$ \rho_a = \eta \f$ where \f$\eta\f$ is the ambient/jet density ratio.
   The ambient pressure is \f$ p = 1/\Gamma \f$ when an \c IDEAL EoS is used
   or it is computed from temperature as \f$ p = p(\rho_a, T_a) \f$ for the
    \c PVTE_LAW EoS (here Ta is the ambient temperature).
@@ -108,10 +108,14 @@ void UserDefBoundary (const Data *d, RBox *box, int side, Grid *grid)
         d->Vc[VX2][k][j][i] = vj[VX2];
         d->Vc[PRS][k][j][i] = vj[PRS]; 
       }else{                /* -- reflective boundary for r > 1 --*/
+        VAR_LOOP(nv) d->Vc[nv][k][j][i] = d->Vc[nv][k][2*JBEG-j-1][i];
+        d->Vc[VX2][k][j][i] *= -1.0;
+/*
         d->Vc[RHO][k][j][i] =  d->Vc[RHO][k][2*JBEG - j - 1][i];
         d->Vc[VX1][k][j][i] =  d->Vc[VX1][k][2*JBEG - j - 1][i];
         d->Vc[VX2][k][j][i] = -d->Vc[VX2][k][2*JBEG - j - 1][i];
         d->Vc[PRS][k][j][i] =  d->Vc[PRS][k][2*JBEG - j - 1][i];
+*/
       }
     }
   }

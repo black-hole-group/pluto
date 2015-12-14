@@ -8,6 +8,8 @@ var searchData=
   ['np_5fint_5fglob',['np_int_glob',['../struct_grid.html#aa59768467534216cd2a67cc728ff8ffb',1,'Grid']]],
   ['np_5ftot',['np_tot',['../struct_grid.html#a400e5f589e63aba3ff7b2ca74a20779d',1,'Grid']]],
   ['np_5ftot_5fglob',['np_tot_glob',['../struct_grid.html#a5dc446ad2d325d1fbb492b6547dcf287',1,'Grid']]],
+  ['npatch',['npatch',['../struct_runtime.html#a8c7cdc43c90426f517fbc5bc3655f760',1,'Runtime']]],
+  ['npoint',['npoint',['../struct_runtime.html#aecb00bdb22a65d10e3ece59fd21c4fe2',1,'Runtime']]],
   ['nproc',['nproc',['../struct_grid.html#ae68326adc3b3862f1162832f70727b06',1,'Grid']]],
   ['nrkc',['Nrkc',['../struct_time___step.html#af9dbed296cf27326ffdf8d6218207e6d',1,'Time_Step']]],
   ['nsts',['Nsts',['../struct_time___step.html#ab8ceb2a12ea036fb486b7596c95ba12d',1,'Time_Step']]],

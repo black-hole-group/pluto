@@ -13,7 +13,7 @@
         Mignone, Plewa \& Bodo, ApJS (2005) 160, 199.
 
   \author A. Mignone (mignone@ph.unito.it)
-  \date   Oct 4, 2012
+  \date   June 25, 2015
 */
 /* ///////////////////////////////////////////////////////////////////// */
 #include "pluto.h"
@@ -28,7 +28,7 @@ int EnergySolve (Map_param *par)
  *********************************************************************** */
 {
   int iter;
-  double p, D_1, alpha, alpha2, g2, g, m, tol=1.e-14;
+  double p, D_1, alpha, alpha2, lor2, lor, m, tol=1.e-14;
   double tau, theta, h, dh_dp, dh_dtau, gmmr;
   double yp, dyp, dp, scrh;
   double D, E, m2;
@@ -48,13 +48,13 @@ int EnergySolve (Map_param *par)
 
     alpha  = E + p;
     alpha2 = alpha*alpha;
-    g2     = 1.0 - m2/alpha2;
+    lor2   = 1.0 - m2/alpha2;
 
-    g2 = MAX(g2,1.e-9);
-    g2 = 1.0/g2;
-    g  = sqrt(g2);
+    lor2 = MAX(lor2,1.e-9);
+    lor2 = 1.0/lor2;
+    lor  = sqrt(lor2);
 
-    tau   = g*D_1;
+    tau   = lor*D_1;
     theta = p*tau;
 
     #if EOS == IDEAL
@@ -68,8 +68,8 @@ int EnergySolve (Map_param *par)
      dh_dtau = p*scrh;
     #endif
 
-    yp  = D*h*g - E - p;
-    dyp = D*g*dh_dp - m2*g2*g/(alpha2*alpha)*(g*dh_dtau + D*h) - 1.0;
+    yp  = D*h*lor - E - p;
+    dyp = D*lor*dh_dp - m2*lor2*lor/(alpha2*alpha)*(lor*dh_dtau + D*h) - 1.0;
     dp  = yp/dyp;
     p  -= dp;
     if (fabs (dp) < tol*p) break;
@@ -93,10 +93,21 @@ int EnergySolve (Map_param *par)
     return 1;
   }
 
-  par->rho = par->D/g;
-  par->W   = D*h*g;
+  par->rho = par->D/lor;
+  par->W   = D*h*lor;
   par->prs = p;
-  par->lor = g;
+  par->lor = lor;
+
+/* -- Recompute entropy consistently -- */
+
+#if ENTROPY_SWITCH
+  #if EOS == IDEAL
+  par->sigma_c = p*lor/pow(par->rho,g_gamma-1);
+  #elif EOS == TAUB
+  theta = p/rho;  
+  par->sigma_c = p*lor/pow(par->rho,2.0/3.0)*(1.5*theta + sqrt(2.25*theta*theta + 1.0);
+  #endif
+#endif
 
   return 0; /* -- success -- */
 }

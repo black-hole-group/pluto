@@ -4,7 +4,7 @@
   \brief Adjust the effective domain size when the -xNjet option is given.
 
   The SetJetDomain() function shortens the domain integration index in the 
-  direction specified by either '-x1jet', '-x2jet' or '-x3jet' to save 
+  direction specified by either '\c -x1jet', '\c -x2jet' or '\c -x3jet' to save 
   computational time.
   This is done by setting the final integration index in the direction
   of jet propagation to that of the first zone (counting from the top) with 
@@ -12,17 +12,17 @@
   The function UnsetJetDomain() restores the initial computational domain
   size.
   Useful for problems involving jet propagation.
-  \note In parallel, the domain shall not be decomposed along the
-        propagation direction.
+
+  \note In parallel, the domain is \e not decomposed along the
+        propagation direction (see ParseCmdLineArgs()).
   
   \author A. Mignone (mignone@ph.unito.it)
-  \date   Oct 3, 2012
+  \date   Dec 24, 2014
 */
 /* ///////////////////////////////////////////////////////////////////// */
-
 #include "pluto.h"
 
-static int NBEG, NEND, NPT, NPT_TOT, rbound;
+static int jd_nbeg, jd_nend, jd_npt, jd_ntot, rbound;
 static int GetRightmostIndex(int, double ***);
 
 /* ********************************************************************* */
@@ -58,14 +58,14 @@ void SetJetDomain (const Data *d, int dir, int log_freq, Grid *grid)
 
   if (first_call){
     if (dir == IDIR) {
-      NBEG = IBEG; NEND    = IEND; 
-      NPT  = NX1;  NPT_TOT = NX1_TOT;
+      jd_nbeg = IBEG; jd_nend = IEND; 
+      jd_npt  = NX1;  jd_ntot = NX1_TOT;
     }else if (dir == JDIR){
-      NBEG = JBEG; NEND    = JEND; 
-      NPT  = NX2;  NPT_TOT = NX2_TOT;
+      jd_nbeg = JBEG; jd_nend = JEND; 
+      jd_npt  = NX2;  jd_ntot = NX2_TOT;
     }else if (dir == KDIR){
-      NBEG = KBEG; NEND    = KEND; 
-      NPT  = NX3;  NPT_TOT = NX3_TOT;
+      jd_nbeg = KBEG; jd_nend = KEND; 
+      jd_npt  = NX3;  jd_ntot = NX3_TOT;
     }
 
     rbound = grid[dir].rbound;
@@ -80,8 +80,8 @@ void SetJetDomain (const Data *d, int dir, int log_freq, Grid *grid)
 
   n = GetRightmostIndex(dir, pr) + 2*ngh;
 
-  if (n < NBEG + ngh) n = NBEG + ngh;
-  if (n > NEND)       n = NEND;
+  if (n < jd_nbeg + ngh) n = jd_nbeg + ngh;
+  if (n > jd_nend)       n = jd_nend;
 
   #ifdef PARALLEL
    MPI_Allreduce (&n, &n_glob, 1, MPI_INT, MPI_MAX, MPI_COMM_WORLD);
@@ -89,7 +89,7 @@ void SetJetDomain (const Data *d, int dir, int log_freq, Grid *grid)
   #endif
 
   if (g_stepNumber%log_freq==0){
-/*    print1 ("- SetJetDomain: index %d / %d\n",n,NEND); */
+/*    print1 ("- SetJetDomain: index %d / %d\n",n,jd_nend); */
   }
 
 /* ------------------------------------------------------------------
@@ -104,7 +104,7 @@ void SetJetDomain (const Data *d, int dir, int log_freq, Grid *grid)
     NX1     = IEND - ngh;
 
     grid[IDIR].rbound = rbound;
-    if (IEND != NEND) grid[IDIR].rbound = 0;  
+    if (jd_nend != IEND) grid[IDIR].rbound = 0;  
     
   } else if (dir == JDIR){
 
@@ -112,7 +112,7 @@ void SetJetDomain (const Data *d, int dir, int log_freq, Grid *grid)
     NX2_TOT = JEND + ngh;
     NX2     = JEND - ngh;
     grid[JDIR].rbound = rbound;
-    if (JEND != NEND) grid[JDIR].rbound = 0;  
+    if (jd_nend != JEND) grid[JDIR].rbound = 0;  
 
   }else if (dir == KDIR){
 
@@ -121,11 +121,17 @@ void SetJetDomain (const Data *d, int dir, int log_freq, Grid *grid)
     NX3     = KEND - ngh;
 
     grid[KDIR].rbound = rbound;
-    if (KEND != NEND) grid[KDIR].rbound = 0;  
+    if (jd_nend != KEND) grid[KDIR].rbound = 0;  
   }
   
+/* ------------------------------------------------------
+    Recompute RBox(es) after indices have been changed
+   ------------------------------------------------------ */
+
+  SetRBox();
+
 /*
-  print1 ("Box = %d/%d\n", n, NEND);
+  print1 ("Box = %d/%d\n", n, jd_nend);
   {
     double t0, t1, i0, i1;
     FILE *fp;
@@ -153,28 +159,34 @@ void UnsetJetDomain (const Data *d, int dir, Grid *grid)
 {
 
   if (dir == IDIR){
-    IBEG = grid[IDIR].lbeg = NBEG;
-    IEND = grid[IDIR].lend = NEND;
-    NX1_TOT = NPT_TOT;
-    NX1     = NPT;
+    IBEG = grid[IDIR].lbeg = jd_nbeg;
+    IEND = grid[IDIR].lend = jd_nend;
+    NX1_TOT = jd_ntot;
+    NX1     = jd_npt;
     grid[IDIR].rbound = rbound;
   }
 
   if (dir == JDIR){
-    JBEG = grid[JDIR].lbeg = NBEG;
-    JEND = grid[JDIR].lend = NEND;
-    NX2_TOT = NPT_TOT;
-    NX2     = NPT;
+    JBEG = grid[JDIR].lbeg = jd_nbeg;
+    JEND = grid[JDIR].lend = jd_nend;
+    NX2_TOT = jd_ntot;
+    NX2     = jd_npt;
     grid[JDIR].rbound = rbound;
   }
 
   if (dir == KDIR){
-    KBEG = grid[KDIR].lbeg = NBEG;
-    KEND = grid[KDIR].lend = NEND;
-    NX3_TOT = NPT_TOT;
-    NX3     = NPT;
+    KBEG = grid[KDIR].lbeg = jd_nbeg;
+    KEND = grid[KDIR].lend = jd_nend;
+    NX3_TOT = jd_ntot;
+    NX3     = jd_npt;
     grid[KDIR].rbound = rbound;
   }
+
+/* ------------------------------------------------------
+    Recompute RBox(es) after indices have been changed
+   ------------------------------------------------------ */
+
+  SetRBox();
 
 }
 
@@ -193,7 +205,7 @@ int GetRightmostIndex (int dir, double ***q)
 /* -- backward sweep on x-axis -- */
 
   if (dir == IDIR){
-    for (i = NEND; i >= NBEG; i--){
+    for (i = jd_nend; i >= jd_nbeg; i--){
     KDOM_LOOP(k){
     JDOM_LOOP(j){
 
@@ -207,7 +219,7 @@ int GetRightmostIndex (int dir, double ***q)
 /* -- backward sweep on y-axis -- */
 
   if (dir == JDIR){
-    for (j = NEND; j >= NBEG; j--){
+    for (j = jd_nend; j >= jd_nbeg; j--){
     KDOM_LOOP(k){
     IDOM_LOOP(i){
 
@@ -221,7 +233,7 @@ int GetRightmostIndex (int dir, double ***q)
 /* -- backward sweep on z-axis -- */
 
   if (dir == KDIR){
-    for (k = NEND; k >= NBEG; k--){
+    for (k = jd_nend; k >= jd_nbeg; k--){
     JDOM_LOOP(j){
     IDOM_LOOP(i){
 

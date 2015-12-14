@@ -23,7 +23,7 @@
         in your definitions.h.        
   
   \authors A. Mignone (mignone@ph.unito.it)
-  \date    March 26, 2014
+  \date    Aug 24, 2015
 */
 /* ///////////////////////////////////////////////////////////////////// */
 #include "pluto.h"
@@ -34,36 +34,36 @@
 
 static Output *all_outputs;
 /* ********************************************************************* */
-void SetOutput (Data *d, Input *input)
+void SetOutput (Data *d, Runtime *runtime)
 /*!
  *  Set default attributes (variable names, pointers to data structures, 
  *  filename extensions, etc...) of the output structures.
  *
- * \param [in] d      pointer to Data structure
- * \param [in] input  pointer to input structure
+ * \param [in] d        pointer to Data structure
+ * \param [in] runtime  pointer to Runtime structure
  *
  *********************************************************************** */
 {
   int nv, i, k;
   Output *output;
 
-  if (input->user_var > 0)
-    d->Vuser = ARRAY_4D(input->user_var, NX3_TOT, NX2_TOT, NX1_TOT, double);
+  if (runtime->user_var > 0)
+    d->Vuser = ARRAY_4D(runtime->user_var, NX3_TOT, NX2_TOT, NX1_TOT, double);
   else
     d->Vuser = NULL;
 
-  all_outputs = input->output;
+  all_outputs = runtime->output;
 
 /* ---------------------------------------------
           Loop on output types 
    --------------------------------------------- */
 
   for (k = 0; k < MAX_OUTPUT_TYPES; k++){ 
-    output = input->output + k;
+    output = runtime->output + k;
     output->var_name = ARRAY_2D(64,128,char);
     output->stag_var = ARRAY_1D(64, int);
     output->dump_var = ARRAY_1D(64, int);
-    strcpy(output->dir, input->output_dir); /* output directory is the same     */
+    strcpy(output->dir, runtime->output_dir); /* output directory is the same     */
                                             /* for all outputs (easy to change) */
     output->nfile    = -1;  
 
@@ -113,20 +113,20 @@ void SetOutput (Data *d, Input *input)
 
   /* -- repeat for user defined vars -- */
 
-    for (i = 0; i < input->user_var; i++){
-      sprintf (output->var_name[i + nv], "%s", input->user_var_name[i]);
+    for (i = 0; i < runtime->user_var; i++){
+      sprintf (output->var_name[i + nv], "%s", runtime->user_var_name[i]);
       output->V[i + nv] = d->Vuser[i];
       output->stag_var[i + nv] = -1; /* -- assume cell-centered -- */
     }
 
   /* -- add user vars to total number of variables -- */
 
-    output->nvar += input->user_var;
+    output->nvar += runtime->user_var;
  
   /* -- select which variables are going to be dumped to disk  -- */
 
     for (nv = output->nvar; nv--; ) output->dump_var[nv] = YES;
-    #if ENTROPY_SWITCH == YES
+    #if ENTROPY_SWITCH
      output->dump_var[ENTR] = NO;
     #endif
 

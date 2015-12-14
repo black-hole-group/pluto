@@ -65,7 +65,7 @@ long int NMAX_POINT;  /**< Maximum number of points among the three
 /*! \name Direction-dependent Vector Labels
     Vector indices permuted during sweeps are used to distinguish between 
     normal ("n"), tangent ("t") and bi-tangent ("b") directions.
-    In vector notations, \f$ \vec{b} = \vec{n} X \vec{t} \f$, they
+    In vector notations, \f$ \hvec{b} = \hvec{n} \times \hvec{t} \f$, they
     form a right-handed triad.
     Values are set in the SetIndex() function before commencing 
     integration.                                                        */
@@ -73,6 +73,10 @@ long int NMAX_POINT;  /**< Maximum number of points among the three
 int VXn, VXt, VXb; 
 int MXn, MXt, MXb;
 int BXn, BXt, BXb;
+#if DUST == YES
+  int VXn_D, VXt_D, VXb_D;
+  int MXn_D, MXt_D, MXb_D;
+#endif
 /**@} */
                
 int g_i; /**<  x1 grid index when sweeping along the x2 or x3 direction. */

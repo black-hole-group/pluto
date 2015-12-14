@@ -5,12 +5,12 @@
 
   Convert the conservative variables u=[D, m, B, sigma_c] 
   (where sigma_c = D*sigma is the conserved entropy) to 
-  primitive variable using a Newton-Raphson/Bisection scheme.
+  primitive variable v=[rho,v,B,p] using a Newton-Raphson/Bisection scheme.
  
   \authors C. Zanni \n
            A. Mignone
 
-  \date Oct 5, 2012
+  \date  June 25, 2015
 */
 /* ///////////////////////////////////////////////////////////////////// */
 #include "pluto.h"
@@ -136,6 +136,8 @@ int EntropySolve (Map_param *par)
     dfv2 = 1.-0.5*dv2_dW*dW_dlor*lor2*lor;
   }
 
+/* -- Compure pressure */
+
   #if EOS == IDEAL
    par->prs = sigma*x*rho;
   #elif EOS == TAUB
@@ -146,15 +148,6 @@ int EntropySolve (Map_param *par)
     WARNING(
       print ("! EntropySolve: too many iterations,%d, ",k);
     )
-/*
-    printf ("u[RHO] = %12.6e;\n",u[RHO]);
-    printf ("u[MX1] = %12.6e;\n",u[MX1]);
-    printf ("u[MX2] = %12.6e;\n",u[MX2]);
-    printf ("u[BX1] = %12.6e;\n",u[BX1]);
-    printf ("u[BX2] = %12.6e;\n",u[BX2]);
-    printf ("u[ENG] = %12.6e;\n",u[ENG]);
-    printf ("u[ENTR] = %12.6e;\n",u[ENTR]);
-*/
     return(1);
   }
 
@@ -169,9 +162,9 @@ int EntropySolve (Map_param *par)
   par->lor = lor;
   par->rho = rho;
 
-/* -- redefine energy -- */
+/* -- Redefine energy -- */
 
-  #if SUBTRACT_DENSITY == YES
+  #if RMHD_REDUCED_ENERGY == YES
    #if EOS == IDEAL
     par->E = par->prs*(g_gamma/(g_gamma-1.0)*lor2 - 1.0) + D*lor2*v2/(1.0 + lor)
             + 0.5*(1.0 + v2)*B2 - 0.5*S2_W2;

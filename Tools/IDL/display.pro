@@ -92,6 +92,8 @@
 ;      /YLOG      = set a logarithmic scaling for the y-axis.
 ;                   CAUTION: the input grid must be regularly spaced in log scale.
 ;
+;     /UNIFORM    = do not attempt to regrid the image and display as it is,
+;                   without interpolating
 ;     LFT,RGT     = these parameters can be used to specify the margin (in pixels)
 ;     BOT,TOP       between the plot borders and the left (lft), right (rgt),
 ;                   top (top) and bottom (bot) side of the window.
@@ -125,11 +127,11 @@
 ;      IDL> display, img, x1 = x1, x2 = 0.5*!PI - x2, /polar, ims = [400,400]
 ;
 ;
-;  LAST MODIFIED:   June 18, 2013 by A.Mignone (mignone@ph.unito.it)
+;  LAST MODIFIED:   June 6, 2015 by A.Mignone (mignone@ph.unito.it)
 ;
 ;-
 PRO DISPLAY, a_in, x1 = x1, x2 = x2, $
-           xlog=xlog, ylog=ylog,$
+           xlog=xlog, ylog=ylog,uniform=uniform,$
            title =title, label1 = label1, label2 = label2,$
            imax = imax, imin = imin, hbar = hbar,$
            charsize=charsize, vbar = vbar, color = color,$
@@ -168,7 +170,7 @@ PRO DISPLAY, a_in, x1 = x1, x2 = x2, $
    return
  ENDIF
 
- IF (NOT KEYWORD_SET(nwin)) THEN nwin = 0
+ IF (NOT KEYWORD_SET(nwin))   THEN nwin = 0
 
 ; -------------------------------------
 ; Check if array dimensions make sense
@@ -283,6 +285,8 @@ PRO DISPLAY, a_in, x1 = x1, x2 = x2, $
 ; ----------------------
 ;  Need to regrid ?
 ; ----------------------
+
+ IF (KEYWORD_SET(uniform)) THEN regrid_flag = 0
 
  IF (KEYWORD_SET(regrid_flag)) THEN BEGIN
    print,"Regridding Image..."

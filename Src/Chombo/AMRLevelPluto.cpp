@@ -235,7 +235,16 @@ Real AMRLevelPluto::advance()
   // we don't need the flux in the simple hyperbolic case...
   LevelData<FArrayBox> flux[SpaceDim];
 
+// Make sure m_time >= tCoarserOld to avoid negative alpha during levelPluto.step
+// Thus if tm = tc*(1-epsilon) we set tm = tc
+
+  if ( m_time < tCoarserOld && 
+       fabs(m_time - tCoarserOld) < 1.e-12*tCoarserOld){
+    m_time = tCoarserOld;
+  }
+
   g_intStage = 1;
+
   // Advance the solve one timestep
   newDt = m_levelPluto.step(m_UNew,
                             flux,

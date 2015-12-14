@@ -21,7 +21,7 @@
   implements the source term part.
  
   \author A. Mignone (mignone@ph.unito.it)
-  \date   Jul 15, 2014
+  \date   Aug 26, 2015
 */
 /* ///////////////////////////////////////////////////////////////////// */
 #include "pluto.h"
@@ -63,10 +63,8 @@ void PrimRHS (double *v, double *dv, double cs2, double h, double *Adv)
   Adv[RHO] = v[VXn]*dv[RHO] + v[RHO]*dv[VXn];
   scrh = EXPAND(0.0, + v[BXt]*dv[BXt], + v[BXb]*dv[BXb]);
 
-  #if EOS == IDEAL
+  #if EOS == IDEAL || EOS == PVTE_LAW
    Adv[VXn] = v[VXn]*dv[VXn] + tau*(dv[PRS] + scrh);
-  #elif EOS == BAROTROPIC
-   Adv[VXn] = v[VXn]*dv[VXn] + tau*(cs2*dv[RHO] + scrh);
   #elif EOS == ISOTHERMAL
    Adv[VXn] = v[VXn]*dv[VXn] + tau*(cs2*dv[RHO] + scrh);
   #else 
@@ -78,9 +76,9 @@ void PrimRHS (double *v, double *dv, double cs2, double h, double *Adv)
          Adv[VXt] = v[VXn]*dv[VXt] - tau*v[BXn]*dv[BXt];    ,
          Adv[VXb] = v[VXn]*dv[VXb] - tau*v[BXn]*dv[BXb]; ) 
 
-  #if MHD_FORMULATION == EIGHT_WAVES
+  #if DIVB_CONTROL == EIGHT_WAVES
    Adv[BXn] = v[VXn]*dv[BXn];
-  #elif MHD_FORMULATION == DIV_CLEANING 
+  #elif DIVB_CONTROL == DIV_CLEANING 
    ch2 = glm_ch*glm_ch;
    Adv[BXn]      = dv[PSI_GLM];             
    Adv[PSI_GLM] = dv[BXn]*ch2; 
@@ -112,9 +110,9 @@ void PrimRHS (double *v, double *dv, double cs2, double h, double *Adv)
                          Now Define Tracers
     ------------------------------------------------------------- */
 
-  #if NFLX != NVAR
-   for (nv = NFLX; nv < (NFLX + NSCL); nv++) Adv[nv] = v[VXn]*dv[nv];
-  #endif
+#if NSCL > 0
+  NSCL_LOOP(nv) Adv[nv] = v[VXn]*dv[nv];
+#endif
 
 }
 
@@ -126,6 +124,7 @@ void PrimSource (const State_1D *state, int beg, int end, double *a2,
  * These include:
  *
  *  - Geometrical sources;
+ *  - Shearing-box terms 
  *  - Gravity;
  *  - terms related to divergence of B control (Powell eight wave and GLM);
  *  - FARGO source terms.
@@ -171,10 +170,10 @@ void PrimSource (const State_1D *state, int beg, int end, double *a2,
   static double *phi_p;
   double g[3], ch2, db, scrh;
 
-#if ROTATING_FRAME == YES
- print1 ("! PrimSource: does not work with rotations\n");
- QUIT_PLUTO(1);
-#endif
+  #if ROTATING_FRAME == YES
+   print1 ("! PrimSource: does not work with rotations\n");
+   QUIT_PLUTO(1);
+  #endif
 
 /* ----------------------------------------------------------
    1. Memory allocation and pointer shortcuts 
@@ -275,92 +274,108 @@ void PrimSource (const State_1D *state, int beg, int end, double *a2,
        - Body forces
    ---------------------------------------------------------- */
 
-  #if (GEOMETRY == CARTESIAN) && (defined SHEARINGBOX)
-   if (g_dir == IDIR){
-     for (i = beg; i <= end; i++) src[i][VX1] =  2.0*state->v[i][VX2]*sb_Omega;
-   }else if (g_dir == JDIR){
-     for (j = beg; j <= end; j++) src[j][VX2] = -2.0*state->v[j][VX1]*sb_Omega;
-   }
-  #endif
+#ifdef SHEARINGBOX
 
-  #if (BODY_FORCE != NO)
-   if (g_dir == IDIR) {
-     i = beg-1;
-     j = g_j;
-     k = g_k;
-     #if BODY_FORCE & POTENTIAL
-      phi_p[i] = BodyForcePotential(x1p[i], x2[j], x3[k]);
-     #endif
-     for (i = beg; i <= end; i++){
-       #if BODY_FORCE & VECTOR
-        v = state->v[i];
-        BodyForceVector(v, g, x1[i], x2[j], x3[k]);
-        src[i][VX1] += g[IDIR];
-       #endif
-       #if BODY_FORCE & POTENTIAL
-        phi_p[i]     = BodyForcePotential(x1p[i], x2[j], x3[k]); 
-        src[i][VX1] -= (phi_p[i] - phi_p[i-1])/(hscale*dx1[i]);
-       #endif
+  if (g_dir == IDIR){
+    for (i = beg; i <= end; i++) {
+      src[i][VX1] =  2.0*state->v[i][VX2]*SB_OMEGA;
+    } 
+  }else if (g_dir == JDIR){
+    for (j = beg; j <= end; j++) {
+    #ifdef FARGO 
+      src[j][VX2] = (SB_Q - 2.0)*state->v[j][VX1]*SB_OMEGA;
+    #else
+      src[j][VX2] = -2.0*state->v[j][VX1]*SB_OMEGA;
+    #endif
+    }
+  }
+
+#endif
+  
+
+#if (BODY_FORCE != NO)
+  if (g_dir == IDIR) {
+
+    i = beg-1;
+    j = g_j;
+    k = g_k;
+  #if BODY_FORCE & POTENTIAL
+    phi_p[i] = BodyForcePotential(x1p[i], x2[j], x3[k]);
+  #endif
+    for (i = beg; i <= end; i++){
+    #if BODY_FORCE & VECTOR
+      v = state->v[i];
+      BodyForceVector(v, g, x1[i], x2[j], x3[k]);
+      src[i][VX1] += g[IDIR];
+    #endif
+    #if BODY_FORCE & POTENTIAL
+      phi_p[i]     = BodyForcePotential(x1p[i], x2[j], x3[k]); 
+      src[i][VX1] -= (phi_p[i] - phi_p[i-1])/(hscale*dx1[i]);
+    #endif
 
     /* -- Add tangential components in 1D -- */
     
-       #if DIMENSIONS == 1
-        EXPAND(                         , 
-               src[i][VX2] += g[JDIR];  ,
-               src[i][VX3] += g[KDIR];)
-       #endif
-     }
-   }else if (g_dir == JDIR){
-     i = g_i;
-     j = beg - 1;
-     k = g_k;
-     #if BODY_FORCE & POTENTIAL
-      phi_p[j] = BodyForcePotential(x1[i], x2p[j], x3[k]);
-     #endif
-     #if GEOMETRY == POLAR || GEOMETRY == SPHERICAL
-      hscale = x1[i];
-     #endif
-     for (j = beg; j <= end; j++){
-       #if BODY_FORCE & VECTOR
-        v = state->v[j];
-        BodyForceVector(v, g, x1[i], x2[j], x3[k]);
-        src[j][VX2] += g[JDIR];
-       #endif
-       #if BODY_FORCE & POTENTIAL
-        phi_p[j]     = BodyForcePotential(x1[i], x2p[j], x3[k]);
-        src[j][VX2] -= (phi_p[j] - phi_p[j-1])/(hscale*dx2[j]);
-       #endif
+    #if DIMENSIONS == 1
+      EXPAND(                         , 
+             src[i][VX2] += g[JDIR];  ,
+             src[i][VX3] += g[KDIR];)
+    #endif
+    }
+
+  }else if (g_dir == JDIR){
+
+    i = g_i;
+    j = beg - 1;
+    k = g_k;
+  #if BODY_FORCE & POTENTIAL
+    phi_p[j] = BodyForcePotential(x1[i], x2p[j], x3[k]);
+  #endif
+  #if GEOMETRY == POLAR || GEOMETRY == SPHERICAL
+    hscale = x1[i];
+  #endif
+    for (j = beg; j <= end; j++){
+    #if BODY_FORCE & VECTOR
+      v = state->v[j];
+      BodyForceVector(v, g, x1[i], x2[j], x3[k]);
+      src[j][VX2] += g[JDIR];
+    #endif
+    #if BODY_FORCE & POTENTIAL
+      phi_p[j]     = BodyForcePotential(x1[i], x2p[j], x3[k]);
+      src[j][VX2] -= (phi_p[j] - phi_p[j-1])/(hscale*dx2[j]);
+    #endif
 
     /* -- Add 3rd component in 2D -- */
 
-       #if DIMENSIONS == 2 && COMPONENTS == 3
-        src[j][VX3] += g[KDIR];
-       #endif
-     }
-   }else if (g_dir == KDIR){
-     i = g_i;
-     j = g_j;
-     k = beg - 1;
-     #if BODY_FORCE & POTENTIAL
-      phi_p[k] = BodyForcePotential(x1[i], x2[j], x3p[k]);
-     #endif
-     #if GEOMETRY == SPHERICAL
-      th     = x2[j];
-      hscale = x1[i]*sin(th);
-     #endif
-     for (k = beg; k <= end; k++){
-       #if BODY_FORCE & VECTOR
-        v = state->v[k];
-        BodyForceVector(v, g, x1[i], x2[j], x3[k]);
-        src[k][VX3] += g[KDIR];
-       #endif
-       #if BODY_FORCE & POTENTIAL
-        phi_p[k]     = BodyForcePotential(x1[i], x2[j], x3p[k]); 
-        src[k][VX3] -= (phi_p[k] - phi_p[k-1])/(hscale*dx3[k]);
-       #endif
-     }
-   }
+    #if DIMENSIONS == 2 && COMPONENTS == 3
+      src[j][VX3] += g[KDIR];
+    #endif
+    }
+
+  }else if (g_dir == KDIR){
+
+    i = g_i;
+    j = g_j;
+    k = beg - 1;
+  #if BODY_FORCE & POTENTIAL
+    phi_p[k] = BodyForcePotential(x1[i], x2[j], x3p[k]);
   #endif
+  #if GEOMETRY == SPHERICAL
+    th     = x2[j];
+    hscale = x1[i]*sin(th);
+  #endif
+    for (k = beg; k <= end; k++){
+    #if BODY_FORCE & VECTOR
+      v = state->v[k];
+      BodyForceVector(v, g, x1[i], x2[j], x3[k]);
+      src[k][VX3] += g[KDIR];
+    #endif
+    #if BODY_FORCE & POTENTIAL
+      phi_p[k]     = BodyForcePotential(x1[i], x2[j], x3p[k]); 
+      src[k][VX3] -= (phi_p[k] - phi_p[k-1])/(hscale*dx3[k]);
+    #endif
+    }
+  }
+#endif
 
 /* -----------------------------------------------------------
    4. MHD, div.B related source terms
@@ -378,7 +393,7 @@ void PrimSource (const State_1D *state, int beg, int end, double *a2,
      tau = 1.0/v[RHO]; 
      db  = 0.5*(  A[i]  *(state->v[i+1][BXn] + state->v[i][BXn]) 
                 - A[i-1]*(state->v[i-1][BXn] + state->v[i][BXn]))/dV[i];
-     #if EGLM == NO
+     #if GLM_EXTENDED == NO
       EXPAND(src[i][VXn] += v[BXn]*tau*db;  ,
              src[i][VXt] += v[BXt]*tau*db;  ,
              src[i][VXb] += v[BXb]*tau*db;)
@@ -390,7 +405,7 @@ void PrimSource (const State_1D *state, int beg, int end, double *a2,
      #if EOS == IDEAL
       scrh = EXPAND(v[VXn]*v[BXn], + v[VXt]*v[BXt], + v[VXb]*v[BXb]);
       src[i][PRS] += (1.0 - g_gamma)*scrh*db;
-      #if EGLM == NO
+      #if GLM_EXTENDED == NO
        scrh = 0.5*(state->v[i+1][PSI_GLM] - state->v[i-1][PSI_GLM])/grid[g_dir].dx[i];
        src[i][PRS] += (g_gamma - 1.0)*v[BXn]*scrh;
       #endif        
@@ -404,7 +419,7 @@ void PrimSource (const State_1D *state, int beg, int end, double *a2,
       these source terms since they're all provided by body_force)
    --------------------------------------------------------------- */
   
-  #if (defined FARGO) && !(defined SHEARINGBOX)
+  #if (defined FARGO && !defined SHEARINGBOX)
    #if GEOMETRY == POLAR || GEOMETRY == SPHERICAL
     print1 ("! Time Stepping works only in Cartesian or cylindrical coords\n");
     print1 ("! Use RK instead\n");

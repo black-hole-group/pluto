@@ -7,3 +7,8 @@ OBJ   +=  bckgrnd_field.o eigenv.o fluxes.o mappers.o  prim_eqn.o \
           set_solver.o source.o
 
 
+# !!! NEW !!!
+
+OBJ += get_area_flux.o rhs_source.o
+
+

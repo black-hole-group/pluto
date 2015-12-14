@@ -28,7 +28,6 @@
 void HLLC_Solver (const State_1D *state, int beg, int end, 
                   real *cmax, Grid *grid)
 /*!
- *
  * Solve Riemann problem using the HLLC Riemann solver.
  * 
  * \param[in,out] state   pointer to State_1D structure
@@ -47,8 +46,8 @@ void HLLC_Solver (const State_1D *state, int beg, int end,
   #if EOS == ISOTHERMAL
    double rho, mx;
   #endif
-  static real *pL, *pR, *SL, *SR, *a2L, *a2R;
-  static real **fL, **fR;
+  static double *pL, *pR, *SL, *SR, *a2L, *a2R;
+  static double **fL, **fR;
 
 /* -- Allocate memory -- */
 
@@ -66,7 +65,7 @@ void HLLC_Solver (const State_1D *state, int beg, int end,
   }
 
 /* ----------------------------------------------------
-     compute sound speed & fluxes at zone interfaces
+    Compute sound speed & fluxes at zone interfaces
    ---------------------------------------------------- */
 
   SoundSpeed2 (state->vL, a2L, NULL, beg, end, FACE_CENTER, grid);
@@ -100,13 +99,8 @@ void HLLC_Solver (const State_1D *state, int beg, int end,
       vxr = vR[VXn];
       vxl = vL[VXn];
  
-      #if SHOCK_FLATTENING == MULTID   
-
-      /* ---------------------------------------------
-         Switch to HLL in proximity of strong shocks.
-        --------------------------------------------- */
-
-       if (CheckZone(i, FLAG_HLL) || CheckZone(i+1, FLAG_HLL)){
+#if SHOCK_FLATTENING == MULTID   
+      if ((state->flag[i] & FLAG_HLL) || (state->flag[i+1] & FLAG_HLL)){        
          scrh  = 1.0/(SR[i] - SL[i]);
          for (nv = NFLX; nv--; ){
            state->flux[i][nv]  = SL[i]*SR[i]*(uR[nv] - uL[nv])
@@ -116,7 +110,7 @@ void HLLC_Solver (const State_1D *state, int beg, int end,
          state->press[i] = (SR[i]*pL[i] - SL[i]*pR[i])*scrh;
          continue;
        }
-      #endif
+#endif
 
   /* ---------------------------------------
                    get u* 

@@ -41,11 +41,19 @@ void Flux (double **u, double **w, double *a2, double **fx, double *p,
     EXPAND(fx[ii][MX1] = u[ii][MX1]*w[ii][VXn]; ,
            fx[ii][MX2] = u[ii][MX2]*w[ii][VXn]; ,
            fx[ii][MX3] = u[ii][MX3]*w[ii][VXn];)
-    #if HAVE_ENERGY
-     p[ii] = w[ii][PRS];
-     fx[ii][ENG] = (u[ii][ENG] + w[ii][PRS])*w[ii][VXn];
-    #elif EOS == ISOTHERMAL
-     p[ii] = a2[ii]*w[ii][RHO];
-    #endif
+#if HAVE_ENERGY
+    p[ii] = w[ii][PRS];
+    fx[ii][ENG] = (u[ii][ENG] + w[ii][PRS])*w[ii][VXn];
+#elif EOS == ISOTHERMAL
+    p[ii] = a2[ii]*w[ii][RHO];
+#endif
+/*
+#if DUST == YES
+    fx[ii][RHO_D] = u[ii][MXn_D];
+    EXPAND(fx[ii][MX1_D] = u[ii][MX1_D]*w[ii][VXn_D]; ,
+           fx[ii][MX2_D] = u[ii][MX2_D]*w[ii][VXn_D]; ,
+           fx[ii][MX3_D] = u[ii][MX3_D]*w[ii][VXn_D];)
+#endif
+*/
   }
 }

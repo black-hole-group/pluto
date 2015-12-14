@@ -72,9 +72,9 @@ void PatchPluto::computeRefGradient(FArrayBox& gFab, FArrayBox& UFab,
 
   alpha = 0.0;
   #if (EOS != ISOTHERMAL) && (AMR_EN_SWITCH == NO)
-   q  = UU[EN];   
+   q  = UU[ENG];   
   #else
-   q  = UU[DN];
+   q  = UU[RHO];
   #endif
 
   for (k = Gkb; k <= Gke; k++) { z = k*m_dx + g_domBeg[KDIR];

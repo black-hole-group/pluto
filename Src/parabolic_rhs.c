@@ -37,8 +37,8 @@
 /* ///////////////////////////////////////////////////////////////////// */
 #include "pluto.h"
 
-#define ADD_RESISTIVITY (RESISTIVE_MHD == SUPER_TIME_STEPPING || \
-                         RESISTIVE_MHD == RK_CHEBYSHEV)
+#define ADD_RESISTIVITY (RESISTIVITY == SUPER_TIME_STEPPING || \
+                         RESISTIVITY == RK_CHEBYSHEV)
 
 #define ADD_VISCOSITY (VISCOSITY == SUPER_TIME_STEPPING || \
                        VISCOSITY == RK_CHEBYSHEV)
@@ -240,7 +240,7 @@ max_inv_dtp[0] = max_inv_dtp[1] = max_inv_dtp[2] = 0.0;
       #endif /* -- VISCOSITY -- */
 
     /* ----------------------------------------------
-        RESISTIVE_MHD: build rhs in the x1 direction
+        RESISTIVITY: build rhs in the x1 direction
        ---------------------------------------------- */
 
       #if ADD_RESISTIVITY
@@ -281,7 +281,7 @@ max_inv_dtp[0] = max_inv_dtp[1] = max_inv_dtp[2] = 0.0;
          du[ENG] += -(A[i]*res_flx[i][ENG] - A[i-1]*res_flx[i-1][ENG])*dtdV; 
         #endif 
        #endif
-      #endif /* -- RESISTIVE_MHD -- */
+      #endif /* -- RESISTIVITY -- */
 
     /* ---------------------------------------------------
         THERMAL_CONDUCTION: build rhs in the x1 direction
@@ -406,7 +406,7 @@ max_inv_dtp[0] = max_inv_dtp[1] = max_inv_dtp[2] = 0.0;
       #endif/* -- VISCOSITY -- */
 
     /* ----------------------------------------------
-        RESISTIVE_MHD: build rhs in the x2 direction
+        RESISTIVITY: build rhs in the x2 direction
        ---------------------------------------------- */
 
       #if ADD_RESISTIVITY
@@ -542,7 +542,7 @@ max_inv_dtp[0] = max_inv_dtp[1] = max_inv_dtp[2] = 0.0;
       #endif/* -- VISCOSITY -- */
 
     /* ----------------------------------------------
-        RESISTIVE_MHD: build rhs in the x3 direction
+        RESISTIVITY: build rhs in the x3 direction
        ---------------------------------------------- */
 
       #if ADD_RESISTIVITY
@@ -551,7 +551,7 @@ max_inv_dtp[0] = max_inv_dtp[1] = max_inv_dtp[2] = 0.0;
        #if HAVE_ENERGY
         du[ENG] -= (res_flx[k][ENG] - res_flx[k-1][ENG])*dtdl; 
        #endif 
-      #endif /* -- RESISTIVE_MHD -- */
+      #endif /* -- RESISTIVITY -- */
    
     /* ---------------------------------------------------
         THERMAL_CONDUCTION: build rhs in the x3 direction

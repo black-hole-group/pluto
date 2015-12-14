@@ -92,7 +92,7 @@ void ParabolicFlux (Data_Arr V, Data_Arr J, double ***T,
       This is done in a separate step (...)
    ---------------------------------------------------------------- */
 
-  #if (RESISTIVE_MHD == EXPLICIT) 
+  #if (RESISTIVITY == EXPLICIT) 
    ResistiveFlux (V, J, state->res_flux, dcoeff, beg, end, grid);
    for (i = beg; i <= end; i++){
 

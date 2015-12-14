@@ -28,7 +28,7 @@ def PlutoInterFace(pluto_dir, do_auto_update = False):
     interface_optval = interface_opts[-1]   # set to "Quit" so it'll skip next loop
 
   while interface_optval != interface_opts[-1]:
-    menu.SetTitle("Python setup (Oct 2014)","Working dir: "+work_dir+"\nPLUTO dir  : "+pluto_dir)
+    menu.SetTitle("Python setup (Aug 2015)","Working dir: "+work_dir+"\nPLUTO dir  : "+pluto_dir)
 
     interface_optval = menu.Browse(interface_opts)
 

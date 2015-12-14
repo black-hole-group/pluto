@@ -8,7 +8,7 @@
   It is automatically searched for by the makefile.
 
   \author A. Mignone (mignone@ph.unito.it)
-  \date   Sepy 10, 2012
+  \date   Sept 10, 2012
 */
 /* ///////////////////////////////////////////////////////////////////// */
 #include "pluto.h"

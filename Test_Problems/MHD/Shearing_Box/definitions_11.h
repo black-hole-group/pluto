@@ -4,20 +4,19 @@
 #define  GEOMETRY                CARTESIAN
 #define  BODY_FORCE              VECTOR
 #define  COOLING                 NO
-#define  INTERPOLATION           LINEAR
+#define  RECONSTRUCTION          LINEAR
 #define  TIME_STEPPING           HANCOCK
 #define  DIMENSIONAL_SPLITTING   NO
 #define  NTRACER                 0
 #define  USER_DEF_PARAMETERS     2
-#define  USER_DEF_CONSTANTS      2
 
 /* -- physics dependent declarations -- */
 
 #define  EOS                     ISOTHERMAL
 #define  ENTROPY_SWITCH          NO
-#define  MHD_FORMULATION         CONSTRAINED_TRANSPORT
+#define  DIVB_CONTROL            CONSTRAINED_TRANSPORT
 #define  BACKGROUND_FIELD        NO
-#define  RESISTIVE_MHD           NO
+#define  RESISTIVITY             NO
 #define  THERMAL_CONDUCTION      NO
 #define  VISCOSITY               NO
 #define  ROTATING_FRAME          NO
@@ -27,10 +26,12 @@
 #define  BETA                    0
 #define  CSOUND                  1
 
-/* -- user-defined symbolic constants -- */
+/* [Beg] user-defined constants (do not change this line) */
 
 #define  NET_FLUX                NO
 #define  STRATIFICATION          YES
+
+/* [End] user-defined constants (do not change this line) */
 
 /* -- supplementary constants (user editable) -- */ 
 
@@ -39,7 +40,6 @@
 #define  PRINT_TO_FILE             YES
 #define  INTERNAL_BOUNDARY         NO
 #define  SHOCK_FLATTENING          NO
-#define  ARTIFICIAL_VISCOSITY      NO
 #define  CHAR_LIMITING             NO
 #define  LIMITER                   VANLEER_LIM
 #define  CT_EMF_AVERAGE            UCT_CONTACT

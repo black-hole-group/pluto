@@ -1,6 +1,6 @@
 #include "pluto.h"
 
-#if INTERPOLATION == PARABOLIC || INTERPOLATION == WENO3
+#if RECONSTRUCTION == PARABOLIC || RECONSTRUCTION == WENO3
 
 /* ----------------------------------------------
     Set REF_STATE to 1,2,3 to use cell centered
@@ -185,7 +185,7 @@ void CharTracingStep(const State_1D *state, int beg, int end, Grid *grid)
 
 
 
-#if INTERPOLATION == LINEAR
+#if RECONSTRUCTION == LINEAR
 /* ------------------------------------------------------------
     Set REF_STATE to 1,2,3 to use cell centered value (1), 
     interpolated states (2) or fastest wave (3, the standard 

@@ -73,18 +73,8 @@
                                 energy will be redefined accordingly. */
 #endif
 
-/* --------------------------------------------------------
-    Proto-Solar Mass Fractions for Hydrogen and Helium  
-   (Lodders, ApJ 591, 2003 )                                       
-   -------------------------------------------------------- */
-   
-#if NIONS == 0
- #define H_MASS_FRAC       0.7110
- #define He_MASS_FRAC      (1.0 - H_MASS_FRAC) /* Effective Y and not 0.2741
-                                                  Baraffe (2008) */
-#endif
 
-#if ENTROPY_SWITCH == YES
+#if ENTROPY_SWITCH
  #error ! PVTE_LAW not working with ENTROPY_SWITCH
 #endif
 
@@ -94,6 +84,7 @@
     Function prototyping
    *********************************************************** */
 
+double FundamentalDerivative(double *, double T);
 double Gamma1(double *);   /* User supplied */
 int    GetEV_Temperature (double, double *, double *);
 void   GetMu     (double, double, double *);     /* User supplied */
@@ -117,7 +108,6 @@ struct func_param {
 /* Use YES/NO to switch between the version with root finder in both   
    temperature and internal energy or faster version with lookup table   */
 
-
 #if NIONS == 0
  #ifndef PV_TEMPERATURE_TABLE
   #define PV_TEMPERATURE_TABLE   YES
@@ -131,3 +121,4 @@ struct func_param {
  #define PV_TEMPERATURE_TABLE   NO
  #define TV_ENERGY_TABLE        NO
 #endif
+

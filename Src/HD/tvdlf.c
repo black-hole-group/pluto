@@ -50,7 +50,7 @@ void LF_Solver (const State_1D *state, int beg, int end,
   int    nv, i;
   static double **fL, **fR, **vRL;
   static double *cRL_min, *cRL_max, *pL, *pR, *a2L, *a2R;
-  double *uR, *uL, *flux;
+  double *vR, *vL, *uR, *uL, *flux;
   
   if (fR == NULL){
     fR  = ARRAY_2D(NMAX_POINT, NFLX, double);

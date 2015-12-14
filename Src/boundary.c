@@ -27,7 +27,7 @@
   - PeriodicBound()
 
   \author A. Mignone (mignone@ph.unito.it)
-  \date   Nov 5, 2012
+  \date   Dec 18, 2014
 */
 /* ///////////////////////////////////////////////////////////////////// */
 #include"pluto.h"
@@ -50,28 +50,13 @@ void Boundary (const Data *d, int idim, Grid *grid)
  *        - idim = ALL_DIR all dimensions
  *
  * \param [in]  grid   pointer to an array of grid structures.
- ******************************************************************* */
+ *********************************************************************** */
 {
   int  is, nv, fargo_velocity_has_changed;
   int  side[6] = {X1_BEG, X1_END, X2_BEG, X2_END, X3_BEG, X3_END};
   int  type[6], sbeg, send, vsign[NVAR];
   int  par_dim[3] = {0, 0, 0};
-  static int first_call = 1;
   double ***q;
-  static RBox center[8], x1face[8], x2face[8], x3face[8];
-
-/* -----------------------------------------------------
-     Set the boundary boxes on the six domain sides
-   ----------------------------------------------------- */
-
-  #ifndef CH_SPACEDIM
-  if (first_call){
-    SetRBox(center, x1face, x2face, x3face);
-    first_call = 0;
-  }
-  #else /* -- with dynamic grids we need to re-define the RBox at each time -- */
-   SetRBox(center, x1face, x2face, x3face);
-  #endif
 
 /* ---------------------------------------------------
     Check the number of processors in each direction
@@ -154,14 +139,14 @@ void Boundary (const Data *d, int idim, Grid *grid)
     /* -------------------------------
          OUTFLOW boundary condition 
        ------------------------------- */
-
+ 
       for (nv = 0; nv < NVAR; nv++){
-        OutflowBound (d->Vc[nv], center+is, side[is], grid + (is/2));   
+        OutflowBound (d->Vc[nv], side[is], CENTER, grid + (is/2));   
       }
       #ifdef STAGGERED_MHD 
-       D_EXPAND(OutflowBound (d->Vs[BX1s], x1face+is, side[is], grid+(is/2)); ,
-                OutflowBound (d->Vs[BX2s], x2face+is, side[is], grid+(is/2)); ,
-                OutflowBound (d->Vs[BX3s], x3face+is, side[is], grid+(is/2));)
+       D_EXPAND(OutflowBound (d->Vs[BX1s], side[is], X1FACE, grid+(is/2)); ,
+                OutflowBound (d->Vs[BX2s], side[is], X2FACE, grid+(is/2)); ,
+                OutflowBound (d->Vs[BX3s], side[is], X3FACE, grid+(is/2));)
 
     /* ---------------------------------------------------------
         average normal field only since transverse components
@@ -181,14 +166,13 @@ void Boundary (const Data *d, int idim, Grid *grid)
 
       FlipSign (side[is], type[is], vsign);
       for (nv = 0; nv < NVAR; nv++){
-        ReflectiveBound (d->Vc[nv], center+is, vsign[nv], side[is]);
+        ReflectiveBound (d->Vc[nv], vsign[nv], side[is], CENTER);
       }
       #ifdef STAGGERED_MHD  
-       D_EXPAND(ReflectiveBound(d->Vs[BX1s], x1face+is, vsign[BX1], side[is]);  ,
-                ReflectiveBound(d->Vs[BX2s], x2face+is, vsign[BX2], side[is]);  ,
-                ReflectiveBound(d->Vs[BX3s], x3face+is, vsign[BX3], side[is]);)
+       D_EXPAND(ReflectiveBound(d->Vs[BX1s], vsign[BX1], side[is], X1FACE);  ,
+                ReflectiveBound(d->Vs[BX2s], vsign[BX2], side[is], X2FACE);  ,
+                ReflectiveBound(d->Vs[BX3s], vsign[BX3], side[is], X3FACE);)
       #endif
-
 
     }else if (type[is] == PERIODIC) {
 
@@ -199,12 +183,12 @@ void Boundary (const Data *d, int idim, Grid *grid)
 
       if (!par_dim[is/2]) {
         for (nv = 0; nv < NVAR; nv++){
-          PeriodicBound (d->Vc[nv], center+is, side[is]);
+          PeriodicBound (d->Vc[nv], side[is], CENTER);
         }
         #ifdef STAGGERED_MHD
-         D_EXPAND(PeriodicBound (d->Vs[BX1s], x1face+is, side[is]);  ,
-                  PeriodicBound (d->Vs[BX2s], x2face+is, side[is]);  ,
-                  PeriodicBound (d->Vs[BX3s], x3face+is, side[is]);)
+         D_EXPAND(PeriodicBound (d->Vs[BX1s], side[is], X1FACE);  ,
+                  PeriodicBound (d->Vs[BX2s], side[is], X2FACE);  ,
+                  PeriodicBound (d->Vs[BX3s], side[is], X3FACE);)
         #endif
  
       }
@@ -226,12 +210,12 @@ void Boundary (const Data *d, int idim, Grid *grid)
        }
        if (grid[IDIR].nproc == 1){
          for (nv = 0; nv < NVAR; nv++) {
-           PeriodicBound (d->Vc[nv], center+is, side[is]);
+           PeriodicBound (d->Vc[nv], side[is], CENTER);
          }
          #ifdef STAGGERED_MHD
-          D_EXPAND(                                               ;  ,
-                   PeriodicBound (d->Vs[BX2s], x2face+is, side[is]);  ,
-                   PeriodicBound (d->Vs[BX3s], x3face+is, side[is]);)
+          D_EXPAND(                                             ;  ,
+                   PeriodicBound (d->Vs[BX2s], side[is], X2FACE);  ,
+                   PeriodicBound (d->Vs[BX3s], side[is], X3FACE);)
          #endif
        }
        SB_Boundary (d, side[is], grid);
@@ -265,11 +249,15 @@ void Boundary (const Data *d, int idim, Grid *grid)
       }
       #endif
 
-      UserDefBoundary (d, center+is, side[is], grid);
+      RBox *box = GetRBox(side[is], CENTER);
+      UserDefBoundary (d, box, side[is], grid);
       #ifdef STAGGERED_MHD
-        D_EXPAND(UserDefBoundary (d, x1face+is, side[is], grid);  ,
-                 UserDefBoundary (d, x2face+is, side[is], grid);  ,
-                 UserDefBoundary (d, x3face+is, side[is], grid);)
+        D_EXPAND(box = GetRBox(side[is], X1FACE);
+                 UserDefBoundary (d, box, side[is], grid);  ,
+                 box = GetRBox(side[is], X2FACE);
+                 UserDefBoundary (d, box, side[is], grid);  ,
+                 box = GetRBox(side[is], X3FACE);
+                 UserDefBoundary (d, box, side[is], grid);)
 
        /* -- assign normal component of staggered B 
              using the div.B = 0 condition           -- */
@@ -294,26 +282,17 @@ void Boundary (const Data *d, int idim, Grid *grid)
    #endif
 
 /* -------------------------------------------------------
-    Compute the entropy for the next time level
+    Compute entropy for the next time level
    ------------------------------------------------------- */
 
-  #if ENTROPY_SWITCH == YES
+  #if ENTROPY_SWITCH
    ComputeEntropy (d, grid);
   #endif
-  
-/* -------------------------------------------------------
-    Flag zones lying in a shock. Useful for shock
-    flattening or entropy/energy selective update.
-   ------------------------------------------------------- */
-
-  #if (SHOCK_FLATTENING == MULTID || ENTROPY_SWITCH == YES) && !(defined CHOMBO)
-   if (g_intStage == 1 || g_stepNumber == 0) FlagShock (d, grid);
-  #endif
-  
+    
 }
 
 /* ********************************************************************* */
-void OutflowBound (double ***q, RBox *box, int side, Grid *grid)
+void OutflowBound (double ***q, int side, int vpos, Grid *grid)
 /*! 
  * Impose zero-gradient boundary conditions on 'q' on 
  * the boundary side specified by box->side.
@@ -329,12 +308,12 @@ void OutflowBound (double ***q, RBox *box, int side, Grid *grid)
 {
   int  i, j, k;
   double dB, *A, *dV;
+  RBox *box = GetRBox (side, vpos);
 
   A  = grid->A;
   dV = grid->dV;
 
   if (side == X1_BEG) { 
-
     if (box->vpos != X1FACE){
       BOX_LOOP(box,k,j,i) q[k][j][i] = q[k][j][IBEG];   
     }else{
@@ -519,7 +498,7 @@ void FlipSign (int side, int type, int *vsign)
 }
 
 /* ********************************************************************* */
-void ReflectiveBound (double ***q, RBox *box, int s, int side)
+void ReflectiveBound (double ***q, int s, int side, int vpos)
 /*!
  * Make symmetric (s = 1) or anti-symmetric (s=-1) profiles 
  * with respect to the boundary plane specified by box->side.
@@ -533,6 +512,7 @@ void ReflectiveBound (double ***q, RBox *box, int s, int side)
  *********************************************************************** */
 {
   int   i, j, k;
+  RBox *box = GetRBox(side, vpos);
 
   if (side == X1_BEG) {   
 
@@ -585,13 +565,14 @@ void ReflectiveBound (double ***q, RBox *box, int s, int side)
 }
 
 /* ********************************************************************* */
-void PeriodicBound (double ***q, RBox *box, int side)
+void PeriodicBound (double ***q, int side, int vpos)
 /*!
  * Implements periodic boundary conditions in serial mode.
  *
  *********************************************************************** */
 {
   int  i, j, k;
+  RBox *box = GetRBox(side, vpos);
 
   if (side == X1_BEG){
 
@@ -620,157 +601,3 @@ void PeriodicBound (double ***q, RBox *box, int side)
   }
 }
 
-
-/* ********************************************************************* */
-void SetRBox(RBox *center, RBox *x1face, RBox *x2face, RBox *x3face)
-/* 
- *
- *
- *********************************************************************** */
-{
-  int s;
-
-/* ---------------------------------------------------
-            set X1_BEG grid index ranges
-   --------------------------------------------------- */
-
-  s = X1_BEG; s -= X1_BEG;
-
-  center[s].vpos = CENTER;
-
-  center[s].ib = IBEG-1; center[s].ie =         0;
-  center[s].jb =      0; center[s].je = NX2_TOT-1;
-  center[s].kb =      0; center[s].ke = NX3_TOT-1;
-
-  x1face[s] = x2face[s] = x3face[s] = center[s];
-
-  #ifndef CH_SPACEDIM /* -- useless for AMR -- */
-   x1face[s].vpos = X1FACE;
-   x2face[s].vpos = X2FACE;
-   x3face[s].vpos = X3FACE;
-
-   D_EXPAND(x1face[s].ib--; x1face[s].ie--;  ,
-            x2face[s].jb--;                  ,
-            x3face[s].kb--;)
-  #endif
-
-/* ---------------------------------------------------
-            set X1_END grid index ranges
-   --------------------------------------------------- */
-  
-  s = X1_END; s -= X1_BEG;
-
-  center[s].vpos = CENTER;
-
-  center[s].ib = IEND+1; center[s].ie = NX1_TOT-1;
-  center[s].jb =      0; center[s].je = NX2_TOT-1;
-  center[s].kb =      0; center[s].ke = NX3_TOT-1;
-
-  x1face[s] = x2face[s] = x3face[s] = center[s];
-
-  #ifndef CH_SPACEDIM /* -- useless for AMR -- */
-   x1face[s].vpos = X1FACE;
-   x2face[s].vpos = X2FACE;
-   x3face[s].vpos = X3FACE;
-
-   D_EXPAND(              ;   ,
-            x2face[s].jb--;   ,
-            x3face[s].kb--;)
-  #endif
-
-/* ---------------------------------------------------
-            set X2_BEG grid index ranges
-   --------------------------------------------------- */
-
-  s = X2_BEG; s -= X1_BEG;
-
-  center[s].vpos = CENTER;
-
-  center[s].ib =      0; center[s].ie = NX1_TOT-1;
-  center[s].jb = JBEG-1; center[s].je =         0;
-  center[s].kb =      0; center[s].ke = NX3_TOT-1;
-
-  x1face[s] = x2face[s] = x3face[s] = center[s];
-
-  #ifndef CH_SPACEDIM /* -- useless for AMR -- */
-   x1face[s].vpos = X1FACE;
-   x2face[s].vpos = X2FACE;
-   x3face[s].vpos = X3FACE;
-
-   D_EXPAND(x1face[s].ib--;                  ,
-            x2face[s].jb--; x2face[s].je--;  ,
-            x3face[s].kb--;)
-  #endif
-
-/* ---------------------------------------------------
-            set X2_END grid index ranges
-   --------------------------------------------------- */
-  
-  s = X2_END; s -= X1_BEG;
-
-  center[s].vpos = CENTER;
-
-  center[s].ib =      0; center[s].ie = NX1_TOT-1;
-  center[s].jb = JEND+1; center[s].je = NX2_TOT-1;
-  center[s].kb =      0; center[s].ke = NX3_TOT-1;
-
-  x1face[s] = x2face[s] = x3face[s] = center[s];
-
-  #ifndef CH_SPACEDIM /* -- useless for AMR -- */
-   x1face[s].vpos = X1FACE;
-   x2face[s].vpos = X2FACE;
-   x3face[s].vpos = X3FACE;
-
-   D_EXPAND(x1face[s].ib--;    ,
-                          ;    ,
-            x3face[s].kb--;)
-  #endif
-
-/* ---------------------------------------------------
-            set X3_BEG grid index ranges
-   --------------------------------------------------- */
-
-  s = X3_BEG; s -= X1_BEG;
-
-  center[s].vpos = CENTER;
-
-  center[s].ib =      0; center[s].ie = NX1_TOT-1;
-  center[s].jb =      0; center[s].je = NX2_TOT-1;
-  center[s].kb = KBEG-1; center[s].ke =         0;
-
-  x1face[s] = x2face[s] = x3face[s] = center[s];
-
-  #ifndef CH_SPACEDIM /* -- useless for AMR -- */
-   x1face[s].vpos = X1FACE;
-   x2face[s].vpos = X2FACE;
-   x3face[s].vpos = X3FACE;
-
-   D_EXPAND(x1face[s].ib--;   ,
-            x2face[s].jb--;   ,
-            x3face[s].kb--; x3face[s].ke--;)
-  #endif
-
-/* ---------------------------------------------------
-            set X3_END grid index ranges
-   --------------------------------------------------- */
-  
-  s = X3_END; s -= X1_BEG;
-
-  center[s].vpos = CENTER;
-
-  center[s].ib =      0; center[s].ie = NX1_TOT-1; center[s].di = 1;
-  center[s].jb =      0; center[s].je = NX2_TOT-1; center[s].dj = 1;
-  center[s].kb = KEND+1; center[s].ke = NX3_TOT-1; center[s].dk = 1;
-
-  x1face[s] = x2face[s] = x3face[s] = center[s];
-
-  #ifndef CH_SPACEDIM /* -- useless for AMR -- */
-   x1face[s].vpos = X1FACE;
-   x2face[s].vpos = X2FACE;
-   x3face[s].vpos = X3FACE;
-
-   D_EXPAND(x1face[s].ib--;      ,
-            x2face[s].jb--;      ,
-                          ;)
-  #endif
-}

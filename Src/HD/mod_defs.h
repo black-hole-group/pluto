@@ -1,43 +1,35 @@
-/* ****************************************************************
-     Set label, indexes and basic prototyping for the Hydro (HD)
-     module.
+/* ///////////////////////////////////////////////////////////////////// */
+/*!
+  \file
+  \brief Set labels, indexes and prototypes for the HD module.
 
-     We make extra vector components, when not needed, point 
-     to the last element (255) of the array stored by startup.c.  
-   **************************************************************** */
+  Contains variable names and prototypes for the HD module
 
-enum {
- #if COMPONENTS == 1
-  RHO, MX1, 
-  #if HAVE_ENERGY
-   ENG, PRS = ENG,
-  #endif
-  MX2 = 255, MX3 = 255,
- #elif COMPONENTS == 2
-  RHO, MX1, MX2, 
-  #if HAVE_ENERGY
-   ENG, PRS = ENG,
-  #endif
-  MX3 = 255,
- #elif COMPONENTS == 3
-  RHO, MX1, MX2, MX3,
-  #if HAVE_ENERGY
-   ENG, PRS = ENG,
-  #endif
- #endif
- VX1 = MX1, VX2 = MX2, VX3 = MX3, 
- 
-/* -- backward compatibility -- */
+  \author A. Mignone (mignone@ph.unito.it)
+  \date   April, 2, 2015
+*/
+/* ///////////////////////////////////////////////////////////////////// */
 
- DN = RHO, 
- #if HAVE_ENERGY
-  PR = PRS, EN = ENG,
- #endif
- VX = VX1, VY = VX2, VZ = VX3,
- MX = MX1, MY = MX2, MZ = MX3
-};
+/* *********************************************************
+    Set flow variable indices.
+    Extra vector components, when not needed, point to the
+    last element (255) of the array stored by startup.c.  
+   ********************************************************* */
 
-#define NFLX (COMPONENTS + (HAVE_ENERGY == YES ? 2:1))
+#define  RHO 0
+#define  MX1 1
+#define  MX2 (COMPONENTS >= 2 ? 2: 255)
+#define  MX3 (COMPONENTS == 3 ? 3: 255)
+#if HAVE_ENERGY
+  #define ENG  (COMPONENTS + 1)
+  #define PRS  ENG
+#endif
+
+#define VX1   MX1
+#define VX2   MX2
+#define VX3   MX3
+
+#define NFLX (1 + COMPONENTS + HAVE_ENERGY)
 
 /* *************************************************
      Now define more convenient and user-friendly 
@@ -114,5 +106,6 @@ void PrimSource (const State_1D *, int, int,
 Riemann_Solver TwoShock_Solver, LF_Solver, Roe_Solver, HLL_Solver, 
                HLLC_Solver, RusanovDW_Solver;
 Riemann_Solver AUSMp_Solver;
+
 
 

@@ -8,7 +8,7 @@ Examples
   :align: center
   :scale: 75%
 
- .. plot:: /home/vaidya/pyPLUTO-4.1/examples/sod.py
+ .. plot:: /home/plutouser/Vaidya/pyPLUTO-4.1/examples/sod.py
   :include-source:
   :nofigs:
   
@@ -20,7 +20,7 @@ Examples
    :align: center
    :scale: 65%
 
- .. plot:: /home/vaidya/pyPLUTO-4.1/examples/rayleigh_taylor.py
+ .. plot:: /home/plutouser/Vaidya/pyPLUTO-4.1/examples/rayleigh_taylor.py
   :include-source:
   :nofigs:
   
@@ -32,7 +32,7 @@ Examples
    :align: center
    :figwidth: 400px
 
- .. plot:: /home/vaidya/pyPLUTO-4.1/examples/stellar_wind.py
+ .. plot:: /home/plutouser/Vaidya/pyPLUTO-4.1/examples/stellar_wind.py
   :include-source:
   :nofigs:
   
@@ -44,7 +44,7 @@ Examples
    :align: center
    :scale: 55%
 
- .. plot:: /home/vaidya/pyPLUTO-4.1/examples/orszag_tang.py
+ .. plot:: /home/plutouser/Vaidya/pyPLUTO-4.1/examples/orszag_tang.py
   :include-source:
   :nofigs:
 
@@ -56,7 +56,7 @@ Examples
    :align: center
    :figwidth: 400px
 
- .. plot:: /home/vaidya/pyPLUTO-4.1/examples/jet.py
+ .. plot:: /home/plutouser/Vaidya/pyPLUTO-4.1/examples/jet.py
   :include-source:
   :nofigs:
  
@@ -68,7 +68,7 @@ Examples
    :align: center
    :scale: 75%
 
- .. plot:: /home/vaidya/pyPLUTO-4.1/examples/Sph_disk.py
+ .. plot:: /home/plutouser/Vaidya/pyPLUTO-4.1/examples/Sph_disk.py
   :include-source:
   :nofigs:
 
@@ -80,7 +80,7 @@ Examples
    :align: center
    :scale: 75%
 
- .. plot:: /home/vaidya/pyPLUTO-4.1/examples/flow_past_cyc.py
+ .. plot:: /home/plutouser/Vaidya/pyPLUTO-4.1/examples/flow_past_cyc.py
   :include-source:
   :nofigs:
 

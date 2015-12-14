@@ -1,9 +1,5 @@
 #include "pluto.h"
 
-#define frac_Z   1.e-3   /*   = N(Z) / N(H), fractional number density of metals (Z)
-                                with respect to hydrogen (H) */ 
-#define frac_He  0.082   /*   = N(Z) / N(H), fractional number density of helium (He)
-                                with respect to hydrogen (H) */ 
 /* ********************************************************************* */
 void Radiat (double *v, double *rhs)
 /*!
@@ -175,60 +171,8 @@ void Radiat (double *v, double *rhs)
 }
 
 /* ********************************************************************* */
-double MeanMolecularWeight (double *V)
-/*
- * PURPOSE
- * 
- *   Compute the mean molecular weight as function of the 
- *   composition of the gas.
- *   The definitiion of the mean molecular weight \mu is 
- *   the standard one:
- *
- *     1     \sum_k f_k n_k
- *    --- = ----------------     (Clayton, pag 82-83)
- *    \mu    \sum_k f_k A_k
- * 
- *   where 
- *
- *    f_k   : is the fractional abundance (by number) with
- *            respect to hydrogen, f_k = N_k/N_H
- *
- *    A_K   : is the atomic weight
- *
- *    n_k   : is the number of free particles 
- *            contributed to the gas by element k
- *
- *   The mean molecular weight satifies 
- *
- *               \rho = \mu m_{amu} N_{tot}
- *   
- *   where N_{tot} is the total number of particles
- *
- *   For the ``Raymond'' cooling module \mu is calculated
- *   as follows:
- *
- *            A_H + f_He*A_He + f_Z*A_z
- *    \mu =  ---------------------------
- *             2 - fn + f_He + 2*f_Z
- *
- * 
- * ARGUMENTS
- *
- *   V:   a set of primitive variables
- *
- *********************************************************************** */
-{
-  return  ( (CONST_AH + frac_He*CONST_AHe + frac_Z*CONST_AZ) /
-            (2.0 + frac_He + 2.0*frac_Z - V[X_HI]));
-}
-
-/* ********************************************************************* */
-//double H_MassFrac (void)
-/*
- *
- *
- * PURPOSE
- * 
+double H_MassFrac (void)
+/*!
  *   Compute the mass fraction X of Hydrogen as function of the 
  *   composition of the gas.
  *
@@ -253,9 +197,9 @@ double MeanMolecularWeight (double *V)
  *   none
  *
  *********************************************************************** */
-//{
-//  return A_H/(CONST_AH + frac_He*CONST_AHe + frac_Z*CONST_AZ);
-//}
+{
+  return CONST_AH/(CONST_AH + frac_He*CONST_AHe + frac_Z*CONST_AZ);
+}
 
 /* ********************************************************************* */
 double CompEquil (double N, double T, double *v)

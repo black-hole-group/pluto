@@ -497,7 +497,7 @@ void Broyden(double x[], int n, int *check,
     RSolve(r, n , d, p);
     
     /* Do Line Search to get xnew, f and fvec[xnew] */
-    //LineSearch (n, xold, fold, g, p, x, &f, stpmax, check, FMin);
+    /*LineSearch (n, xold, fold, g, p, x, &f, stpmax, check, FMin); */
     LineSearch (n, xold, fold, g, p, x, fguess, &f, stpmax, check, vecfunc);
     
     /* Test for convergenvce on function values. */

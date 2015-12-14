@@ -121,7 +121,7 @@ void Roe_Solver (const State_1D *state, int beg, int end,
 
   #if BACKGROUND_FIELD == YES
    bgf = GetBackgroundField (beg, end, FACE_CENTER, grid);
-   #if (MHD_FORMULATION == EIGHT_WAVES)
+   #if (DIVB_CONTROL == EIGHT_WAVES)
     print1 ("! Roe_Solver: background field and 8wave not tested\n");
     QUIT_PLUTO(1);
    #endif
@@ -180,7 +180,7 @@ void Roe_Solver (const State_1D *state, int beg, int end,
      ----------------------------------------------------------- */
 
     #if SHOCK_FLATTENING == MULTID
-     if (CheckZone(i, FLAG_HLL) || CheckZone(i+1,FLAG_HLL)){
+     if ((state->flag[i] & FLAG_HLL) || (state->flag[i+1] & FLAG_HLL)){
        HLL_Speed (VL, VR, a2L, a2R, NULL, SL, SR, i, i);
 
        scrh = MAX(fabs(SL[i]), fabs(SR[i]));
@@ -503,7 +503,7 @@ void Roe_Solver (const State_1D *state, int beg, int end,
     #else
      k = KDIVB;
      lambda[k] = u;
-     #if MHD_FORMULATION == EIGHT_WAVES
+     #if DIVB_CONTROL == EIGHT_WAVES
       Rc[BXn][k] = 1.0;
       eta[k]    = dU[BXn];
      #else
@@ -782,7 +782,7 @@ void Roe_Solver (const State_1D *state, int beg, int end,
               initialize source term
    -------------------------------------------------------- */
   
-  #if MHD_FORMULATION == EIGHT_WAVES
+  #if DIVB_CONTROL == EIGHT_WAVES
    Roe_DivBSource (state, beg + 1, end, grid);
   #endif
 

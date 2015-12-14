@@ -19,7 +19,7 @@
        Magnetohydrodynamics", Mignone and Bodo, MNRAS (2006) 368, 1040.
 
   \authors A. Mignone (mignone@ph.unito.it)
-  \date    Dec 10, 2013
+  \date    June 10, 2015
 */
 /* ///////////////////////////////////////////////////////////////////// */
 #include"pluto.h"
@@ -146,21 +146,18 @@ void HLLC_Solver (const State_1D *state, int beg, int end,
 
       uL = UL[i]; uR = UR[i];
 
-  /* -- revert to HLL in proximity of strong shock -- */
-
-      #if SHOCK_FLATTENING == MULTID
-       if (CheckZone(i, FLAG_HLL) || CheckZone(i+1, FLAG_HLL)){
-
-         scrh = 1.0/(SR[i] - SL[i]);
-         for (nv = NFLX; nv--; ){
-           state->flux[i][nv]  = SL[i]*SR[i]*(uR[nv] - uL[nv])
-                              +  SR[i]*fL[i][nv] - SL[i]*fR[i][nv];
-           state->flux[i][nv] *= scrh;
-         }
-         state->press[i] = (SR[i]*pL[i] - SL[i]*pR[i])*scrh;
-         continue;
-       }
-      #endif
+#if SHOCK_FLATTENING == MULTID
+      if ((state->flag[i] & FLAG_HLL) || (state->flag[i+1] & FLAG_HLL)){
+        scrh = 1.0/(SR[i] - SL[i]);
+        for (nv = NFLX; nv--; ){
+          state->flux[i][nv]  = SL[i]*SR[i]*(uR[nv] - uL[nv])
+                             +  SR[i]*fL[i][nv] - SL[i]*fR[i][nv];
+          state->flux[i][nv] *= scrh;
+        }
+        state->press[i] = (SR[i]*pL[i] - SL[i]*pR[i])*scrh;
+        continue;
+      }
+#endif
 
       vxl = VL[i][VXn];
       vxr = VR[i][VXn];
@@ -169,7 +166,7 @@ void HLLC_Solver (const State_1D *state, int beg, int end,
              Bys = Uhll[i][BXt];  ,
              Bzs = Uhll[i][BXb];)
 
-      #if SUBTRACT_DENSITY == YES
+      #if RMHD_REDUCED_ENERGY == YES
        Uhll[i][ENG] += Uhll[i][RHO];
        Fhll[i][ENG] += Fhll[i][RHO];
       #endif    
@@ -241,7 +238,7 @@ void HLLC_Solver (const State_1D *state, int beg, int end,
                 usL[MXb] = uL[MXb]*alpha_l; 
                 usR[MXb] = uR[MXb]*alpha_r; )
 
-        #if SUBTRACT_DENSITY == YES
+        #if RMHD_REDUCED_ENERGY == YES
          usL[MXn] += usL[RHO]*vxs;
          usR[MXn] += usR[RHO]*vxs;
         #endif
@@ -282,7 +279,7 @@ void HLLC_Solver (const State_1D *state, int beg, int end,
                 usL[MXb] = (SL[i]*uL[MXb] - fL[i][MXb] - Bx*(Bzs*gammas_2 + vBs*vzs))/(SL[i] - vxs); 
                 usR[MXb] = (SR[i]*uR[MXb] - fR[i][MXb] - Bx*(Bzs*gammas_2 + vBs*vzs))/(SR[i] - vxs); )
 
-        #if SUBTRACT_DENSITY == YES
+        #if RMHD_REDUCED_ENERGY == YES
          usL[MXn] += usL[RHO]*vxs;
          usR[MXn] += usR[RHO]*vxs;
         #endif
@@ -331,7 +328,7 @@ void HLLC_Solver (const State_1D *state, int beg, int end,
               initialize souRce term
    -------------------------------------------------------- */
  
-  #if MHD_FORMULATION == EIGHT_WAVES
+  #if DIVB_CONTROL == EIGHT_WAVES
 /*
    POWELL_DIVB_SOURCE (state, beg, end, grid);
 */

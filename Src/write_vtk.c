@@ -11,7 +11,7 @@
   -# File version and identifier
   -# Header consisting of a string
   -# File format
-  -# Dataset structure: describes the gometry and topology of the 
+  -# Dataset structure: describes the gwometry and topology of the 
      dataset. 
   -# Dataset attributes. This section is used to write the actual binary
      data as a vector or scalar data.
@@ -24,7 +24,7 @@
 
   The WriteVTK_Header() function provides the basic functionality for 
   steps 1, 2, 3 and 4. Only processor 0 does the actual writing.
-  For cartesian/cylindrical geometries the grid topology is 
+  For cartesian/cylindrical geometries the default grid topology is 
   "RECTILINEAR_GRIDS" whereas for polar/spherical we employ 
   "STRUCTURED_GRID" to provide a convenient mapping to a cartesian mesh.\n
   <b> Note for 2D datasets</b>: in order to produce a strictly 2D 
@@ -45,7 +45,7 @@
   http://www.vtk.org/VTK/img/file-formats.pdf
 
   \author A. Mignone (mignone@ph.unito.it)
-  \date   Aug 18, 2014
+  \date   Aug 17, 2015
 */
 /* ///////////////////////////////////////////////////////////////////// */
 #include "pluto.h"
@@ -53,10 +53,38 @@
 #define RECTILINEAR_GRID    14
 #define STRUCTURED_GRID     35
 
-#if GEOMETRY == CARTESIAN || GEOMETRY == CYLINDRICAL
- #define VTK_FORMAT  RECTILINEAR_GRID
+#ifndef VTK_FORMAT
+  #if GEOMETRY == CARTESIAN || GEOMETRY == CYLINDRICAL
+    #define VTK_FORMAT  RECTILINEAR_GRID
+  #else
+    #define VTK_FORMAT  STRUCTURED_GRID
+  #endif
+#endif
+
+#ifndef VTK_TIME_INFO       /* Enable this keyword only if you're using */
+ #define VTK_TIME_INFO  NO  /* VisIt to display data results            */
+#endif
+
+/* ---------------------------------------------------------
+    The following macros are specific to this file only 
+    and are used to ease up serial/parallel implementation
+    for writing strings and real arrays 
+   --------------------------------------------------------- */   
+    
+#ifdef PARALLEL
+ #define VTK_HEADER_WRITE_STRING(header) \
+         AL_Write_header (header, strlen(header), MPI_CHAR, SZ_Float_Vect);
+ #define VTK_HEADER_WRITE_FLTARR(arr, nelem) \
+         AL_Write_header (arr, nelem, MPI_FLOAT, SZ_Float_Vect);
+ #define VTK_HEADER_WRITE_DBLARR(arr, nelem) \
+         AL_Write_header (arr, nelem, MPI_DOUBLE, SZ_Float_Vect);
 #else
- #define VTK_FORMAT  STRUCTURED_GRID
+ #define VTK_HEADER_WRITE_STRING(header) \
+         fprintf (fvtk,header);
+ #define VTK_HEADER_WRITE_FLTARR(arr,nelem) \
+         fwrite(arr, sizeof(float), nelem, fvtk);
+ #define VTK_HEADER_WRITE_DBLARR(arr,nelem) \
+         fwrite(arr, sizeof(double), nelem, fvtk);
 #endif
 
 /* ********************************************************************* */
@@ -127,96 +155,56 @@ void WriteVTK_Header (FILE *fvtk, Grid *grid)
    ---------------------------------------------------------- */
 
   sprintf(header,"# vtk DataFile Version 2.0\n"); 
-  sprintf(header,"%sPLUTO %s VTK Data\n",header, PLUTO_VERSION);
-  sprintf(header,"%sBINARY\n",header);
-
-  #ifdef PARALLEL
-   AL_Write_header (header, strlen(header), MPI_CHAR, SZ_Float_Vect);
-  #else
-   fprintf (fvtk, "%s",header);
+  sprintf(header+strlen(header),"PLUTO %s VTK Data\n",PLUTO_VERSION);
+  sprintf(header+strlen(header),"BINARY\n");
+  #if VTK_FORMAT == RECTILINEAR_GRID
+   sprintf(header+strlen(header),"DATASET %s\n","RECTILINEAR_GRID");
+  #elif VTK_FORMAT == STRUCTURED_GRID
+   sprintf(header+strlen(header),"DATASET %s\n","STRUCTURED_GRID");
   #endif
 
-#if VTK_FORMAT == RECTILINEAR_GRID
-
-  sprintf(header,"DATASET RECTILINEAR_GRID\n");
+  VTK_HEADER_WRITE_STRING(header);
 
   /* -- generate time info -- */
 
-  sprintf (header,"%sFIELD FieldData 1\n",header);
-  sprintf (header,"%sTIME 1 1 double\n",header);
-  double tt=g_time;
-  if (IsLittleEndian()) SWAP_VAR(tt);
-  #ifdef PARALLEL
-   AL_Write_header (header, strlen(header), MPI_CHAR, SZ_Float_Vect);
-   AL_Write_header (&tt, 1, MPI_DOUBLE, SZ_Float_Vect);
-  #else
-   fprintf (fvtk, "%s",header);
-   fwrite (&tt, sizeof(double), 1, fvtk);
-  #endif
+  #if VTK_TIME_INFO == YES
+   sprintf (header,"FIELD FieldData 1\n");
+   sprintf (header+strlen(header),"TIME 1 1 double\n");
+   double tt=g_time;
+   if (IsLittleEndian()) SWAP_VAR(tt);
+   VTK_HEADER_WRITE_STRING(header);
+   VTK_HEADER_WRITE_DBLARR(&tt, 1);
+   VTK_HEADER_WRITE_STRING("\n");
+
+  #endif /* VTK_TIME_INFO */
+
+  sprintf(header,"DIMENSIONS %d %d %d\n",
+                  nx1 + IOFFSET, nx2 + JOFFSET, nx3 + KOFFSET);
+  VTK_HEADER_WRITE_STRING(header);
+  
+#if VTK_FORMAT == RECTILINEAR_GRID
 
   /* -- reset header string and keep going -- */
 
-  sprintf(header,"\nDIMENSIONS %d %d %d\n",
-                  nx1 + IOFFSET, nx2 + JOFFSET, nx3 + KOFFSET);
-
-  #ifdef PARALLEL
-   AL_Write_header (header, strlen(header), MPI_CHAR, SZ_Float_Vect);
-
    sprintf(header,"X_COORDINATES %d float\n", nx1 + IOFFSET);
-   AL_Write_header (header, strlen(header), MPI_CHAR, SZ_Float_Vect);
-   AL_Write_header (xnode, nx1 + IOFFSET, MPI_FLOAT, SZ_Float_Vect);
+   VTK_HEADER_WRITE_STRING(header);
+   VTK_HEADER_WRITE_FLTARR(xnode, nx1 + IOFFSET);
 
    sprintf(header,"\nY_COORDINATES %d float\n", nx2 + JOFFSET);
-   AL_Write_header (header, strlen(header), MPI_CHAR, SZ_Float_Vect);
-   AL_Write_header (ynode, nx2 + JOFFSET, MPI_FLOAT, SZ_Float_Vect);
+   VTK_HEADER_WRITE_STRING(header);
+   VTK_HEADER_WRITE_FLTARR(ynode, nx2 + JOFFSET);
 
    sprintf(header,"\nZ_COORDINATES %d float\n", nx3 + KOFFSET);
-   AL_Write_header (header, strlen(header), MPI_CHAR, SZ_Float_Vect);
-   AL_Write_header (znode, nx3 + KOFFSET, MPI_FLOAT, SZ_Float_Vect);
+   VTK_HEADER_WRITE_STRING(header);
+   VTK_HEADER_WRITE_FLTARR(znode, nx3 + KOFFSET);
 
    sprintf (header,"\nCELL_DATA %d\n", nx1*nx2*nx3);
-   AL_Write_header (header, strlen(header), MPI_CHAR, SZ_Float_Vect);
-  #else
-
-   fprintf (fvtk, "%s",header);
-
-   fprintf (fvtk,"\nX_COORDINATES %d float\n", nx1 + IOFFSET);
-   fwrite(xnode, sizeof(float), nx1 + IOFFSET, fvtk);
-   fprintf (fvtk,"\nY_COORDINATES %d float\n", nx2 + JOFFSET);
-   fwrite(ynode, sizeof(float), nx2 + JOFFSET, fvtk);
-   fprintf (fvtk,"\nZ_COORDINATES %d float\n", nx3 + KOFFSET);
-   fwrite(znode, sizeof(float), nx3 + KOFFSET, fvtk);
-   fprintf(fvtk,"\nCELL_DATA %d\n", nx1*nx2*nx3);
-  #endif /* PARALLEL */
+   VTK_HEADER_WRITE_STRING (header);
 
 #elif VTK_FORMAT == STRUCTURED_GRID
 
-  sprintf(header,"DATASET STRUCTURED_GRID\n");
-
-  /* -- generate time info -- */
-
-  sprintf (header,"%sFIELD FieldData 1\n",header);
-  sprintf (header,"%sTIME 1 1 double\n",header);
-  double tt=g_time;
-  if (IsLittleEndian()) SWAP_VAR(tt);
-  #ifdef PARALLEL
-   AL_Write_header (header, strlen(header), MPI_CHAR, SZ_Float_Vect);
-   AL_Write_header (&tt, 1, MPI_DOUBLE, SZ_Float_Vect);
-  #else
-   fprintf (fvtk, "%s",header);
-   fwrite (&tt, sizeof(double), 1, fvtk);
-  #endif
-
-  sprintf(header,"\nDIMENSIONS %d %d %d\n",
-                  nx1+IOFFSET, nx2+JOFFSET, nx3+KOFFSET);
-  sprintf(header,"%sPOINTS %d float\n", header, 
-                 (nx1+IOFFSET)*(nx2+JOFFSET)*(nx3+KOFFSET));
-
-  #ifdef PARALLEL
-   AL_Write_header (header, strlen(header), MPI_CHAR, SZ_Float_Vect);
-  #else
-   fprintf (fvtk, "%s",header);
-  #endif
+  sprintf(header,"POINTS %d float\n", (nx1+IOFFSET)*(nx2+JOFFSET)*(nx3+KOFFSET));
+  VTK_HEADER_WRITE_STRING(header);
 
 /* ---------------------------------------------------------------
     Part IV: (structured) grid information 
@@ -256,24 +244,13 @@ void WriteVTK_Header (FILE *fvtk, Grid *grid)
         SWAP_VAR(node_coord[j][i][2]);
       }
     }}
-    #ifdef PARALLEL
-     AL_Write_header (node_coord[0][0], 3*(nx1+IOFFSET)*(nx2+JOFFSET), 
-                      MPI_FLOAT, SZ_Float_Vect);
-    #else
-     fwrite(node_coord[0][0], sizeof(float),
-            3*(nx1+IOFFSET)*(nx2+JOFFSET), fvtk);
-    #endif   
+    VTK_HEADER_WRITE_FLTARR(node_coord[0][0],3*(nx1+IOFFSET)*(nx2+JOFFSET));
   }
 
   sprintf (header,"\nCELL_DATA %d\n", nx1*nx2*nx3);
-  #ifdef PARALLEL
-   AL_Write_header (header, strlen(header), MPI_CHAR, SZ_Float_Vect);
-  #else
-   fprintf (fvtk, "%s",header);
-  #endif
-  
-#endif
+  VTK_HEADER_WRITE_STRING(header);
 
+#endif
 }
 #undef STRUCTERED_GRID    
 #undef RECTILINEAR_GRID  
@@ -355,12 +332,7 @@ void WriteVTK_Vector (FILE *fvtk, Data_Arr V, double unit,
     else
       sprintf (header,"\nVECTORS %dD_Magnetic_Field float\n", DIMENSIONS);
 
-    #ifdef PARALLEL
-     AL_Write_header (header, strlen(header), MPI_CHAR, SZ_Float_Vect);
-    #else
-     fprintf (fvtk, "%s",header);
-    #endif
-
+    VTK_HEADER_WRITE_STRING(header);
     WriteBinaryArray (vect3D[0][0], sizeof(Float_Vect), SZ_Float_Vect, fvtk, -1);
   }
 }

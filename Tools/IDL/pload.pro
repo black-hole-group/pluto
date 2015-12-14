@@ -12,6 +12,7 @@ COMMON PLUTO_VAR, NVAR, rho, vx1, vx2, vx3, $
                              bx1, bx2, bx3, $
                              Ax1, Ax2, Ax3, $
                              bx1s, bx2s, bx3s,$
+                             tmp, mu, gmm, rhoe, $  ; User defined                             
                          ; ----------------------------------------
                              v1, v2, v3, $   ; Kept for backward
                              b1, b2, b3, $   ; compatibility with 
@@ -20,13 +21,15 @@ COMMON PLUTO_VAR, NVAR, rho, vx1, vx2, vx3, $
                              pr,            $ ;
                          ; -----------------------------------------
                   prs, psi_glm, $
-                  tr1, tr2, tr3, tr4, tmp, $
+                  tr1, tr2, tr3, tr4, $
                   x_HI, x_HII, x_H2, x_heI, x_heII,$
                   x_cI, x_cII, x_cIII, x_cIV, x_cV,$
                   x_nI, x_nII, x_nIII, x_nIV, x_nV,$
                   x_oI, x_oII, x_oIII, x_oIV, x_oV,$
                   x_neI, x_neII, x_neIII, x_neIV, x_neV,$
-                  x_sI, x_sII, x_sIII, x_sIV, x_sV, vars, vname
+                  x_sI, x_sII, x_sIII, x_sIV, x_sV, $
+                  rho_d, vx1_d, vx2_d, vx3_d, $  ; Dust
+                  vars, vname
 COMMON PLUTO_RUN,  t, dt, nlast, first_call
 
 ; *************************************************************************
@@ -92,7 +95,13 @@ PRO MATCH_VARNAME, vpt, name, silent=silent
    "tr2": BEGIN tr2 = vpt & match = 1 & END
    "tr3": BEGIN tr3 = vpt & match = 1 & END
    "tr4": BEGIN tr4 = vpt & match = 1 & END
-   "tmp": BEGIN tmp = vpt & match = 1 & END
+ 
+  ; -- User-defined
+
+    "tmp": BEGIN tmp = vpt & match = 1 & END
+    "mu":  BEGIN mu  = vpt & match = 1 & END
+    "gmm": BEGIN gmm = vpt & match = 1 & END
+    "rhoe": BEGIN rhoe = vpt & match = 1 & END
 
   ; -- Ion fractions --
 
@@ -130,6 +139,13 @@ PRO MATCH_VARNAME, vpt, name, silent=silent
    "X_SIII": BEGIN x_sIII = vpt & match = 1 & END
    "X_SIV":  BEGIN x_sIV  = vpt & match = 1 & END
    "X_SV":   BEGIN x_sV   = vpt & match = 1 & END
+
+  ; -- Dust --
+
+   "rho_d":  BEGIN rho_d  = vpt & match = 1 & END
+   "vx1_d":  BEGIN vx1_d  = vpt & match = 1 & END
+   "vx2_d":  BEGIN vx2_d  = vpt & match = 1 & END
+   "vx3_d":  BEGIN vx3_d  = vpt & match = 1 & END
 
  ELSE:
  ENDCASE
@@ -685,7 +701,7 @@ END
 ;
 ; LAST MODIFIED:
 ;
-;  Sept 22, 2014 by A. Mignone (mignone@ph.unito.it)
+;  Aug 17, 2015 by A. Mignone (mignone@ph.unito.it)
 ;
 ;-
 
@@ -694,52 +710,64 @@ PRO PLOAD, NOUT, ASSOC=ASSOC, DIR=DIR, FLOAT=FLOAT, H5=H5, HDF5=HDF5, $
            XYASSOC=XYASSOC, X1RANGE=X1RANGE, X2RANGE=X2RANGE, X3RANGE=X3RANGE,$
            _EXTRA=extra
 
- COMMON PLUTO_GRID
- COMMON PLUTO_VAR
- COMMON PLUTO_RUN
+  COMMON PLUTO_GRID
+  COMMON PLUTO_VAR
+  COMMON PLUTO_RUN
 
 ; ----------------------------------------------------
 ;     Set environment on first call
 ; ----------------------------------------------------
 
- IF (NOT KEYWORD_SET(first_call)) THEN BEGIN
+  IF (NOT KEYWORD_SET(first_call)) THEN BEGIN
 ;   RESOLVE_ROUTINE,"regrid",/COMPILE_FULL_FILE,/either
 ;   RESOLVE_ALL
-   print, "> PLOAD (July 2014) - by A. Mignone"
-   CASE !D.NAME OF
-      'WIN': DEVICE, retain=2, decomposed=0
-      'X':   DEVICE, retain=2, decomposed=0, true_color = 24
-   ELSE:
-   ENDCASE
-   first_call = 1
- ENDIF
+    print, "> PLOAD (Aug 2015) - by A. Mignone"
+    CASE !D.NAME OF
+       'WIN': DEVICE, retain=2, decomposed=0
+       'X':   DEVICE, retain=2, decomposed=0, true_color = 24
+    ELSE:
+    ENDCASE
+    first_call = 1
+  ENDIF
  
- IF (NOT KEYWORD_SET (SILENT)) THEN silent = 0
- IF (NOT KEYWORD_SET(DIR))     THEN dir = '.'
- IF (NOT SILENT)               THEN PRINT,"> Directory: "+DIR
+  IF (NOT KEYWORD_SET (SILENT)) THEN silent = 0
+  IF (NOT KEYWORD_SET(DIR))     THEN dir = '.'
+  IF (NOT SILENT)               THEN PRINT,"> Directory: "+DIR
 
 ; -- add a trailing "/" to directory name (if not present) -- 
 
- IF (STRPOS(dir,'/',strlen(DIR)-1) EQ -1) THEN dir = dir+'/'
+  IF (STRPOS(dir,'/',strlen(DIR)-1) EQ -1) THEN dir = dir+'/'
 
 ; -----------------------------------------------
 ;  if data is data is from HDF5 (Chombo),
 ;  go directly to HDF5LOAD and skip the rest
 ; -----------------------------------------------
 
- IF (KEYWORD_SET(HDF5)) THEN BEGIN
-   HDF5LOAD, nout, dir, var=var, $
-             x1range=x1range,x2range=x2range,x3range=x3range,$
-             silent=silent, nodata=nodata,  _EXTRA=extra
-   PRINT_MEMORY_USAGE,SILENT=SILENT
-   RETURN
- ENDIF
+  IF (KEYWORD_SET(HDF5)) THEN BEGIN
+    filename = dir+"data."+string(nout,format='(I4.4)')+".hdf5"
+    ifil = H5F_OPEN(filename)
+    igen = H5G_OPEN(ifil,'/Chombo_global')
+    dim  = H5A_READ(H5A_OPEN_NAME(igen,'SpaceDim'))
+    H5G_CLOSE,igen
+    H5F_CLOSE,ifil
+
+    IF ( dim EQ 1) THEN BEGIN
+      HDF5LOAD_ONED, nout, dir, /SILENT,  _EXTRA=extra
+    ENDIF ELSE BEGIN
+      HDF5LOAD, nout, dir, var=var, $
+                x1range=x1range,x2range=x2range,x3range=x3range,$
+                silent=silent, nodata=nodata,  _EXTRA=extra
+    ENDELSE
+   
+    PRINT_MEMORY_USAGE,SILENT=SILENT
+    RETURN
+  ENDIF
 
 ; ----------------------------------
 ;     read pluto grid file
 ; ----------------------------------
 
- READ_PLUTO_GRID, DIR, SILENT=SILENT
+  READ_PLUTO_GRID, DIR, SILENT=SILENT
 
 ; -------------------------------------------------
 ;  Read the corresponding <ext>.out file, where
@@ -751,185 +779,184 @@ PRO PLOAD, NOUT, ASSOC=ASSOC, DIR=DIR, FLOAT=FLOAT, H5=H5, HDF5=HDF5, $
 ;  read dbl.out (default).
 ; -------------------------------------------------
 
- outname = (KEYWORD_SET(FLOAT) ? "flt.out":"dbl.out")
- IF (KEYWORD_SET(VTK)) THEN BEGIN
-    outname = "vtk.out"
- ENDIF
- IF (KEYWORD_SET(H5)) THEN BEGIN
-   outname = (KEYWORD_SET(FLOAT) ? "flt.h5.out":"dbl.h5.out")
- ENDIF 
+  outname = (KEYWORD_SET(FLOAT) ? "flt.out":"dbl.out")
+  IF (KEYWORD_SET(VTK)) THEN BEGIN
+     outname = "vtk.out"
+  ENDIF
+  IF (KEYWORD_SET(H5)) THEN BEGIN
+    outname = (KEYWORD_SET(FLOAT) ? "flt.h5.out":"dbl.h5.out")
+  ENDIF 
 
- outname = DIR+outname
+  outname = DIR+outname
 
- fout = FILE_INFO(outname)
- IF (NOT fout.exists) THEN BEGIN
-   print,"! cannot find "+outname
-   RETURN
- ENDIF
+  fout = FILE_INFO(outname)
+  IF (NOT fout.exists) THEN BEGIN
+    print,"! cannot find "+outname
+    RETURN
+  ENDIF
 
+  IF (NOT KEYWORD_SET(SILENT)) THEN PRINT, "> Reading ",outname
+  scrh = READ_ASCII(outname,count = nlast)
 
- IF (NOT KEYWORD_SET(SILENT)) THEN PRINT, "> Reading ",outname
- scrh = READ_ASCII(outname,count = nlast)
+  timestr = strarr(nlast)
+  t       = fltarr(nlast)
+  dt      = fltarr(nlast)
+  mode    = strarr(nlast)
+  endn    = strarr(nlast)
 
- timestr = strarr(nlast)
- t       = fltarr(nlast)
- dt      = fltarr(nlast)
- mode    = strarr(nlast)
- endn    = strarr(nlast)
+  numvar = intarr(nlast)
+  names  = strarr(nlast,64)
 
- numvar = intarr(nlast)
- names  = strarr(nlast,64)
+  nlast = nlast - 1
+  IF (nout GT nlast) THEN BEGIN
+    print,"! Index out of range in "+outname+$
+          " (nlast = ",strcompress(string(nlast)),')'
+    RETURN
+  ENDIF
 
- nlast = nlast - 1
- IF (nout GT nlast) THEN BEGIN
-   print,"! Index out of range in "+outname+$
-         " (nlast = ",strcompress(string(nlast)),')'
-   RETURN
- ENDIF
+  OPENR,1, outname, ERROR = err
+  READF, 1, timestr
+  CLOSE,1
 
- OPENR,1, outname, ERROR = err
- READF, 1, timestr
- CLOSE,1
+  FOR n = 0, nlast DO BEGIN
+    q = strsplit (timestr(n),' ',/extract)
+    t(n)     = q(1)
+    dt(n)    = q(2)
+    mode(n)  = q(4)
+    endn(n)  = q(5)
 
- FOR n = 0, nlast DO BEGIN
-   q = strsplit (timestr(n),' ',/extract)
-   t(n)     = q(1)
-   dt(n)    = q(2)
-   mode(n)  = q(4)
-   endn(n)  = q(5)
+    sq6 = size(q(6:*))
+    numvar(n) = sq6[1]
 
-   sq6 = size(q(6:*))
-   numvar(n) = sq6[1]
+    names(n, 0:numvar(n)-1) = q(6:*)
+  ENDFOR
 
-   names(n, 0:numvar(n)-1) = q(6:*)
- ENDFOR
-
- NVAR = numvar(nout)
+  NVAR = numvar(nout)
 
 ; ---------------------------------------
 ;  Return if /NODATA has been given
 ; ---------------------------------------
 
- IF (KEYWORD_SET(NODATA)) THEN RETURN
+  IF (KEYWORD_SET(NODATA)) THEN RETURN
 
 ; -------------------------------------------------------
 ;  If data is in H5 format (/H5),  go directly to H5LOAD
 ; -------------------------------------------------------
 
- IF (KEYWORD_SET(H5)) THEN BEGIN
-   extnum = STRING(format='(I4.4)', nout)
-   extnum = STRCOMPRESS(extnum,/remove_all)
-   fname = dir+"data."+extnum+ (KEYWORD_SET(FLOAT) ? ".flt.h5":".dbl.h5")
-   H5LOAD, fname, silent=silent
-   RETURN
- ENDIF
+  IF (KEYWORD_SET(H5)) THEN BEGIN
+    extnum = STRING(format='(I4.4)', nout)
+    extnum = STRCOMPRESS(extnum,/remove_all)
+    fname = dir+"data."+extnum+ (KEYWORD_SET(FLOAT) ? ".flt.h5":".dbl.h5")
+    H5LOAD, fname, silent=silent
+    RETURN
+  ENDIF
 
 ; ---------------------------------------
 ;      Open files for reading
 ; ---------------------------------------
 
- extnum = string(format='(I4.4)', nout)
- extnum = strcompress(extnum,/remove_all)
+  extnum = string(format='(I4.4)', nout)
+  extnum = strcompress(extnum,/remove_all)
 
- SINGLE_FILE = 0
- IF (mode(nout) EQ "single_file") THEN SINGLE_FILE = 1
- MULTIPLE_FILES = 1-SINGLE_FILE
+  SINGLE_FILE = 0
+  IF (mode(nout) EQ "single_file") THEN SINGLE_FILE = 1
+  MULTIPLE_FILES = 1-SINGLE_FILE
 
 ; -----------------------------------------------------------
 ;  If data is in VTK format (/VTK), go directly to VTK_LOAD
 ; -----------------------------------------------------------
 
- IF (KEYWORD_SET(VTK)) THEN BEGIN
-   extnum = STRING(format='(I4.4)', nout)
-   extnum = STRCOMPRESS(extnum,/remove_all)
-   ext    = "."+extnum+".vtk"
-   IF (SINGLE_FILE) THEN BEGIN
-     fname = dir+"data"+ext
-     VTK_LOAD, fname, SILENT=SILENT, VAR=VAR, $
-               X1RANGE=X1RANGE, X2RANGE=X2RANGE, X3RANGE=X3RANGE, domain_indx, _EXTRA=extra
-   ENDIF
-   IF (MULTIPLE_FILES) THEN BEGIN; with multiple files, one has to separately
-                                 ; handle vector fields, since data file
-                                 ; do not begin with the variable name.
+  IF (KEYWORD_SET(VTK)) THEN BEGIN
+    extnum = STRING(format='(I4.4)', nout)
+    extnum = STRCOMPRESS(extnum,/remove_all)
+    ext    = "."+extnum+".vtk"
+    IF (SINGLE_FILE) THEN BEGIN
+      fname = dir+"data"+ext
+      VTK_LOAD, fname, SILENT=SILENT, VAR=VAR, $
+                X1RANGE=X1RANGE, X2RANGE=X2RANGE, X3RANGE=X3RANGE, domain_indx, _EXTRA=extra
+    ENDIF
+    IF (MULTIPLE_FILES) THEN BEGIN; with multiple files, one has to separately
+                                  ; handle vector fields, since data file
+                                  ; do not begin with the variable name.
 
      ; !! Important: numvar does not contain "vx2" and "vx3" and we add 
      ;    these variable names separately. 
 
-     IF (NOT KEYWORD_SET(VAR)) THEN BEGIN
-       FOR nv = 0, numvar[nout] - 1 DO BEGIN
-         fname = dir+names[nout,nv]+ext
-         IF (names[nout,nv] EQ "vx1") THEN fname = dir+"vfield"+ext
-         IF (names[nout,nv] EQ "bx1") THEN fname = dir+"bfield"+ext
-         VTK_LOAD, fname, SILENT=SILENT, $
-                   X1RANGE=X1RANGE, X2RANGE=X2RANGE, X3RANGE=X3RANGE, domain_indx, _EXTRA=extra
-       ENDFOR
-     ENDIF ELSE BEGIN
-       fname = dir+VAR+ext
-       IF (VAR EQ "vx1" OR VAR EQ "vx2" OR VAR EQ "vx3") THEN fname = dir+"vfield"+ext
-       IF (VAR EQ "bx1" OR VAR EQ "bx2" OR VAR EQ "bx3") THEN fname = dir+"bfield"+ext
-       VTK_LOAD, fname, SILENT=SILENT, VAR=VAR, $
-                 X1RANGE=X1RANGE, X2RANGE=X2RANGE, X3RANGE=X3RANGE, domain_indx, _EXTRA=extra
-     ENDELSE
-   ENDIF
+      IF (NOT KEYWORD_SET(VAR)) THEN BEGIN
+        FOR nv = 0, numvar[nout] - 1 DO BEGIN
+          fname = dir+names[nout,nv]+ext
+          IF (names[nout,nv] EQ "vx1") THEN fname = dir+"vfield"+ext
+          IF (names[nout,nv] EQ "bx1") THEN fname = dir+"bfield"+ext
+          VTK_LOAD, fname, SILENT=SILENT, $
+                    X1RANGE=X1RANGE, X2RANGE=X2RANGE, X3RANGE=X3RANGE, domain_indx, _EXTRA=extra
+        ENDFOR
+      ENDIF ELSE BEGIN
+        fname = dir+VAR+ext
+        IF (VAR EQ "vx1" OR VAR EQ "vx2" OR VAR EQ "vx3") THEN fname = dir+"vfield"+ext
+        IF (VAR EQ "bx1" OR VAR EQ "bx2" OR VAR EQ "bx3") THEN fname = dir+"bfield"+ext
+        VTK_LOAD, fname, SILENT=SILENT, VAR=VAR, $
+                  X1RANGE=X1RANGE, X2RANGE=X2RANGE, X3RANGE=X3RANGE, domain_indx, _EXTRA=extra
+      ENDELSE
+    ENDIF
 
-   IF (KEYWORD_SET(X1RANGE) OR KEYWORD_SET(X2RANGE) OR KEYWORD_SET(X3RANGE)) THEN BEGIN
-     ibeg = domain_indx(0) & iend = domain_indx(3)
-     jbeg = domain_indx(1) & jend = domain_indx(4)
-     kbeg = domain_indx(2) & kend = domain_indx(5)
-     NX1 = iend - ibeg + 1
-     NX2 = jend - jbeg + 1
-     NX3 = kend - kbeg + 1
-     x1 = x1(ibeg:iend) & dx1 = dx1(ibeg:iend)
-     x2 = x2(jbeg:jend) & dx2 = dx2(jbeg:jend)
-     x3 = x3(kbeg:kend) & dx3 = dx3(kbeg:kend)
-   ENDIF
+    IF (KEYWORD_SET(X1RANGE) OR KEYWORD_SET(X2RANGE) OR KEYWORD_SET(X3RANGE)) THEN BEGIN
+      ibeg = domain_indx(0) & iend = domain_indx(3)
+      jbeg = domain_indx(1) & jend = domain_indx(4)
+      kbeg = domain_indx(2) & kend = domain_indx(5)
+      NX1 = iend - ibeg + 1
+      NX2 = jend - jbeg + 1
+      NX3 = kend - kbeg + 1
+      x1 = x1(ibeg:iend) & dx1 = dx1(ibeg:iend)
+      x2 = x2(jbeg:jend) & dx2 = dx2(jbeg:jend)
+      x3 = x3(kbeg:kend) & dx3 = dx3(kbeg:kend)
+    ENDIF
    
-   PRINT_MEMORY_USAGE,SILENT=SILENT
-   RETURN
- ENDIF
+    PRINT_MEMORY_USAGE,SILENT=SILENT
+    RETURN
+  ENDIF
 
 ; --------------------------------------
-;  get precision and number of bytes
+;  Get precision and number of bytes
 ; --------------------------------------
 
- REAL   = 5; -- default is double --
- NBYTES = 8
- ext = "."+extnum+".dbl"
+  REAL   = 5; -- default is double --
+  NBYTES = 8
+  ext = "."+extnum+".dbl"
 
- IF (KEYWORD_SET(FLOAT)) THEN BEGIN
-   REAL   = 4
-   NBYTES = 4
-   ext = "."+extnum+".flt"
- ENDIF
+  IF (KEYWORD_SET(FLOAT)) THEN BEGIN
+    REAL   = 4
+    NBYTES = 4
+    ext = "."+extnum+".flt"
+  ENDIF
 
- IF (NOT KEYWORD_SET(SILENT)) THEN BEGIN
-   IF (NBYTES EQ 4) THEN BEGIN
-     print, "> PLOAD: using single precision binary data"
-   ENDIF
+  IF (NOT KEYWORD_SET(SILENT)) THEN BEGIN
+    IF (NBYTES EQ 4) THEN BEGIN
+      print, "> PLOAD: using single precision binary data"
+    ENDIF
 
-   IF (NBYTES EQ 8) THEN BEGIN
-     print, "> PLOAD: using double precision binary data"
-   ENDIF
- ENDIF
+    IF (NBYTES EQ 8) THEN BEGIN
+      print, "> PLOAD: using double precision binary data"
+    ENDIF
+  ENDIF
 
 ; --------------------------------------------
 ;   Open .dbl or .flt using SINGE_FILE mode
 ; --------------------------------------------
 
- IF (SINGLE_FILE) THEN BEGIN
-   fname = DIR+"data"+ext
-   IF (endn(nout) EQ "little") THEN BEGIN
-     OPENR, unit, fname, /GET_LUN, /SWAP_IF_BIG_ENDIAN, _EXTRA=extra, ERROR = err
-   ENDIF ELSE BEGIN
-     OPENR, unit, fname, /GET_LUN, /SWAP_IF_LITTLE_ENDIAN, _EXTRA=extra, ERROR = err
-   ENDELSE
-   IF (err NE 0) THEN BEGIN
-     print,"! Cannot open file "+fname
-     CLOSE,unit
-     FREE_LUN,unit
-     RETURN
-   ENDIF
- ENDIF
+  IF (SINGLE_FILE) THEN BEGIN
+    fname = DIR+"data"+ext
+    IF (endn[nout] EQ "little") THEN BEGIN
+      OPENR, unit, fname, /GET_LUN, /SWAP_IF_BIG_ENDIAN, _EXTRA=extra, ERROR = err
+    ENDIF ELSE BEGIN
+      OPENR, unit, fname, /GET_LUN, /SWAP_IF_LITTLE_ENDIAN, _EXTRA=extra, ERROR = err
+    ENDELSE
+    IF (err NE 0) THEN BEGIN
+      print,"! Cannot open file "+fname
+      CLOSE,unit
+      FREE_LUN,unit
+      RETURN
+    ENDIF
+  ENDIF
 
 ; ----------------------------------------------------------
 ;  Begin main loop on variables:
@@ -943,34 +970,37 @@ PRO PLOAD, NOUT, ASSOC=ASSOC, DIR=DIR, FLOAT=FLOAT, H5=H5, HDF5=HDF5, $
 ;    * increment offset
 ; ----------------------------------------------------------
 
- offset = ulong64(0)
- FOR nv = 0, numvar(nout) - 1 DO BEGIN
+  offset = ulong64(0)
+  FOR nv = 0, numvar[nout] - 1 DO BEGIN
 
   ; --- check if the VAR keyword has been given ---
 
-   IF (KEYWORD_SET (VAR)) THEN BEGIN
-     IF (names(nout,nv) NE var) THEN GOTO,OFFSET; ** skip to end of the loop **
-   ENDIF
+    IF (KEYWORD_SET (VAR)) THEN BEGIN
+      IF (names[nout,nv] NE var) THEN BEGIN
+    ; -- skip to end of the loop for single file, continue otherwse --
+        IF (SINGLE_FILE) THEN GOTO,OFFSET ELSE CONTINUE
+      ENDIF
+    ENDIF  
 
   ; ----------------------------------------------
   ;   Open .dbl or .flt using MULTIPLE_FILES mode
   ; ----------------------------------------------
 
-   IF (MULTIPLE_FILES) THEN BEGIN
-     unit = 48 + nv; ** Units begin at 48 **
-     fname = dir+names(nout,nv)+ext
-     IF (endn[nout] EQ "little") THEN BEGIN
-       OPENR, unit, fname, /SWAP_IF_BIG_ENDIAN, _EXTRA=extra, ERROR = err
-     ENDIF ELSE BEGIN
-       OPENR, unit, fname, /SWAP_IF_LITTLE_ENDIAN, _EXTRA=extra, ERROR = err
-     ENDELSE
-     IF (err NE 0) THEN BEGIN
-       print,"! Cannot open file "+fname
-       CLOSE,unit
-       FREE_LUN,unit
-       CONTINUE
-     ENDIF
-   ENDIF
+    IF (MULTIPLE_FILES) THEN BEGIN
+      unit = 48 + nv; ** Units begin at 48 **
+      fname = dir+names(nout,nv)+ext
+      IF (endn[nout] EQ "little") THEN BEGIN
+        OPENR, unit, fname, /SWAP_IF_BIG_ENDIAN, _EXTRA=extra, ERROR = err
+      ENDIF ELSE BEGIN
+        OPENR, unit, fname, /SWAP_IF_LITTLE_ENDIAN, _EXTRA=extra, ERROR = err
+      ENDELSE
+      IF (err NE 0) THEN BEGIN
+        print,"! Cannot open file "+fname
+        CLOSE,unit
+        FREE_LUN,unit
+        CONTINUE
+      ENDIF
+    ENDIF
 
   ; --------------------------------------------
   ;  start by associating a pointer to the file
@@ -978,106 +1008,107 @@ PRO PLOAD, NOUT, ASSOC=ASSOC, DIR=DIR, FLOAT=FLOAT, H5=H5, HDF5=HDF5, $
 
   ; **** set extra zones for staggered fields ****
 
-   n1p = 0 & n2p = 0 & n3p = 0
-   IF (names(nout,nv) EQ "bx1s") THEN n1p = 1
-   IF (names(nout,nv) EQ "bx2s") THEN n2p = 1
-   IF (names(nout,nv) EQ "bx3s") THEN n3p = 1
+    n1p = 0 & n2p = 0 & n3p = 0
+    IF (names(nout,nv) EQ "bx1s") THEN n1p = 1
+    IF (names(nout,nv) EQ "bx2s") THEN n2p = 1
+    IF (names(nout,nv) EQ "bx3s") THEN n3p = 1
 
   ; **** check if either one of shrink/xyassoc/xranges have been given ****
 
-   CASE 1 OF
+    CASE 1 OF
 
-     (KEYWORD_SET (SHRINK)): BEGIN; SHRINK
-       vpt = ASSOC(unit, MAKE_ARRAY(NX1+n1p,NX2+n2p,shrink, type = REAL),offset)
-       REBIN3D, vpt,shrink
-     END; SHRINK
+      (KEYWORD_SET (SHRINK)): BEGIN; SHRINK
+        vpt = ASSOC(unit, MAKE_ARRAY(NX1+n1p,NX2+n2p,shrink, type = REAL),offset)
+        REBIN3D, vpt,shrink
+      END; SHRINK
 
-     (KEYWORD_SET (XYASSOC)): BEGIN; xyassoc
-       vpt = ASSOC(unit, MAKE_ARRAY(NX1+n1p,NX2+n2p, type = REAL),offset)
-     END; xyassoc
+      (KEYWORD_SET (XYASSOC)): BEGIN; xyassoc
+        vpt = ASSOC(unit, MAKE_ARRAY(NX1+n1p,NX2+n2p, type = REAL),offset)
+      END; xyassoc
 
-     (KEYWORD_SET (X1RANGE) OR KEYWORD_SET (X2RANGE) OR KEYWORD_SET (X3RANGE)): BEGIN;
+      (KEYWORD_SET (X1RANGE) OR KEYWORD_SET (X2RANGE) OR KEYWORD_SET (X3RANGE)): BEGIN;
 
-       IF (NOT KEYWORD_SET (X1RANGE)) THEN x1range=[min(x1),max(x1)]
-       IF (NOT KEYWORD_SET (X2RANGE)) THEN x2range=[min(x2),max(x2)]
-       IF (NOT KEYWORD_SET (X3RANGE)) THEN x3range=[min(x3),max(x3)]
-       vpt = ASSOC(unit, MAKE_ARRAY(NX1+n1p,NX2+n2p, type = REAL),offset)
-       ARRAY_EXTRACT, vpt, x1range, x2range, x3range,domain_indx,silent=silent
-     END; DOMAIN
+        IF (NOT KEYWORD_SET (X1RANGE)) THEN x1range=[min(x1),max(x1)]
+        IF (NOT KEYWORD_SET (X2RANGE)) THEN x2range=[min(x2),max(x2)]
+        IF (NOT KEYWORD_SET (X3RANGE)) THEN x3range=[min(x3),max(x3)]
+        vpt = ASSOC(unit, MAKE_ARRAY(NX1+n1p,NX2+n2p, type = REAL),offset)
+        ARRAY_EXTRACT, vpt, x1range, x2range, x3range,domain_indx,silent=silent
+      END; DOMAIN
 
-     ELSE: BEGIN
-       vpt = ASSOC(unit, make_array(NX1+n1p,NX2+n2p,NX3+n3p, type = REAL),offset)
+      ELSE: BEGIN
+        vpt = ASSOC(unit, make_array(NX1+n1p,NX2+n2p,NX3+n3p, type = REAL),offset)
 
-       ; ** store arrays into memory if the   **
-       ; ** /assoc keyword has not been given **
+        ; ** store arrays into memory if the   **
+        ; ** /assoc keyword has not been given **
 
-       IF (NOT KEYWORD_SET(ASSOC)) THEN vpt = vpt(0)
+        IF (NOT KEYWORD_SET(ASSOC)) THEN vpt = vpt(0)
 
-     ENDELSE
+      ENDELSE
 
-   ENDCASE
+    ENDCASE
 
   ; ---------------------------------------------
   ;    label pointer data with suitable names
   ; ---------------------------------------------
 
-   MATCH_VARNAME,vpt, names(nout,nv), silent=silent
-   vpt = 0; free memory
+    MATCH_VARNAME,vpt, names(nout,nv), silent=silent
+    vpt = 0; free memory
 
-   OFFSET:
-   IF (SINGLE_FILE) THEN BEGIN
-     n1_off = ulong64(NX1)
-     n2_off = ulong64(NX2)
-     n3_off = ulong64(NX3)
+    OFFSET:
+    IF (SINGLE_FILE) THEN BEGIN
+      n1_off = ulong64(NX1)
+      n2_off = ulong64(NX2)
+      n3_off = ulong64(NX3)
 
-     IF (names(nout,nv) EQ "bx1s") THEN n1_off = ulong64(NX1 + 1)
-     IF (names(nout,nv) EQ "bx2s") THEN n2_off = ulong64(NX2 + 1)
-     IF (names(nout,nv) EQ "bx3s") THEN n3_off = ulong64(NX3 + 1)
+      IF (names(nout,nv) EQ "bx1s") THEN n1_off = ulong64(NX1 + 1)
+      IF (names(nout,nv) EQ "bx2s") THEN n2_off = ulong64(NX2 + 1)
+      IF (names(nout,nv) EQ "bx3s") THEN n3_off = ulong64(NX3 + 1)
 
-     offset = offset + ulong64(n1_off*n2_off*n3_off*NBYTES)
-     POINT_LUN,unit,offset; move file pointer 
-   ENDIF
+      offset = offset + ulong64(n1_off*n2_off*n3_off*NBYTES)
+      POINT_LUN,unit,offset; move file pointer 
+    ENDIF
 
-   IF (MULTIPLE_FILES) THEN BEGIN
-     CLOSE,unit
-     FREE_LUN,unit
-   ENDIF
- ENDFOR ; nv = 0, NVAR-1
- IF (SINGLE_FILE) THEN BEGIN
-   CLOSE,unit
-   FREE_LUN,unit
- ENDIF
+    IF (MULTIPLE_FILES) THEN BEGIN
+      CLOSE,unit
+      FREE_LUN,unit
+    ENDIF
+  ENDFOR ; nv = 0, NVAR-1
+  
+  IF (SINGLE_FILE) THEN BEGIN
+    CLOSE,unit
+    FREE_LUN,unit
+  ENDIF
 
 ; **** print memory usage ****
 
- PRINT_MEMORY_USAGE,SILENT=SILENT
+  PRINT_MEMORY_USAGE,SILENT=SILENT
 
 ; **** change the grid if one of SHRINK/XRANGE's keywords has been given ****
 
- IF (KEYWORD_SET(SHRINK)) THEN BEGIN
-   NX1 = NX1/shrink
-   NX2 = NX2/shrink
-   NX3 = NX3/shrink
-   x1 = CONGRID(x1,NX1,/CENTER)
-   x2 = CONGRID(x2,NX2,/CENTER)
-   x3 = CONGRID(x3,NX3,/CENTER)
+  IF (KEYWORD_SET(SHRINK)) THEN BEGIN
+    NX1 = NX1/shrink
+    NX2 = NX2/shrink
+    NX3 = NX3/shrink
+    x1 = CONGRID(x1,NX1,/CENTER)
+    x2 = CONGRID(x2,NX2,/CENTER)
+    x3 = CONGRID(x3,NX3,/CENTER)
 
-   dx1 = CONGRID(dx1,NX1,/CENTER)
-   dx2 = CONGRID(dx2,NX2,/CENTER)
-   dx3 = CONGRID(dx3,NX3,/CENTER)
- ENDIF
+    dx1 = CONGRID(dx1,NX1,/CENTER)
+    dx2 = CONGRID(dx2,NX2,/CENTER)
+    dx3 = CONGRID(dx3,NX3,/CENTER)
+  ENDIF
 
- IF (KEYWORD_SET(X1RANGE) OR KEYWORD_SET(X2RANGE) OR KEYWORD_SET(X3RANGE)) THEN BEGIN
-   ibeg = domain_indx(0) & iend = domain_indx(3)
-   jbeg = domain_indx(1) & jend = domain_indx(4)
-   kbeg = domain_indx(2) & kend = domain_indx(5)
-   NX1 = iend - ibeg + 1
-   NX2 = jend - jbeg + 1
-   NX3 = kend - kbeg + 1
-   x1 = x1(ibeg:iend) & dx1 = dx1(ibeg:iend)
-   x2 = x2(jbeg:jend) & dx2 = dx2(jbeg:jend)
-   x3 = x3(kbeg:kend) & dx3 = dx3(kbeg:kend)
- ENDIF
+  IF (KEYWORD_SET(X1RANGE) OR KEYWORD_SET(X2RANGE) OR KEYWORD_SET(X3RANGE)) THEN BEGIN
+    ibeg = domain_indx(0) & iend = domain_indx(3)
+    jbeg = domain_indx(1) & jend = domain_indx(4)
+    kbeg = domain_indx(2) & kend = domain_indx(5)
+    NX1 = iend - ibeg + 1
+    NX2 = jend - jbeg + 1
+    NX3 = kend - kbeg + 1
+    x1 = x1(ibeg:iend) & dx1 = dx1(ibeg:iend)
+    x2 = x2(jbeg:jend) & dx2 = dx2(jbeg:jend)
+    x3 = x3(kbeg:kend) & dx3 = dx3(kbeg:kend)
+  ENDIF
 
 END
 

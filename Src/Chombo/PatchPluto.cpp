@@ -69,7 +69,7 @@ void PatchPluto::setCurrentTime(const Real& a_currentTime)
   m_isCurrentTimeSet = true;
 }
 
-// Set the current box for the updateSolution call
+// Set the current box for the advanceStep call
 void PatchPluto::setCurrentBox(const Box& a_currentBox)
 {
   m_currentBox = a_currentBox;
@@ -101,7 +101,7 @@ void PatchPluto::setRiemann(Riemann_Solver *solver)
 }
 
 // Set the grid[3] structure to be passed to updateState
-// (or updateSolution and SWEEP in the next future)
+// (or advanceSolution and SWEEP in the next future)
 void PatchPluto::setGrid(const Box&    a_box, struct GRID *grid, FArrayBox& a_dV)
 {
   int    i, j, k, idim;
@@ -348,46 +348,46 @@ Vector<string> PatchPluto::ConsStateNames()
     if (nv == MX1) retval.push_back("X-momentum");
     if (nv == MX2) retval.push_back("Y-momentum");
     if (nv == MX3) retval.push_back("Z-momentum");
-    #if PHYSICS == MHD || PHYSICS == RMHD
-     if (nv == BX1) retval.push_back("X-magnfield");
-     if (nv == BX2) retval.push_back("Y-magnfield");
-     if (nv == BX3) retval.push_back("Z-magnfield");
-    #endif
-    #if EOS != ISOTHERMAL
-     if (nv == ENG) retval.push_back("energy-density");
-    #endif
+#if PHYSICS == MHD || PHYSICS == RMHD
+    if (nv == BX1) retval.push_back("X-magnfield");
+    if (nv == BX2) retval.push_back("Y-magnfield");
+    if (nv == BX3) retval.push_back("Z-magnfield");
+#endif
+#if EOS != ISOTHERMAL
+    if (nv == ENG) retval.push_back("energy-density");
+#endif
 
-    #if NTRACER > 0   
-     if (nv >= TRC && nv < (TRC + NTRACER)){
-       sprintf(varNameChar,"rho*tracer%d",nv+1-TRC);
-       retval.push_back(string(varNameChar));
-     }
-    #endif
-    #if ENTROPY_SWITCH == YES
-     if (nv == ENTR) retval.push_back("rho*entropy");
-    #endif
+#if NTRACER > 0   
+    if (nv >= TRC && nv < (TRC + NTRACER)){
+      sprintf(varNameChar,"rho*tracer%d",nv+1-TRC);
+      retval.push_back(string(varNameChar));
+    }
+#endif
+#if ENTROPY_SWITCH
+    if (nv == ENTR) retval.push_back("rho*entropy");
+#endif
 
-    #ifdef GLM_MHD 
-     if (nv == PSI_GLM) retval.push_back("psi_glm");
-    #endif
+#ifdef GLM_MHD 
+    if (nv == PSI_GLM) retval.push_back("psi_glm");
+#endif
 
-    #if COOLING == SNEq
-     if (nv == X_HI) retval.push_back("rho*x_hi");
-    #endif
+#if COOLING == SNEq
+    if (nv == X_HI) retval.push_back("rho*x_hi");
+#endif
 
-    #if COOLING == H2_COOL
-     if (nv >= X_HI && nv < NFLX+NIONS){
-       sprintf(varNameChar,"rho*fX%d",nv-NFLX);
-       retval.push_back(string(varNameChar));
-     }
-    #endif
+#if COOLING == H2_COOL
+    if (nv >= X_HI && nv < NFLX+NIONS){
+      sprintf(varNameChar,"rho*fX%d",nv-NFLX);
+      retval.push_back(string(varNameChar));
+    }
+#endif
 
-    #if COOLING == MINEq
-     if (nv >= X_HI && nv < NFLX+NIONS){
-       sprintf(varNameChar,"rho*fX%d",nv-NFLX);
-       retval.push_back(string(varNameChar));
-     }
-    #endif
+#if COOLING == MINEq
+    if (nv >= X_HI && nv < NFLX+NIONS){
+      sprintf(varNameChar,"rho*fX%d",nv-NFLX);
+      retval.push_back(string(varNameChar));
+    }
+#endif
   }
   return retval; 
 }

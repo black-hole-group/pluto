@@ -37,12 +37,14 @@ void CheckPrimStates(double **vM, double **vP, double **v0,  int beg, int end)
 
     /*  ----  Check for superluminal velocities  ---- */
 
-    #if (PHYSICS == RHD && USE_FOUR_VELOCITY == NO) || PHYSICS == RMHD 
-     scrhm = EXPAND(am[VX1]*am[VX1], + am[VX2]*am[VX2], + am[VX3]*am[VX3]);
-     scrhp = EXPAND(ap[VX1]*ap[VX1], + ap[VX2]*ap[VX2], + ap[VX3]*ap[VX3]);
-     switch_to_1st = switch_to_1st || (scrhm >= 1.0);
-     switch_to_1st = switch_to_1st || (scrhp >= 1.0);
-    #endif
+#if (PHYSICS == RHD) || (PHYSICS == RMHD)
+    #if RECONSTRUCT_4VEL == NO    
+    scrhm = EXPAND(am[VX1]*am[VX1], + am[VX2]*am[VX2], + am[VX3]*am[VX3]);
+    scrhp = EXPAND(ap[VX1]*ap[VX1], + ap[VX2]*ap[VX2], + ap[VX3]*ap[VX3]);
+    switch_to_1st = switch_to_1st || (scrhm >= 1.0);
+    switch_to_1st = switch_to_1st || (scrhp >= 1.0);
+    #endif  
+#endif
 
     if (switch_to_1st){
 /*

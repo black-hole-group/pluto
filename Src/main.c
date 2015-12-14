@@ -49,14 +49,16 @@
 #include "pluto.h"
 #include "globals.h"
 
-#define SHOW_TIME_STEPS  NO   /* -- show time steps due to advection,
-                                     diffusion and cooling */
+#ifndef SHOW_TIME_STEPS
+  #define SHOW_TIME_STEPS  NO   /* -- show time steps due to advection,
+                                       diffusion and cooling */
+#endif
 
-static double NextTimeStep (Time_Step *, struct INPUT *, Grid *);
+static double NextTimeStep (Time_Step *, Runtime *, Grid *);
 static char *TotalExecutionTime (double);
 static int Integrate (Data *, Riemann_Solver *, Time_Step *, Grid *);
-static void CheckForOutput (Data *, Input *, Grid *);
-static void CheckForAnalysis (Data *, Input *, Grid *);
+static void CheckForOutput (Data *, Runtime *, Grid *);
+static void CheckForAnalysis (Data *, Runtime *, Grid *);
 
 /* ********************************************************************* */
 int main (int argc, char *argv[])
@@ -79,8 +81,10 @@ int main (int argc, char *argv[])
   Grid      grd[3];
   Time_Step Dts;
   Cmd_Line cmd_line;
-  Input  ini;
+  Runtime  ini;
   Output *output;
+  double *dbl_pnt;
+  int    *int_pnt;
 
   #ifdef PARALLEL
    AL_Init (&argc, &argv);
@@ -89,11 +93,11 @@ int main (int argc, char *argv[])
 
   Initialize (argc, argv, &data, &ini, grd, &cmd_line);
 
-  double *dbl_pnt;
-  int    *int_pnt;
   print1 ("> Basic data type:\n");
   print1 ("  sizeof (char)     = %d\n", sizeof(char));
   print1 ("  sizeof (uchar)    = %d\n", sizeof(unsigned char));
+  print1 ("  sizeof (short)    = %d\n", sizeof(short));
+  print1 ("  sizeof (ushort)   = %d\n", sizeof(unsigned short));
   print1 ("  sizeof (int)      = %d\n", sizeof(int));
   print1 ("  sizeof (*int)     = %d\n", sizeof(int_pnt));
   print1 ("  sizeof (float)    = %d\n", sizeof(float));
@@ -108,8 +112,8 @@ int main (int argc, char *argv[])
   print1 ("  sizeof (GRID)       = %d\n", sizeof(Grid));
   print1 ("  sizeof (TIME_STEP)  = %d\n", sizeof(Time_Step));
   print1 ("  sizeof (OUTPUT)     = %d\n", sizeof(Output));
-  print1 ("  sizeof (INPUT)      = %d\n", sizeof(Input));
   print1 ("  sizeof (RUNTIME)    = %d\n", sizeof(Runtime));
+  print1 ("  sizeof (RESTART)    = %d\n", sizeof(Restart));
   print1 ("  sizeof (RGB)        = %d\n", sizeof(RGB));
   print1 ("  sizeof (IMAGE)      = %d\n", sizeof(Image));
   print1 ("  sizeof (FLOAT_VECT) = %d\n", sizeof(Float_Vect));
@@ -121,7 +125,7 @@ int main (int argc, char *argv[])
 
   Dts.cmax     = ARRAY_1D(NMAX_POINT, double);
   Dts.inv_dta  = 0.0;
-  Dts.inv_dtp  = 0.0;
+  Dts.inv_dtp  = 0.5e-38; 
   Dts.dt_cool  = 1.e38;
   Dts.cfl      = ini.cfl;
   Dts.cfl_par  = ini.cfl_par;
@@ -139,9 +143,9 @@ int main (int argc, char *argv[])
    ------------------------------------------------------- */
    
   if (cmd_line.restart == YES) {
-    Restart (&ini, cmd_line.nrestart, DBL_OUTPUT, grd);
+    RestartFromFile (&ini, cmd_line.nrestart, DBL_OUTPUT, grd);
   }else if (cmd_line.h5restart == YES){
-    Restart (&ini, cmd_line.nrestart, DBL_H5_OUTPUT, grd);
+    RestartFromFile (&ini, cmd_line.nrestart, DBL_H5_OUTPUT, grd);
   }else if (cmd_line.write){
     CheckForOutput (&data, &ini, grd);
     CheckForAnalysis (&data, &ini, grd);
@@ -471,7 +475,8 @@ int Integrate (Data *d, Riemann_Solver *Solver, Time_Step *Dts, Grid *grid)
  ********************************************************************** */
 {
   int idim, err = 0;
-
+  int i,j,k;
+  
   g_maxMach = 0.0;
   g_maxRiemannIter = 0;
   g_maxRootIter    = 0;
@@ -490,7 +495,7 @@ int Integrate (Data *d, Riemann_Solver *Solver, Time_Step *Dts, Grid *grid)
         (if necessary) and sources 
      --------------------------------------------- */
 
-  FlagReset (d);
+  TOT_LOOP(k,j,i) d->flag[k][j][i] = 0;
 
   #ifdef FARGO
    FARGO_ComputeVelocity(d, grid);
@@ -499,10 +504,10 @@ int Integrate (Data *d, Riemann_Solver *Solver, Time_Step *Dts, Grid *grid)
     g_operatorStep = HYPERBOLIC_STEP;
     #if DIMENSIONAL_SPLITTING == YES
      for (g_dir = 0; g_dir < DIMENSIONS; g_dir++){
-       if (UpdateSolution (d, Solver, Dts, grid) != 0) return (1);
+       if (AdvanceStep (d, Solver, Dts, grid) != 0) return (1);
      }
     #else
-     if (UpdateSolution (d, Solver, Dts, grid) != 0) return(1);
+     if (AdvanceStep (d, Solver, Dts, grid) != 0) return(1);
     #endif
     g_operatorStep = PARABOLIC_STEP;
     SplitSource (d, g_dt, Dts, grid);
@@ -512,10 +517,10 @@ int Integrate (Data *d, Riemann_Solver *Solver, Time_Step *Dts, Grid *grid)
     g_operatorStep = HYPERBOLIC_STEP;
     #if DIMENSIONAL_SPLITTING == YES
      for (g_dir = DIMENSIONS - 1; g_dir >= 0; g_dir--){
-       if (UpdateSolution(d, Solver, Dts, grid) != 0) return (1);
+       if (AdvanceStep(d, Solver, Dts, grid) != 0) return (1);
      }
     #else
-     if (UpdateSolution (d, Solver, Dts, grid) != 0) return(1);
+     if (AdvanceStep (d, Solver, Dts, grid) != 0) return(1);
     #endif
   }       
 
@@ -548,15 +553,15 @@ char *TotalExecutionTime (double dt)
 }
 
 /* ********************************************************************* */
-double NextTimeStep (Time_Step *Dts, struct INPUT *ini, Grid *grid)
+double NextTimeStep (Time_Step *Dts, Runtime *ini, Grid *grid)
 /*!
  * Compute and return the time step for the next time level
  * using the information from the previous integration
  * (Dts->inv_dta and Dts->inv_dp).
  *
- * \param [in] Dts pointer to the Time_Step structure
- * \param [in] ini pointer to the Input structure
- * \param [in] grid pointer to array of Grid structures
+ * \param [in] Dts    pointer to the Time_Step structure
+ * \param [in] ini    pointer to the Runtime structure
+ * \param [in] grid   pointer to array of Grid structures
  *
  * \return The time step for next time level
  *********************************************************************** */
@@ -639,13 +644,12 @@ double NextTimeStep (Time_Step *Dts, struct INPUT *ini, Grid *grid)
   dtnext = MIN(dtnext, ini->cfl_max_var*g_dt);
 
   if (dtnext < ini->first_dt*1.e-9){
-    print1 ("! dt is too small (%12.6e)!\n", dtnext);
-    print1 ("! Cannot continue\n");
+    print1 ("! NextTimeStep(): dt is too small (%12.6e). Cannot continue.\n", dtnext);
     QUIT_PLUTO(1);
   }
 
   if (g_stepNumber <= 1 && (ini->first_dt > dtnext/ini->cfl)){
-    print1 ("! NextTimeStep: initial dt exceeds stability limit\n");
+    print1 ("! NextTimeStep(): initial dt exceeds stability limit\n");
   }
 
 /* --------------------------------------------
@@ -654,14 +658,14 @@ double NextTimeStep (Time_Step *Dts, struct INPUT *ini, Grid *grid)
 
   DIM_LOOP(idim) Dts->cmax[idim] = 0.0;
   Dts->inv_dta = 0.0;
-  Dts->inv_dtp = 0.0;
+  Dts->inv_dtp = 0.5e-38;
   Dts->dt_cool = 1.e38;
 
   return(dtnext);
 }
 
 /* ********************************************************************* */
-void CheckForOutput (Data *d, Input *ini, Grid *grid)
+void CheckForOutput (Data *d, Runtime *ini, Grid *grid)
 /*!
  *  Check if file output has to be performed.
  *  
@@ -787,7 +791,7 @@ void CheckForOutput (Data *d, Input *ini, Grid *grid)
 }
 
 /* ******************************************************************** */
-void CheckForAnalysis (Data *d, Input *ini, Grid *grid)
+void CheckForAnalysis (Data *d, Runtime *ini, Grid *grid)
 /*
  *
  * PURPOSE 

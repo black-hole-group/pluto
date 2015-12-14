@@ -265,7 +265,7 @@ void Roe_Solver (const State_1D *state, int beg, int end,
     #else
      k = KDIVB;
      lambda[k] = u;
-     #if MHD_FORMULATION == EIGHT_WAVES
+     #if DIVB_CONTROL == EIGHT_WAVES
       Rc[BXn][k] = 1.0;
       eta[k]    = dU[BXn];
      #else
@@ -404,7 +404,7 @@ void Roe_Solver (const State_1D *state, int beg, int end,
     state->press[i] = 0.5*(pL[i] + pR[i]);
   }
 
-  #if MHD_FORMULATION == EIGHT_WAVES
+  #if DIVB_CONTROL == EIGHT_WAVES
    ROE_DivBSource (state, grid, beg, end);
   #endif
 }

@@ -67,19 +67,9 @@ PRO HDF5LOAD, nout, dir, FILENAME=FILENAME, var = var, INTERP=INTERP,$
 ;      check if we have a valid file
 ; *********************************************
 
-; IF (NOT KEYWORD_SET(dim)) THEN dim = 2
-; IF (dim LT 1 or dim GT 3) THEN BEGIN
-;    print,"! wrong number of dimensions"
-;    RETURN
-; ENDIF
-
  IF (NOT KEYWORD_SET(filename)) THEN BEGIN
    filename = DIR+"data."+string(nout,format='(I4.4)')+".hdf5"
  ENDIF
-
-; IF (dim EQ 1) THEN filename = DIR+"data."+string(nout,format='(I4.4)')+".1d.hdf5"
-; IF (dim EQ 2) THEN filename = DIR+"data."+string(nout,format='(I4.4)')+".2d.hdf5"
-; IF (dim EQ 3) THEN filename = DIR+"data."+string(nout,format='(I4.4)')+".3d.hdf5"
 
  checkfile,filename
 
@@ -413,7 +403,7 @@ PRO HDF5LOAD, nout, dir, FILENAME=FILENAME, var = var, INTERP=INTERP,$
    ENDELSE
 
    SWITCH dim OF
-     3: domstring = " x [ "+ARG2STR(x3b+kbeg*dx*zstr)+", "+ARG2STR(x3d+(kend+1)*dx*zstr)+"]"
+     3: domstring = " x [ "+ARG2STR(x3b+kbeg*dx*zstr)+", "+ARG2STR(x3b+(kend+1)*dx*zstr)+"]"
      2: domstring = " x [ "+ARG2STR(x2b+jbeg*dx*ystr)+", "+ARG2STR(x2b+(jend+1)*dx*ystr)+"]"+domstring
      1: domstring = "   [ "+ARG2STR(xbeg)+", "+ARG2STR(xend)+"]"+domstring
    ENDSWITCH

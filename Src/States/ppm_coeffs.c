@@ -1,19 +1,58 @@
+/* ///////////////////////////////////////////////////////////////////// */
+/*! 
+  \file  
+  \brief Compute coefficients for high-order reconstruction methods.
+
+  Compute the interpolation coefficients needed by high-order
+  (3rd, 4th and 5th) reconstruction methods such as PPM or WENO3.
+  The function PPM_CoefficientsSet() must be called to initialize arrays
+  and compute the coefficients after the grid has been generated.
+  The function PPM_CoefficientsGet() can be used at anytime
+  to retrieve the coefficients in a particular direction.
+  
+  Reconstruction coefficients are computed in different ways
+  depending on the geometry and grid uniformity:
+
+  - Uniform Cartesian grids: reconstruction coefficients are
+    computed by PPM_CartCoeff().
+
+  - Uniform curvilinear grids: coefficients are computed
+    in PPM_CoefficientsSet() for radial grids (polar/cyindrical and
+    spherical), by PPM_FindWeights() for meridional spherical
+    coordinate.
+
+  - Non uniform grids: reconstruction coeffients are always computed
+    by inverting the Vandermonde-like equation
+    (see Eq. [21] in Mignone, JCP 2014) in PPM_FindWeights()
+
+
+  \authors A. Mignone (mignone@ph.unito.it)\n
+  \date    Dec 29, 2014
+  
+  \b Reference
+     - "High-order conservative reconstruction schemes for finite
+        volume methods in cylindrical and spherical coordinates",
+        A. Mignone, JCP (2014), 270, 784.
+*/
+/* ///////////////////////////////////////////////////////////////////// */
 #include "pluto.h"
 
-#if INTERPOLATION == WENO3
- #undef PPM_VERSION
- #define PPM_VERSION PPM3
+#if RECONSTRUCTION == WENO3
+ #undef PPM_ORDER
+ #define PPM_ORDER  3
 #endif
 
 /* -----------------------------------------------------
     Static local variables
    ----------------------------------------------------- */
 
-static double ***Wp3D, ***Wm3D, **hp3D, **hm3D;
+static double ***s_Wp3D, ***s_Wm3D, **s_hp3D, **s_hm3D;
+static double s_x0; /* Used by BetaTheta() function only */
+static int    s_k;  /* Used by BetaTheta() function only */
 
-
-static void PPM_CartCoeff(double **, double **, int, int);
-static void PPM_FindWeights(double **, double **, int, Grid *);
+static void   PPM_CartCoeff(double **, double **, int, int);
+static void   PPM_FindWeights(double **, double **, int, Grid *);
+static double BetaTheta(double);
 
 /* ********************************************************************* */
 void PPM_CoefficientsSet(Grid *grid)
@@ -27,15 +66,16 @@ void PPM_CoefficientsSet(Grid *grid)
   double i1, i2, rp, dr, den;
   double **wp, **wm;
   
-  if (Wp3D == NULL){
-    Wp3D = ArrayBox(0, DIMENSIONS-1, 0, NMAX_POINT-1, -2, 2);
-    Wm3D = ArrayBox(0, DIMENSIONS-1, 0, NMAX_POINT-1, -2, 2);
-    hp3D = ARRAY_2D(DIMENSIONS, NMAX_POINT, double);
-    hm3D = ARRAY_2D(DIMENSIONS, NMAX_POINT, double);
+  if (s_Wp3D == NULL){
+    s_Wp3D = ArrayBox(0, DIMENSIONS-1, 0, NMAX_POINT-1, -2, 2);
+    s_Wm3D = ArrayBox(0, DIMENSIONS-1, 0, NMAX_POINT-1, -2, 2);
+    s_hp3D = ARRAY_2D(DIMENSIONS, NMAX_POINT, double);
+    s_hm3D = ARRAY_2D(DIMENSIONS, NMAX_POINT, double);
   }
 
 /* -------------------------------------------------------
-    Check whether the grid is regularly spaced.
+    Automatically detect whether the grid is regularly
+    spaced or not.
     This is always true when chombo is used, but not
     necessarily so with the static grid version.
    ------------------------------------------------------- */
@@ -55,15 +95,16 @@ void PPM_CoefficientsSet(Grid *grid)
   #endif
 
 /* -----------------------------------------------------
-    set the local (iL, iR) and global (beg, end) 
-    reconstruction stencils and the order of accuracy n
+    Set the index iL and iR defining the reconstruction
+    stencil for the desired order of accuracy, 
+    see Eq. [14]) in Mignone (2014).
    ----------------------------------------------------- */
 
-  #if PPM_VERSION == PPM3
+  #if PPM_ORDER == 3
    iL = 1; iR = 1;
-  #elif PPM_VERSION == PPM4
+  #elif PPM_ORDER == 4
    iL = 1; iR = 2;
-  #elif PPM_VERSION == PPM5
+  #elif PPM_ORDER == 5
    iL = 2; iR = 2;
   #endif
   n = iR + iL + 1;
@@ -74,22 +115,38 @@ void PPM_CoefficientsSet(Grid *grid)
 
   for (d = 0; d < DIMENSIONS; d++){
 
-    wp = Wp3D[d];
-    wm = Wm3D[d];
+    wp = s_Wp3D[d];
+    wm = s_Wm3D[d];
+
+  /* ----------------------------------------
+      Compute Q6 coefficients
+     ---------------------------------------- */
+
+    PPM_Q6_Coeffs(s_hp3D[d], s_hm3D[d], d, grid);
+
+  /* ---------------------------------------
+      If the grid is non-uniform, compute
+      coefficients numerically.
+     --------------------------------------- */
+
+    if (!uniform_grid[d]) {
+      PPM_FindWeights (wp, wm, d, grid);
+      continue;
+    }
 
     beg = iL;
     end = grid[d].np_tot - 1 - iR;
 
-  /* -------------------------------------------------------------
-      Interpolation weights for Cartesian geometry (called anyway
-      to initialize cofficients to zero where necessary).
-     ------------------------------------------------------------- */
+  /* -----------------------------------------------
+      Initialize coefficients using reconstruction
+      weights for uniform Cartesian grid.
+     ----------------------------------------------- */
 
     PPM_CartCoeff(wp, wm, beg, end);
   
-  /* -------------------------------------------------------------
-      Interpolation weights for cylindrical/polar geometries
-     ------------------------------------------------------------- */
+  /* -------------------------------------------
+      Weights for cylindrical/polar geometries
+     ------------------------------------------- */
 
     #if GEOMETRY == CYLINDRICAL || GEOMETRY == POLAR
      if (d == IDIR) for (i = beg; i <= end; i++){
@@ -98,7 +155,7 @@ void PPM_CoefficientsSet(Grid *grid)
        i1  = rp/dr;
 //      i1  = (double)(i + (grid[dir].beg-IBEG) - IBEG + 1);
        i2  = i1*i1;
-       #if PPM_VERSION == PPM3
+       #if PPM_ORDER == 3
         den = 12.0*POLY_3(1.0, -1.0, -3.0, 2.0, i1);
 
         wp[i][-2] = 0.0;
@@ -112,7 +169,7 @@ void PPM_CoefficientsSet(Grid *grid)
         wm[i][ 0] = POLY_3( 10.0,  -9.0, -32.0, 20.0, i1)/den;
         wm[i][ 1] = POLY_3( -1.0,   2.0,   6.0, -4.0, i1)/den;
         wm[i][ 2] = 0.0;
-       #elif PPM_VERSION == PPM4
+       #elif PPM_ORDER == 4
         den = 24.0*POLY_2(4.0, -15.0, 5.0, i2);
 
         wp[i][-2] = 0.0;
@@ -121,7 +178,7 @@ void PPM_CoefficientsSet(Grid *grid)
         wp[i][ 1] = POLY_4( 60.0,  27.0, -210.0, -13.0,  70.0, i1)/den;
         wp[i][ 2] = POLY_4(-12.0,   1.0,   30.0,   1.0, -10.0, i1)/den;
 
-       #elif PPM_VERSION == PPM5
+       #elif PPM_ORDER == 5
         den = 120.0*(2.0*i1-1.0)*POLY_4(12.0, 16.0, -13.0, -6.0, 3.0, i1);
 
         wp[i][-2] = POLY_5(  -80,   32,   200,   -80,   -60,   24, i1)/den;
@@ -139,9 +196,9 @@ void PPM_CoefficientsSet(Grid *grid)
      }
     #endif 
 
-  /* -----------------------------------------------------
-     Interpolation weights for spherical geometry
-   ------------------------------------------------------- */
+  /* ------------------------------------
+      Weights for spherical geometry
+     ------------------------------------ */
     
     #if GEOMETRY == SPHERICAL
      if (d == IDIR) for (i = beg; i <= end; i++){
@@ -150,7 +207,7 @@ void PPM_CoefficientsSet(Grid *grid)
        i1  = fabs(rp/dr);
 /*      i1  = (double)(i + (grid[dir].beg-IBEG) - IBEG + 1); */
        i2  = i1*i1;
-       #if PPM_VERSION == PPM3
+       #if PPM_ORDER == 3
         den = 18.0*POLY_6(4.0, -6.0, -9.0, 20.0, 15.0, -30.0, 10.0, i1);
 
         wp[i][-2] =  0.0;
@@ -170,7 +227,7 @@ void PPM_CoefficientsSet(Grid *grid)
         wm[i][ 1] = -POLY_2(1.0, 3.0, 3.0, i1)
                     *POLY_4(4.0, -22.0, 51.0, -40.0, 10.0, i1)/den;
         wm[i][ 2] =  0.0;
-       #elif PPM_VERSION == PPM4
+       #elif PPM_ORDER == 4
         den = 36.0*POLY_4(16.0, -60.0, 150.0, -85.0, 15.0, i2);
 
         wp[i][-2] =  0.0;
@@ -182,7 +239,7 @@ void PPM_CoefficientsSet(Grid *grid)
                     *POLY_6(372, -1008, 510, 720, -487, -144, 105, i1);
         wp[i][ 2] = -POLY_2( 7,  9, 3, i1)/den
                     *POLY_6(12, -16, -30, 48, 23, -48, 15, i1);
-       #elif PPM_VERSION == PPM5
+       #elif PPM_ORDER == 5
         den = POLY_10(  48.0,  -48.0, -164.0, 200.0, 390.0, 
                       -399.0, -161.0,  210.0,   0.0, -35.0, 7.0, i1);
         den *= 180.0;
@@ -225,7 +282,7 @@ void PPM_CoefficientsSet(Grid *grid)
         wm[i][2]  = 2.0*POLY_2(7.0, 9.0, 3.0, i1)/den;
         wm[i][2] *= POLY_8(  12., -42.,  25., 132., -91., 
                            -122., 151., -56.,   7., i1);
-       #endif /* PPM_VERSION */
+       #endif /* PPM_ORDER */
      } else if (d == JDIR) {
    
        PPM_FindWeights(wp, wm, d, grid);
@@ -237,29 +294,45 @@ void PPM_CoefficientsSet(Grid *grid)
      }
     #endif /* GEOMETRY == SPHERICAL */
 
-  /* ------------------------------------------------------
-      Compute Q6 coefficients
-     ------------------------------------------------------ */
-
-    PPM_Q6_Coeffs(hp3D[d], hm3D[d], d, grid);
-
   } /* End main loop on dimensions */
 
+/* verify coefficients */
+/*
+static double ***wp1, ***wm1;
+if (wp1 == NULL){
+  wp1 = ArrayBox(0, DIMENSIONS-1, 0, NMAX_POINT-1, -2, 2);
+  wm1 = ArrayBox(0, DIMENSIONS-1, 0, NMAX_POINT-1, -2, 2);
+}
+  PPM_FindWeights (wp1[0], wm1[0], IDIR, grid);
+for (i = beg; i <= end; i++){
+  printf ("%d  %12.2e  %12.2e  %12.2e %12.2e\n",i,
+           fabs(wp[i][-2]-wp1[0][i][-2]),
+           fabs(wp[i][-1]-wp1[0][i][-1]),
+           fabs(wp[i][ 0]-wp1[0][i][ 0]),
+           fabs(wp[i][ 1]-wp1[0][i][ 1]),
+           fabs(wp[i][ 2]-wp1[0][i][ 2]));
+  printf ("%d  %12.2e  %12.2e  %12.2e %12.2e\n",i,
+           fabs(wm[i][-2]-wm1[0][i][-2]),
+           fabs(wm[i][-1]-wm1[0][i][-1]),
+           fabs(wm[i][ 0]-wm1[0][i][ 0]),
+           fabs(wm[i][ 1]-wm1[0][i][ 1]),
+           fabs(wm[i][ 2]-wm1[0][i][ 2]));
+
+}
+exit(1);
+*/
 }
 
-double BetaTheta(double x);
-static double gx0;
-static int    gk;
 /* ********************************************************************* */
 void PPM_FindWeights(double **wp, double **wm, int dir, Grid *grid)
 /*!
- *   Find the coefficients numerically by inverting the beta matrix
- *   We define the matrix beta[0...n][0...j] so we need to
- *   index it as beta[k][j-jb]
+ * Find the coefficients numerically by inverting the beta matrix
+ * We define the matrix beta[0...n][0...j] so we need to  index it
+ * as beta[k][j-jb]
  *
  *********************************************************************** */
 {
-  int    i, j, k, n;
+  int    i, j, k, n, grid_type;
   int    jb, je, iL, iR, beg, end;
   int    indx[16];
   double rp, rc, rm, vol, d, a[16];
@@ -269,11 +342,11 @@ void PPM_FindWeights(double **wp, double **wm, int dir, Grid *grid)
     set the reconstruction stencil & order of accuracy
    ---------------------------------------------------- */
 
-  #if PPM_VERSION == PPM3
+  #if PPM_ORDER == 3
    iL = 1; iR = 1;
-  #elif PPM_VERSION == PPM4
+  #elif PPM_ORDER == 4
    iL = 1; iR = 2;
-  #elif PPM_VERSION == PPM5
+  #elif PPM_ORDER == 5
    iL = 2; iR = 2;
   #endif
   n = iR + iL + 1;
@@ -281,118 +354,98 @@ void PPM_FindWeights(double **wp, double **wm, int dir, Grid *grid)
   beg = iL;
   end = grid[dir].np_tot - 1 - iR;
 
-  if (beta == NULL) beta = ARRAY_2D(8, 8, double);
+  if (beta == NULL) {
+    beta = ARRAY_2D(8, 8, double);
+    print1 ("> PPM_FindWeights: computing PPM coefficients\n");
+  }
+
+/* -------------------------------------------------------
+    grid_type is used to select the Jacobian J
+    of the 1D coordinate direction:
+
+    grid_type = 0  --> geometry is Cartesian (J = 1)
+    grid_type = 1  --> geometry is cylindrical in the
+                       radial coordinate (J = r)
+    grid_type = 2  --> geometry is spherical in the
+                       radial coordinate (J = r^2)
+    grid_type = -1 --> geometry is spherical in the
+                       meridional coordinate (J = sin(theta)) 
+   ------------------------------------------------------- */
+
+  grid_type = 0;  /* Default */
+  #if GEOMETRY == CYLINDRICAL || GEOMETRY == POLAR
+   if (dir == IDIR) grid_type = 1;
+  #elif GEOMETRY == SPHERICAL
+   if      (dir == IDIR) grid_type = 2;
+   else if (dir == JDIR) grid_type = -1;
+  #endif
   
-/* -----------------------------------------------------------------
-                Start main loop
-   ----------------------------------------------------------------- */
+/* -----------------------------------------------
+             Start main loop
+   ----------------------------------------------- */
 
   for (i = beg; i <= end; i++){
   
     rc = grid[dir].x[i];
     jb = i - iL; je = i + iR;
-    
-    if (dir == IDIR){
-      double m;
-      #if GEOMETRY == CARTESIAN
-       m = 0;
-      #elif GEOMETRY == CYLINDRICAL || GEOMETRY == POLAR
-       m = 1;
-      #elif GEOMETRY == SPHERICAL
-       m = 2;
-      #endif
 
-      for (j = jb; j <= je; j++){       /* -- stencil loop -- */
-        rp = grid[dir].xr[j];
-        rm = grid[dir].xl[j];
-        vol = (pow(rp,m+1) - pow(rm,m+1))/(m+1.0);
-        for (k = 0; k < n; k++) {    /* -- order loop -- */
-/*    beta[k][j-jb] = (pow(rp-ri,k+m+1) - pow(rm-ri,k+m+1))/(k+m+1.0)/vol; */
+    for (j = jb; j <= je; j++){       /* -- stencil loop -- */
+      rp = grid[dir].xr[j];
+      rm = grid[dir].xl[j];
+      switch (grid_type) {
+        case 0:
+          vol = (rp - rm);
+          for (k = 0; k < n; k++) {    /* -- order loop -- */
+            beta[k][j-jb] = (pow(rp-rc,k+1) - pow(rm-rc,k+1))/(k+1.0)/vol;
+          }
+          break;
 
-          #if GEOMETRY == CARTESIAN
-           beta[k][j-jb] = (pow(rp-rc,k+1) - pow(rm-rc,k+1))/(k+1.0)/vol;
-          #elif GEOMETRY == CYLINDRICAL || GEOMETRY == POLAR
-           beta[k][j-jb] =  pow(rp-rc,k+1)*((k+1.0)*rp + rc)
+        case 1:
+          vol = (rp*rp - rm*rm)/2.0;
+          for (k = 0; k < n; k++) {    /* -- order loop -- */
+            beta[k][j-jb] = pow(rp-rc,k+1)*((k+1.0)*rp + rc)
                            -pow(rm-rc,k+1)*((k+1.0)*rm + rc);
-           beta[k][j-jb] /= (k+2.0)*(k+1.0)*vol;
-          #elif GEOMETRY == SPHERICAL
-           beta[k][j-jb] =  pow(rp-rc,k+1)*((k*k + 3.0*k + 2.0)*rp*rp
-                                            + 2.0*rc*(k+1.0)*rp + 2.0*rc*rc)
-                           -pow(rm-rc,k+1)*((k*k + 3.0*k + 2.0)*rm*rm
-                                            + 2.0*rc*(k+1.0)*rm + 2.0*rc*rc);
+            beta[k][j-jb] /= (k+2.0)*(k+1.0)*vol;
+          }
+          break;
 
-           beta[k][j-jb] /= (k+3.0)*(k+2.0)*(k+1.0)*vol;
-          #endif
-        }
+        case 2:
+          vol = (rp*rp*rp - rm*rm*rm)/3.0;
+          for (k = 0; k < n; k++) {    /* -- order loop -- */
+            beta[k][j-jb] =  pow(rp-rc,k+1)*((k*k + 3.0*k + 2.0)*rp*rp
+                                             + 2.0*rc*(k+1.0)*rp + 2.0*rc*rc)
+                            -pow(rm-rc,k+1)*((k*k + 3.0*k + 2.0)*rm*rm
+                                             + 2.0*rc*(k+1.0)*rm + 2.0*rc*rc);
+
+            beta[k][j-jb] /= (k+3.0)*(k+2.0)*(k+1.0)*vol;
+          }
+          break;
+  
+        case -1:
+          vol  = cos(rm) - cos(rp);
+          s_x0 = rc;   
+          for (s_k = 0; s_k < n; s_k++){
+            double scrh;
+            scrh = GaussQuadrature(&BetaTheta, rm, rp, 1, 5);         
+            beta[s_k][j-jb] = scrh;         
+          }
+          beta[0][j-jb] /= vol;
+          beta[1][j-jb] /= vol;
+          beta[2][j-jb] /= vol;
+          beta[3][j-jb] /= vol;
+          beta[4][j-jb] /= vol; 
+          break;
       }
-    } else if (dir == JDIR){
-      if (n > 5) {
-        print1 ("! Order of accuracy too large for jdir in PPM_FindWeights\n");
-        QUIT_PLUTO(1);
-      }
-      for (j = jb; j <= je; j++){       /* -- stencil loop -- */
-        #if GEOMETRY == SPHERICAL
-         double zp, zm;
-         double zp2, zm2;
-         
-         rp  = grid[dir].xr[j];
-         rm  = grid[dir].xl[j];
-         vol = cos(rm) - cos(rp);
-   
-         zp = rp - rc; zp2 = zp*zp;
-         zm = rm - rc; zm2 = zm*zm;
-         
-       /* Table of integral, page 216, equation 2.635 */
-       
-         beta[0][j-jb] = vol;
-         beta[1][j-jb] =  (-zp*cos(rp) + sin(rp)) 
-                         -(-zm*cos(rm) + sin(rm));
-         beta[2][j-jb] =  ((2.0-zp2)*cos(rp) + 2.0*zp*sin(rp))
-                         -((2.0-zm2)*cos(rm) + 2.0*zm*sin(rm));
-         beta[3][j-jb] =  (zp*(6.0-zp2)*cos(rp) + 3.0*(zp2-2.0)*sin(rp))
-                         -(zm*(6.0-zm2)*cos(rm) + 3.0*(zm2-2.0)*sin(rm));
-         beta[4][j-jb] =  ((-24.0 + zp2*(12.0-zp2))*cos(rp)
-                                  + 4.0*zp*(zp2-6.0)*sin(rp))
-                         -((-24.0 + zm2*(12.0 - zm2))*cos(rm)
-                                  + 4.0*zm*(zm2-6.0)*sin(rm));
-
-gx0 = rc;
-for (gk = 0; gk < n; gk++){
-double scrh;
-scrh = GaussQuadrature(&BetaTheta, rm, rp, 1, 5);         
-/*
-if (fabs(scrh/beta[gk][j-jb]-1.0) > 1.e-4){
-  printf ("gk = %d, I = %12.6e, beta = %12.6e, err = %12.6e\n",
-           gk, scrh, beta[gk][j-jb], fabs(scrh-beta[gk][j-jb]));
-  QUIT_PLUTO(1);
-}
-*/
-beta[gk][j-jb] = scrh;         
-
-}
-
-         beta[0][j-jb] /= vol;
-         beta[1][j-jb] /= vol;
-         beta[2][j-jb] /= vol;
-         beta[3][j-jb] /= vol;
-         beta[4][j-jb] /= vol;
-
-        #else
-        #endif
-      }
-    } else {
-      print1 ("! PPM_FindWeights: not defined for x3 direction\n");
-      QUIT_PLUTO(1);
-    }  
+    }
     
+  /* ---------------------------------------
+      Solve B.w = xi^k  by LU decomposition
+     --------------------------------------- */
+
     LUDecompose(beta, n, indx, &d);
 
     rp = grid[dir].xr[i];
     rm = grid[dir].xl[i];
-
-    /* ---------------------------------------------------------
-        Solve B.w = xi^k
-       --------------------------------------------------------- */
        
     a[0] = 1.0;
     for (k = 1; k < n; k++) a[k] = a[k-1]*(rp - rc);
@@ -408,7 +461,7 @@ beta[gk][j-jb] = scrh;
       wp[i][-iL+j] = a[j];
     }
 
-    #if PPM_VERSION != PPM4
+    #if PPM_ORDER != 4
      a[0] = 1.0;
      for (k = 1; k < n; k++) a[k] = a[k-1]*(rm - rc);
      LUBackSubst (beta, n, indx, a);
@@ -437,7 +490,7 @@ void PPM_CartCoeff(double **wp, double **wm, int beg, int end)
   int i;
   
   for (i = beg; i <= end; i++){
-    #if PPM_VERSION == PPM3 
+    #if PPM_ORDER == 3 
      wp[i][-2] =  0.0;
      wp[i][-1] = -1.0/6.0;
      wp[i][ 0] =  5.0/6.0;
@@ -449,13 +502,13 @@ void PPM_CartCoeff(double **wp, double **wm, int beg, int end)
      wm[i][ 0] =  5.0/6.0;
      wm[i][ 1] = -1.0/6.0;
      wm[i][ 2] =  0.0;
-    #elif PPM_VERSION == PPM4
+    #elif PPM_ORDER == 4
      wp[i][-2] =  0.0;
      wp[i][-1] = -1.0/12.0;
      wp[i][ 0] =  7.0/12.0;
      wp[i][ 1] =  7.0/12.0;
      wp[i][ 2] = -1.0/12.0;
-    #elif PPM_VERSION == PPM5
+    #elif PPM_ORDER == 5
      wp[i][-2] =   1.0/30.0;
      wp[i][-1] = -13.0/60.0;
      wp[i][ 0] =  47.0/60.0;
@@ -473,7 +526,7 @@ void PPM_CartCoeff(double **wp, double **wm, int beg, int end)
 
 double BetaTheta(double x)
 {
-  return pow(x - gx0, gk)*sin(x);
+  return pow(x - s_x0, s_k)*sin(x);
 }
 
 /* ********************************************************************* */
@@ -548,15 +601,14 @@ void PPM_CoefficientsGet(PPM_Coeffs *ppm_coeffs, int dir)
  *          direction given by ::g_dir.
  *********************************************************************** */
 {
-  if (Wp3D == NULL) {
+  if (s_Wp3D == NULL) {
     print1 ("! PPM_Coefficients: coefficients not set.\n");
     QUIT_PLUTO(1);
   }
 
-  ppm_coeffs->wp = Wp3D[dir];
-  ppm_coeffs->wm = Wm3D[dir];
+  ppm_coeffs->wp = s_Wp3D[dir];
+  ppm_coeffs->wm = s_Wm3D[dir];
 
-  ppm_coeffs->hp = hp3D[dir];
-  ppm_coeffs->hm = hm3D[dir];
-
+  ppm_coeffs->hp = s_hp3D[dir];
+  ppm_coeffs->hm = s_hm3D[dir];
 }

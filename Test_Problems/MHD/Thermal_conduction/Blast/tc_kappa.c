@@ -13,7 +13,7 @@ void TC_kappa(double *v, double x1, double x2, double x3,
   *kpar = 5.6e-7*T*T*sqT;
 
   #if PHYSICS == MHD
-   nH      = v[DN]*UNIT_DENSITY/(mu*CONST_mp);
+   nH      = v[RHO]*UNIT_DENSITY/(mu*CONST_mp);
    B2_cgs  = EXPAND(v[BX1]*v[BX1], + v[BX2]*v[BX2], + v[BX3]*v[BX3]) + 1.e-12;
    B2_cgs *= 4.0*CONST_PI*UNIT_DENSITY*UNIT_VELOCITY*UNIT_VELOCITY;
    *knor   = 3.3e-16*nH*nH/sqT/B2_cgs;

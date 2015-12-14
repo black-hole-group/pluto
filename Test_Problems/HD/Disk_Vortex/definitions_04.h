@@ -4,12 +4,11 @@
 #define  GEOMETRY                POLAR
 #define  BODY_FORCE              VECTOR
 #define  COOLING                 NO
-#define  INTERPOLATION           LINEAR
+#define  RECONSTRUCTION          LINEAR
 #define  TIME_STEPPING           HANCOCK
 #define  DIMENSIONAL_SPLITTING   YES
 #define  NTRACER                 0
 #define  USER_DEF_PARAMETERS     3
-#define  USER_DEF_CONSTANTS      0
 
 /* -- physics dependent declarations -- */
 
@@ -25,17 +24,18 @@
 #define  HSCALE                  1
 #define  MACH                    2
 
-/* -- user-defined symbolic constants -- */
+/* [Beg] user-defined constants (do not change this line) */
 
+
+/* [End] user-defined constants (do not change this line) */
 
 /* -- supplementary constants (user editable) -- */ 
 
-#define  INITIAL_SMOOTHING      NO
-#define  WARNING_MESSAGES       YES
-#define  PRINT_TO_FILE          YES
-#define  INTERNAL_BOUNDARY      NO
-#define  SHOCK_FLATTENING       NO
-#define  ARTIFICIAL_VISCOSITY   NO
-#define  CHAR_LIMITING          NO
-#define  LIMITER                MC_LIM
-#define  PRIMITIVE_HANCOCK      YES
+#define  INITIAL_SMOOTHING   NO
+#define  WARNING_MESSAGES    YES
+#define  PRINT_TO_FILE       YES
+#define  INTERNAL_BOUNDARY   NO
+#define  SHOCK_FLATTENING    NO
+#define  CHAR_LIMITING       NO
+#define  LIMITER             MC_LIM
+#define  PRIMITIVE_HANCOCK   YES

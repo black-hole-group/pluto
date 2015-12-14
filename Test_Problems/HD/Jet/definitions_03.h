@@ -4,12 +4,11 @@
 #define  GEOMETRY                CYLINDRICAL
 #define  BODY_FORCE              NO
 #define  COOLING                 NO
-#define  INTERPOLATION           LINEAR
+#define  RECONSTRUCTION          LINEAR
 #define  TIME_STEPPING           RK2
 #define  DIMENSIONAL_SPLITTING   NO
 #define  NTRACER                 0
 #define  USER_DEF_PARAMETERS     3
-#define  USER_DEF_CONSTANTS      5
 
 /* -- physics dependent declarations -- */
 
@@ -25,7 +24,7 @@
 #define  MACH                    1
 #define  TJET                    2
 
-/* -- user-defined symbolic constants -- */
+/* [Beg] user-defined constants (do not change this line) */
 
 #define  PV_TEMPERATURE_TABLE    YES
 #define  TV_ENERGY_TABLE         YES
@@ -33,13 +32,14 @@
 #define  UNIT_LENGTH             2.5e15
 #define  UNIT_VELOCITY           1.e5
 
+/* [End] user-defined constants (do not change this line) */
+
 /* -- supplementary constants (user editable) -- */ 
 
-#define  INITIAL_SMOOTHING      NO
-#define  WARNING_MESSAGES       NO
-#define  PRINT_TO_FILE          YES
-#define  INTERNAL_BOUNDARY      NO
-#define  SHOCK_FLATTENING       NO
-#define  ARTIFICIAL_VISCOSITY   NO
-#define  CHAR_LIMITING          NO
-#define  LIMITER                OSPRE_LIM
+#define  INITIAL_SMOOTHING   NO
+#define  WARNING_MESSAGES    NO
+#define  PRINT_TO_FILE       YES
+#define  INTERNAL_BOUNDARY   NO
+#define  SHOCK_FLATTENING    NO
+#define  CHAR_LIMITING       NO
+#define  LIMITER             OSPRE_LIM

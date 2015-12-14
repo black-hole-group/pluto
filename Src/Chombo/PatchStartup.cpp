@@ -21,6 +21,7 @@ void PatchPluto::startup(FArrayBox& a_U)
   double ***UU[NVAR];
   Grid   grid[3];
   Box curBox = a_U.box();
+  RBox tbox;
 
   FArrayBox dV(curBox,CHOMBO_NDV);
 
@@ -58,19 +59,24 @@ void PatchPluto::startup(FArrayBox& a_U)
           BXb = BX3;)
   #endif
 
+  tbox.ib = 0; tbox.ie = nxtot-1;
+  tbox.jb = 0; tbox.je = nytot-1;
+  tbox.kb = 0; tbox.ke = nztot-1;
+  
 /* --------------------------------------------------------------
                     Assign initial conditions
    -------------------------------------------------------------- */
 
-  for (k = 0; k < nztot; k++) { x3 = grid[KDIR].x[k];
-  for (j = 0; j < nytot; j++) { x2 = grid[JDIR].x[j];
-  for (i = 0; i < nxtot; i++) { x1 = grid[IDIR].x[i];
+  BOX_LOOP(&tbox,k,j,i){
+    x3 = grid[KDIR].x[k];
+    x2 = grid[JDIR].x[j];
+    x1 = grid[IDIR].x[i];
 
     for (nv = 0; nv < NVAR; nv++)  UU[nv][k][j][i] = u_av[nv] = 0.0;
     
-    #ifdef GLM_MHD
-     u_av[PSI_GLM] = us[PSI_GLM] = 0.0;
-    #endif
+#ifdef GLM_MHD
+    u_av[PSI_GLM] = us[PSI_GLM] = 0.0;
+#endif
 
 /*  ----------------------------------------------------------------
                 Compute volume averages
@@ -103,11 +109,11 @@ void PatchPluto::startup(FArrayBox& a_U)
     #if (PHYSICS == MHD || PHYSICS == RMHD) 
      #if ASSIGN_VECTOR_POTENTIAL == YES
       VectorPotentialDiff(b, i, j, k, grid);
-      for (nv = 0; nv < DIMENSIONS; nv++) UU[BX+nv][k][j][i] = b[nv];
+      for (nv = 0; nv < DIMENSIONS; nv++) UU[BX1+nv][k][j][i] = b[nv];
      #endif  /* ASSIGN_VECTOR_POTENTIAL */
     #endif /* PHYSICS == MHD || PHYSICS == RMHD */
 
-  }}}
+  }
 
 /* --------------------------------------------------------------------
      Convert primitive variables to conservative ones
@@ -133,7 +139,7 @@ void PatchPluto::startup(FArrayBox& a_U)
          QUIT_PLUTO(1);
        }
       #endif
-      #if (PHYSICS == RHD && USE_FOUR_VELOCITY == NO) || PHYSICS == RMHD
+      #if (PHYSICS == RHD) || (PHYSICS == RMHD)
        scrh = EXPAND(us[VX1]*us[VX1], + us[VX2]*us[VX2], + us[VX3]*us[VX3]);
        if (scrh >= 1.0){
          print ("! startup: total velocity exceeds 1\n"); 
@@ -148,22 +154,14 @@ void PatchPluto::startup(FArrayBox& a_U)
       UU[nv][k][j][i] = ucons[i][nv];
     }}
 
-    #if ENTROPY_SWITCH == YES
-     Entropy(uprim, UU[ENTR][k][j], 0, nxtot-1);  /* -- primitive: s -- */
-     for (i = 0; i < nxtot; i++) {
-       UU[ENTR][k][j][i] *= UU[RHO][k][j][i];   /* -- conservative: s*D -- */
-     }
-    #endif
+#if ENTROPY_SWITCH
+    Entropy(uprim, UU[ENTR][k][j], 0, nxtot-1);  /* -- primitive: s -- */
+    for (i = 0; i < nxtot; i++) {
+      UU[ENTR][k][j][i] *= UU[RHO][k][j][i];   /* -- conservative: s*D -- */
+    }
+#endif
 
   }}
-
-/* ----------------------------------------------------------
-     Convert total energy. 
-   ---------------------------------------------------------- */
-
-  #if CHOMBO_EN_SWITCH == YES
-   totEnergySwitch (UU, 0, nxtot-1, 0, nytot-1, 0, nztot-1, -1);
-  #endif
 
 /* --------------------------------------------------
      Pass U*dV/m_dx^3 to the library

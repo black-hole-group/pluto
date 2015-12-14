@@ -20,19 +20,9 @@ void MaxSignalSpeed (double **v, double *cs2,
 
     q = v[i];
     
-    #if USE_FOUR_VELOCITY == YES
-     vt2   = EXPAND(0.0, + q[VXt]*q[VXt], + q[VXb]*q[VXb]);
-     vel2  = q[VXn]*q[VXn] + vt2;  /* = U^2  */
-     sroot = 1.0/(1.0 + vel2);   /* =  1.0/gamma^2   */
-
-     vx    = q[VXn]*sqrt(sroot);
-     vt2  *= sroot;
-     vel2 *= sroot;   /* = v^2  */
-    #else
-     vx   = q[VXn];
-     vt2  = EXPAND(0.0, + q[VXt]*q[VXt], + q[VXb]*q[VXb]);
-     vel2 = vx*vx + vt2;
-    #endif
+    vx   = q[VXn];
+    vt2  = EXPAND(0.0, + q[VXt]*q[VXt], + q[VXb]*q[VXb]);
+    vel2 = vx*vx + vt2;
 
     sroot = sqrt(cs2[i]*(1.0 - vx*vx - vt2*cs2[i])*(1.0 - vel2)); 
    
@@ -69,8 +59,7 @@ void PrimEigenvectors (double *q, double cs2, double h, double lambda[],
  *  NOTE: only non-zero components of LL and RR are computed; 
  *        RR and LL must be initialized to zero outside.
  *
- ******************************************************************** */
-
+ *********************************************************************** */
 {
   int    nv, kk,ii,jj, ll;
   real   cs, g, g2, g3, eta;
@@ -81,7 +70,7 @@ void PrimEigenvectors (double *q, double cs2, double h, double lambda[],
   real Aw1[NFLX], Aw0[NFLX], AA[NFLX][NFLX];
 #endif
 
-  #if USE_FOUR_VELOCITY == YES
+  #if RECONSTRUCT_4VEL
 
   /* --------------------------------------------
       compute Lorentz factor
@@ -131,7 +120,7 @@ void PrimEigenvectors (double *q, double cs2, double h, double lambda[],
   a = cs*eta/D;
   b = h*cs2;
 
-  #if USE_FOUR_VELOCITY == NO
+  #if RECONSTRUCT_4VEL == NO
 
   /* ======================================================
             RIGHT EIGENVECTORS, for three-vel
@@ -200,7 +189,7 @@ void PrimEigenvectors (double *q, double cs2, double h, double lambda[],
 
    #endif
 
-  #elif USE_FOUR_VELOCITY == YES
+  #elif RECONSTRUCT_4VEL == YES
 
 /* ======================================================
                 RIGHT EIGENVECTORS for four-vel
@@ -374,7 +363,7 @@ void PrimEigenvectors (double *q, double cs2, double h, double lambda[],
 }
 
 
-/* ********************************************************** */
+/* ***************************************************************** */
 void PrimToChar (double **L, double *v, double *w)
 /*
  *
@@ -386,11 +375,11 @@ void PrimToChar (double **L, double *v, double *w)
  *  of the left primitive eigenvectors are considered.
  *  
  *
- ************************************************************ */
+ ****************************************************************** */
 {
   int nv;
 
-  #if USE_FOUR_VELOCITY == NO
+  #if RECONSTRUCT_4VEL == NO
 
    w[0] = L[0][VXn]*v[VXn] + L[0][PRS]*v[PRS];
    w[1] = L[1][VXn]*v[VXn] + L[1][PRS]*v[PRS];
@@ -398,8 +387,8 @@ void PrimToChar (double **L, double *v, double *w)
            w[3] = L[3][VXn]*v[VXn] + v[VXt] + L[3][PRS]*v[PRS];   ,
            w[4] = L[4][VXn]*v[VXn] + v[VXb] + L[4][PRS]*v[PRS];)
 
-  #elif USE_FOUR_VELOCITY == YES
-
+  #elif RECONSTRUCT_4VEL == YES
+ 
    w[0] = EXPAND(  L[0][VXn]*v[VXn],
                  + L[0][VXt]*v[VXt],
                  + L[0][VXb]*v[VXb]) + L[0][PRS]*v[PRS];
@@ -423,16 +412,13 @@ void PrimToChar (double **L, double *v, double *w)
 
   #endif
 
+/* ----------------------------------------------- 
+     For passive scalars, the characteristic 
+     variable is equal to the primitive one, 
+     since  l = r = (0,..., 1 , 0 ,....)
+    ----------------------------------------------- */		   
 
-  /* ----------------------------------------------- 
-       For passive scalars, the characteristic 
-       variable is equal to the primitive one, 
-       since  l = r = (0,..., 1 , 0 ,....)
-     ----------------------------------------------- */		   
-
-  #if NFLX != NVAR
-   for (nv = NFLX; nv < NVAR; nv++){
-     w[nv] = v[nv];
-   }
-  #endif   
+#if NSCL > 0 
+  NSCL_LOOP(nv) w[nv] = v[nv];
+#endif   
 }

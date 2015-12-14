@@ -58,17 +58,17 @@
   A list of the available configurations is given in the following table:
 
   <CENTER>
-  Conf.| GEOMETRY  |DIM| T. STEPPING|INTERPOLATION|divB|  AMR
-  -----|-----------|---|----------- | ------------| ---|-------
-   #01 |CARTESIAN  | 2 |  RK2       |  LINEAR     | CT | NO
-   #02 |CARTESIAN  | 2 |  ChTr      |  LINEAR     | CT | NO    
-   #03 |CARTESIAN  | 2 |  HANCOCK   |  LINEAR     | 8W | NO    
-   #04 |CARTESIAN  | 3 |  ChTr      | LINEAR      | CT | NO
-   #05 |CARTESIAN  | 3 |  RK3       | LINEAR      | CT | NO    
-   #06 |CARTESIAN  | 3 | ChTr       | LINEAR      | GLM| NO    
-   #07 |CARTESIAN  | 3 |  RK3       | WENO3_FD    | GLM| NO    
-   #08 |CARTESIAN  | 3 | HANCOK     | LINEAR      | GLM| YES
-   #09 |CARTESIAN  | 2 |  RK2       | LINEAR      | CT | NO 
+  Conf.| GEOMETRY  |DIM| T. STEPPING|RECONSTRUCTION|divB|  AMR
+  -----|-----------|---|------------|--------------| ---|-------
+   #01 |CARTESIAN  | 2 |  RK2       |  LINEAR      | CT | NO
+   #02 |CARTESIAN  | 2 |  ChTr      |  LINEAR      | CT | NO    
+   #03 |CARTESIAN  | 2 |  HANCOCK   |  LINEAR      | 8W | NO    
+   #04 |CARTESIAN  | 3 |  ChTr      |  LINEAR      | CT | NO
+   #05 |CARTESIAN  | 3 |  RK3       |  LINEAR      | CT | NO    
+   #06 |CARTESIAN  | 3 | ChTr       |  LINEAR      | GLM| NO    
+   #07 |CARTESIAN  | 3 |  RK3       |  WENO3_FD    | GLM| NO    
+   #08 |CARTESIAN  | 3 | HANCOK     |  LINEAR      | GLM| YES
+   #09 |CARTESIAN  | 2 |  RK2       |  LINEAR      | CT | NO 
   </CENTER>
 
   \image html mhd_shock_cloud.02.jpg "Density map with overplotted field lines for configuration #02"

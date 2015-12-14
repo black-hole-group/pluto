@@ -118,6 +118,11 @@ void Init (double *us, double x1, double x2, double x3)
    g_isoSoundSpeed = CONST_PI*0.1;
   #endif
 
+#if DUST == YES
+  us[RHO_D] = 1.e-4;
+  us[VX1_D] = us[VX2_D] = us[VX3_D] = 0.0;
+  us[VX2_D] = us[iVPHI];
+#endif
 }
 /* ********************************************************************* */
 void Analysis (const Data *d, Grid *grid)
@@ -153,9 +158,7 @@ void UserDefBoundary (const Data *d, RBox *box, int side, Grid *grid)
 
   if (side == X1_BEG){
     X1_BEG_LOOP(k,j,i){
-      for (nv = 0; nv < NVAR; nv++){
-        d->Vc[nv][k][j][i] = d->Vc[nv][k][j][2*IBEG - i - 1];
-      }
+      NVAR_LOOP(nv) d->Vc[nv][k][j][i] = d->Vc[nv][k][j][2*IBEG - i - 1];
       d->Vc[VX1][k][j][i] *= -1.0;
       #if GEOMETRY == POLAR
        R = x1[i];
@@ -164,14 +167,16 @@ void UserDefBoundary (const Data *d, RBox *box, int side, Grid *grid)
       #endif
       OmegaK = 2.0*CONST_PI/(R*sqrt(R));
       d->Vc[iVPHI][k][j][i] = R*(OmegaK - g_OmegaZ);
+#if DUST == YES      
+//      NDUST_LOOP(nv) d->Vc[nv][k][j][i] = 0.0;
+      d->Vc[VX2_D][k][j][i] = d->Vc[iVPHI][k][j][i];
+#endif      
     }
   }
 
   if (side == X1_END){
     X1_END_LOOP(k,j,i){
-      for (nv = 0; nv < NVAR; nv++){
-        d->Vc[nv][k][j][i] = d->Vc[nv][k][j][IEND];
-      }
+      NVAR_LOOP(nv)  d->Vc[nv][k][j][i] = d->Vc[nv][k][j][IEND];
       #if GEOMETRY == POLAR
        R = x1[i];
 //       d->Vc[iVR][k][j][i] = 0.0;
@@ -182,6 +187,10 @@ void UserDefBoundary (const Data *d, RBox *box, int side, Grid *grid)
       #endif
       OmegaK = 2.0*CONST_PI/(R*sqrt(R));
       d->Vc[iVPHI][k][j][i] = R*(OmegaK - g_OmegaZ);
+#if DUST == YES      
+      d->Vc[VX2_D][k][j][i] = d->Vc[iVPHI][k][j][i];
+#endif      
+ 
     }
   }
 }

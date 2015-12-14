@@ -7,7 +7,7 @@
   reconstructed velocity values exceeds one.
 
   \authors A. Mignone (mignone@ph.unito.it)
-  \date    Dec 11, 2013
+  \date    June 11, 2015
 */
 /* ///////////////////////////////////////////////////////////////////// */
 #include"pluto.h"
@@ -20,7 +20,7 @@ void VelocityLimiter (double *v, double *vp, double *vm)
  *
  *********************************************************************** */
 {
-  #if USE_FOUR_VELOCITY == NO && COMPONENTS > 1
+#if RECONSTRUCT_4VEL == NO && COMPONENTS > 1
    int    nv;
    double v2m, v2p;
 
@@ -29,5 +29,5 @@ void VelocityLimiter (double *v, double *vp, double *vm)
    if (v2m >= 1.0 || v2p >= 1.0){
      for (nv = NVAR; nv--;  ) vm[nv] = vp[nv] = v[nv];  
    }
-  #endif
+#endif
 }

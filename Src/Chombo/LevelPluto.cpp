@@ -74,7 +74,7 @@ void LevelPluto::define(const DisjointBoxLayout&  a_thisDisjointBoxLayout,
     }
 
  // Determing the number of ghost cells necessary here
-  m_numGhost = GetNghost(NULL);
+  m_numGhost = GetNghost();
 
   m_patchPluto = a_patchPlutoFactory->new_patchPluto();
   m_patchPluto->define(m_domain,m_dx,m_level,m_numGhost);
@@ -283,12 +283,14 @@ Real LevelPluto::step(LevelData<FArrayBox>&       a_U,
     NX2_TOT = grid[JDIR].np_tot;
     NX3_TOT = grid[KDIR].np_tot;
  
+    SetRBox();  /* RBox structures must be redefined for each patch */
+
     g_dt   = a_dt;
     g_time = a_time;
     g_maxRiemannIter = 0;
     PLM_CoefficientsSet (grid);  /* -- these may be needed by
                                        shock flattening algorithms */
-    #if INTERPOLATION == PARABOLIC
+    #if RECONSTRUCTION == PARABOLIC
      PPM_CoefficientsSet (grid);  
     #endif
     
@@ -301,9 +303,9 @@ Real LevelPluto::step(LevelData<FArrayBox>&       a_U,
     Dts.cfl     = a_cfl;
     Where(-1, grid); /* -- store grid for subsequent calls -- */
 
-    // updateSolution!!!!! Finally...
-    m_patchPluto->updateSolution(curU, curUtmp, curdV, split_tags, flags, flux,
-                                 &Dts, curBox, grid);
+    // Take one step
+    m_patchPluto->advanceStep (curU, curUtmp, curdV, split_tags, flags, flux,
+                               &Dts, curBox, grid);
  
     inv_dt = Dts.inv_dta + 2.0*Dts.inv_dtp;
     maxWaveSpeed = Max(maxWaveSpeed, inv_dt); // Now the inverse of the timestep

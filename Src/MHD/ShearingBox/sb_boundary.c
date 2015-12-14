@@ -43,7 +43,7 @@ void SB_Boundary (const Data *d, int side, Grid *grid)
   RBox   box;
 
   Lx    = g_domEnd[IDIR] - g_domBeg[IDIR];
-  sb_vy = fabs(2.0*sb_A*Lx);
+  sb_vy = fabs(2.0*SB_A*Lx);
 
 {
 t = g_time;

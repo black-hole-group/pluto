@@ -148,11 +148,6 @@ void GLM_Source (const Data_Arr Q, double dt, Grid *grid)
   int    i,j,k;
   double cr, cp, scrh;
   double dx, dy, dz, dtdx;
-  double alpha = 0.1;  /* -- default value -- */
-
-  #ifdef ALPHA_GLM
-   alpha = g_inputParam[ALPHA_GLM];
-  #endif
 
   #ifdef CHOMBO
    dtdx = dt;
@@ -161,8 +156,8 @@ void GLM_Source (const Data_Arr Q, double dt, Grid *grid)
    dtdx = dt/dx;
   #endif
 
-  cp   = sqrt(dx*glm_ch/alpha);
-  scrh = dtdx*glm_ch*alpha; /* CFL*g_inputParam[ALPHA]; */
+  cp   = sqrt(dx*glm_ch/GLM_ALPHA);
+  scrh = dtdx*glm_ch*GLM_ALPHA; /* CFL*g_inputParam[ALPHA]; */
 
   scrh = exp(-scrh);
   DOM_LOOP(k,j,i) Q[PSI_GLM][k][j][i] *= scrh;
@@ -170,12 +165,12 @@ void GLM_Source (const Data_Arr Q, double dt, Grid *grid)
 }
 
 /* ********************************************************************* */
-void EGLM_Source (const State_1D *state, double dt,
-                  int beg, int end, Grid *grid)
+void GLM_ExtendedSource (const State_1D *state, double dt,
+                         int beg, int end, Grid *grid)
 /*!
  * Add source terms to the right hand side of the conservative equations, 
  * momentum and energy equations only. 
- * This yields the extended GLM (EGLM) given by Eq. (24a)--(24c) in 
+ * This yields the extended GLM equations given by Eq. (24a)--(24c) in 
  *
  * "Hyperbolic Divergence cleaning for the MHD Equations"
  * Dedner et al. (2002), JcP, 175, 645
@@ -293,7 +288,6 @@ void EGLM_Source (const State_1D *state, double dt,
   #endif
 
   #if BACKGROUND_FIELD == YES
-   print1 ("! EGLM_Source: not tested with background field splittin\n");
    bgf = GetBackgroundField (beg - 1, end, CELL_CENTER, grid);
   #endif
 

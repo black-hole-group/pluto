@@ -99,17 +99,17 @@
 
   The jet problem has been tested using a variety of configurations, namely:
   <CENTER>
-  Conf.| GEOMETRY  |DIM| T. STEPPING|INTERPOLATION|divB| EOS    | COOLING
-  -----|-----------|---|----------- | ------------| ---|--------|--------
-   #01 |CYLINDRICAL| 2 |  RK2       | LINEAR      | CT | IDEAL  |   NO
-   #02 |CYLINDRICAL| 2 |  HANCOCK   | LINEAR      | CT | IDEAL  |   NO 
-   #03 |CYLINDRICAL| 2 |  ChTr      | PARABOLIC   | CT | IDEAL  |   NO 
-   #04 |CYLINDRICAL|2.5|  RK2       | LINEAR      |NONE| IDEAL  |   NO
-   #05 |CYLINDRICAL|2.5|  RK2       | LINEAR      | CT | IDEAL  |   NO 
-   #06 |CYLINDRICAL|2.5|  RK2       | LINEAR      | CT |PVTE_LAW|   NO 
-   #07 |CYLINDRICAL|2.5|  ChTr      | PARABOLIC   |NONE| IDEAL  |   SNEq    
-   #08 |CYLINDRICAL|2.5|  ChTr      | PARABOLIC   |NONE| IDEAL  |   MINEq
-   #09 |CYLINDRICAL|2.5|  ChTr      | PARABOLIC   |NONE| IDEAL  |   H2_COOL
+  Conf.| GEOMETRY  |DIM| T. STEPPING|RECONSTRUCTION|divB| EOS    | COOLING
+  -----|-----------|---|----------- |--------------| ---|--------|--------
+   #01 |CYLINDRICAL| 2 |  RK2       |  LINEAR      | CT | IDEAL  |   NO
+   #02 |CYLINDRICAL| 2 |  HANCOCK   |  LINEAR      | CT | IDEAL  |   NO 
+   #03 |CYLINDRICAL| 2 |  ChTr      |  PARABOLIC   | CT | IDEAL  |   NO 
+   #04 |CYLINDRICAL|2.5|  RK2       |  LINEAR      |NONE| IDEAL  |   NO
+   #05 |CYLINDRICAL|2.5|  RK2       |  LINEAR      | CT | IDEAL  |   NO 
+   #06 |CYLINDRICAL|2.5|  RK2       |  LINEAR      | CT |PVTE_LAW|   NO 
+   #07 |CYLINDRICAL|2.5|  ChTr      |  PARABOLIC   |NONE| IDEAL  |   SNEq    
+   #08 |CYLINDRICAL|2.5|  ChTr      |  PARABOLIC   |NONE| IDEAL  |   MINEq
+   #09 |CYLINDRICAL|2.5|  ChTr      |  PARABOLIC   |NONE| IDEAL  |   H2_COOL
   </CENTER>
   Here 2.5 is a short-cut for to 2 dimensions and 3 components.
 
@@ -132,8 +132,8 @@
 void GetJetValues    (double, double *);
 static double Profile (double, double);
 
-static double a = 0.8;  /* -- magnetization radius -- */
-static double Ta, pa,mua;       /* -- ambient pressure -- */
+static double a = 0.8;      /* -- Magnetization radius -- */
+static double Ta, pa,mua;   /* -- Ambient pressure -- */
 
 /* ********************************************************************* */
 void Init (double *v, double x1, double x2, double x3)
@@ -148,20 +148,20 @@ void Init (double *v, double x1, double x2, double x3)
   
   v[RHO] = 1.0;
   v[VX1] = v[VX2] = v[VX3] = 0.0;
-  #if COOLING == NO
+#if COOLING == NO
    v[PRS] = pa = 0.6;
    /* v[PRS] = Pressure(v, Ta); */
+#else
+  #if COOLING == H2_COOL
+   Ta = 100.0;  /* Ambient temperature for molecular cooling  */
   #else
-   #if COOLING == H2_COOL
-    Ta = 100.0;  /* Ambient temperature for molecular cooling  */
-   #else
-    Ta = 2500.0; /* Ambient temperature for atomic cooling  */
-   #endif
-   if (first_call) CompEquil(nH, Ta, veq);
-   for (nv = NFLX; nv < NFLX + NIONS; nv++) v[nv] = veq[nv];
-   mua    = MeanMolecularWeight(v);
-   v[PRS] = pa = Ta*v[RHO]/(KELVIN*mua);
+   Ta = 2500.0; /* Ambient temperature for atomic cooling  */
   #endif
+  if (first_call) CompEquil(nH, Ta, veq);
+  for (nv = NFLX; nv < NFLX + NIONS; nv++) v[nv] = veq[nv];
+  mua    = MeanMolecularWeight(v);
+  v[PRS] = pa = Ta*v[RHO]/(KELVIN*mua);
+#endif
 
   EXPAND(v[BX1] = 0.0;                                ,   
          v[BX2] = sqrt(2.0*g_inputParam[SIGMA_Z]*pa); ,
@@ -172,13 +172,13 @@ void Init (double *v, double x1, double x2, double x3)
 
   v[TRC] = 0.0;
 
-  #if COOLING == H2_COOL
-   g_minCoolingTemp = 10.0;
-   g_maxCoolingRate = 0.1;
-  #else
-   g_minCoolingTemp = 2500.0;
-   g_maxCoolingRate = 0.2;
-  #endif
+#if COOLING == H2_COOL
+  g_minCoolingTemp = 10.0;
+  g_maxCoolingRate = 0.1;
+#else
+  g_minCoolingTemp = 2500.0;
+  g_maxCoolingRate = 0.2;
+#endif
   g_smallPressure  = 1.e-3;
 
   first_call = 0;
@@ -311,6 +311,7 @@ void GetJetValues (double R, double *vj)
     for (nv = NFLX; nv < NFLX+NIONS; nv++) vj[nv] = veq[nv];
   #endif
   first_call = 0;
+
 }
 
 /* ********************************************************************* */

@@ -76,16 +76,16 @@ HEADERS += AMRLevelPlutoFactory.H AMRLevelPluto.H
 HEADERS += LevelPluto.H PatchPluto.H PatchGrid.H
 
 OBJ = adv_flux.o arrays.o boundary.o check_states.o cmd_line_opt.o \
-      entropy_switch.o findshock.o flag.o flatten.o \
-      get_nghost.o init.o int_bound_reset.o input_data.o   \
-      parse_file.o plm_coeffs.o set_indexes.o set_geometry.o set_grid.o setup.o \
+      entropy_switch.o flag_shock.o flatten.o get_nghost.o \
+      init.o int_bound_reset.o input_data.o   \
+      mappers3D.o mean_mol_weight.o \
+      parse_file.o plm_coeffs.o rbox.o runtime_setup.o  \
+      set_indexes.o set_geometry.o set_grid.o  \
       show_config.o split_source.o tools.o var_names.o 
 
 OBJ += AMRLevelPluto.o AMRLevelPlutoFactory.o amrPluto.o LevelPluto.o \
        PatchPluto.o PatchStartup.o PatchTools.o TagCells.o 
          
-OBJ += update_stage.o
-
 include $(SRC)/Math_Tools/makefile
 
 -include local_make

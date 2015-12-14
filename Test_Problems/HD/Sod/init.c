@@ -40,7 +40,7 @@
 #include "pluto.h"
 
 /* ********************************************************************* */
-void Init (double *us, double x1, double x2, double x3)
+void Init (double *v, double x1, double x2, double x3)
 /*
  *
  *********************************************************************** */
@@ -50,14 +50,14 @@ void Init (double *us, double x1, double x2, double x3)
   #endif
 
   if (fabs(x1) < 0.5) {
-    us[RHO] = 1.0;
-    us[PRS] = 1.0;
+    v[RHO] = 1.0;
+    v[PRS] = 1.0;
   }else{
-    us[RHO] = 0.125;
-    us[PRS] = 0.1;
+    v[RHO] = 0.125;
+    v[PRS] = 0.1;
   }
+  v[VX1] = 0.0;
 
-  us[VX1] = 0.0;
 }
 /* ********************************************************************* */
 void Analysis (const Data *d, Grid *grid)

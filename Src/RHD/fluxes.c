@@ -14,7 +14,7 @@
     (tangent \c "t" and bi-tangent \c "b").
 
  \author A. Mignone (mignone@ph.unito.it)
- \date   Aug 16, 2012
+ \date   July 5, 2015
 */
 /* ///////////////////////////////////////////////////////////////////// */
 #include "pluto.h"
@@ -32,15 +32,7 @@ void Flux (double **u, double **v, double *a2, double **fx,
   double vn;
 
   for (i = beg ; i <= end; i++) {
-    #if USE_FOUR_VELOCITY == YES
-     vn = EXPAND( v[i][VXn]*v[i][VXn], 
-                + v[i][VXt]*v[i][VXt],
-                + v[i][VXb]*v[i][VXb]);
-
-     vn = v[i][VXn]/sqrt(1.0 + vn);
-    #else  
-     vn = v[i][VXn];
-    #endif
+    vn = v[i][VXn];
 
     fx[i][RHO]  = u[i][RHO]*vn;
     EXPAND(fx[i][MX1] = u[i][MX1]*vn;  ,

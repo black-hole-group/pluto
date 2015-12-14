@@ -82,7 +82,7 @@ void Init (double *us, double x1, double x2, double x3)
   }else{
      us[PRS] = us[RHO]*Tc/T0*pow( (1.0 - x1*x1/xf/xf) ,0.4);
   }
-  us[TR] = 0.0;
+  us[TRC] = 0.0;
   
   #if PHYSICS == MHD
    us[BX1] = 1.0;
@@ -131,7 +131,7 @@ void Init (double *us, double x1, double x2, double x3)
   }else{
      us[PRS] = us[RHO]*Tc/T0*pow( (1.0 - x*x/xf/xf) ,0.4);
   }
-  us[TR] = 0.0;
+  us[TRC] = 0.0;
 #endif
 }
 

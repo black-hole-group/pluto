@@ -6,15 +6,15 @@
   <head>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
     
-    <title>Viewing the Data &mdash; pyPLUTO 4-2.0 documentation</title>
+    <title>Viewing the Data &mdash; pyPLUTO 4.2 documentation</title>
     
-    <link rel="stylesheet" href="_static/nature.css" type="text/css" />
+    <link rel="stylesheet" href="_static/alabaster.css" type="text/css" />
     <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
     
     <script type="text/javascript">
       var DOCUMENTATION_OPTIONS = {
         URL_ROOT:    './',
-        VERSION:     '4-2.0',
+        VERSION:     '4.2',
         COLLAPSE_INDEX: false,
         FILE_SUFFIX: '.html',
         HAS_SOURCE:  true
@@ -23,46 +23,30 @@
     <script type="text/javascript" src="_static/jquery.js"></script>
     <script type="text/javascript" src="_static/underscore.js"></script>
     <script type="text/javascript" src="_static/doctools.js"></script>
-    <link rel="top" title="pyPLUTO 4-2.0 documentation" href="index.html" />
-    <link rel="next" title="Additional tools" href="tools.html" />
-    <link rel="prev" title="Loading the Data" href="pload.html" /> 
+    <link rel="top" title="pyPLUTO 4.2 documentation" href="index.html" />
+   
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9">
+
   </head>
-  <body>
-    <div class="related">
-      <h3>Navigation</h3>
-      <ul>
-        <li class="right" style="margin-right: 10px">
-          <a href="genindex.html" title="General Index"
-             accesskey="I">index</a></li>
-        <li class="right" >
-          <a href="py-modindex.html" title="Python Module Index"
-             >modules</a> |</li>
-        <li class="right" >
-          <a href="tools.html" title="Additional tools"
-             accesskey="N">next</a> |</li>
-        <li class="right" >
-          <a href="pload.html" title="Loading the Data"
-             accesskey="P">previous</a> |</li>
-        <li><a href="index.html">pyPLUTO 4-2.0 documentation</a> &raquo;</li> 
-      </ul>
-    </div>  
+  <body role="document">  
 
     <div class="document">
       <div class="documentwrapper">
         <div class="bodywrapper">
-          <div class="body">
+          <div class="body" role="main">
             
   <div class="section" id="viewing-the-data">
 <h1>Viewing the Data<a class="headerlink" href="#viewing-the-data" title="Permalink to this headline">¶</a></h1>
 <dl class="class">
 <dt id="pyPLUTO.Image">
-<em class="property">class </em><tt class="descclassname">pyPLUTO.</tt><tt class="descname">Image</tt><a class="headerlink" href="#pyPLUTO.Image" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="descclassname">pyPLUTO.</code><code class="descname">Image</code><a class="headerlink" href="#pyPLUTO.Image" title="Permalink to this definition">¶</a></dt>
 <dd><p>This Class has all the routines for the imaging the data
 and plotting various contours and fieldlines on these images.
 CALLED AFTER pyPLUTO.pload object is defined</p>
 <dl class="method">
 <dt id="pyPLUTO.Image.field_interp">
-<tt class="descname">field_interp</tt><big>(</big><em>var1</em>, <em>var2</em>, <em>x</em>, <em>y</em>, <em>dx</em>, <em>dy</em>, <em>xp</em>, <em>yp</em><big>)</big><a class="headerlink" href="#pyPLUTO.Image.field_interp" title="Permalink to this definition">¶</a></dt>
+<code class="descname">field_interp</code><span class="sig-paren">(</span><em>var1</em>, <em>var2</em>, <em>x</em>, <em>y</em>, <em>dx</em>, <em>dy</em>, <em>xp</em>, <em>yp</em><span class="sig-paren">)</span><a class="headerlink" href="#pyPLUTO.Image.field_interp" title="Permalink to this definition">¶</a></dt>
 <dd><p>This method interpolates value of vector fields (var1 and var2) on field points (xp and yp).
 The field points are obtained from the method field_line.</p>
 <p><strong>Inputs:</strong></p>
@@ -84,7 +68,7 @@ point in &#8216;x&#8217; direction and the second element is the field point in 
 
 <dl class="method">
 <dt id="pyPLUTO.Image.field_line">
-<tt class="descname">field_line</tt><big>(</big><em>var1</em>, <em>var2</em>, <em>x</em>, <em>y</em>, <em>dx</em>, <em>dy</em>, <em>x0</em>, <em>y0</em><big>)</big><a class="headerlink" href="#pyPLUTO.Image.field_line" title="Permalink to this definition">¶</a></dt>
+<code class="descname">field_line</code><span class="sig-paren">(</span><em>var1</em>, <em>var2</em>, <em>x</em>, <em>y</em>, <em>dx</em>, <em>dy</em>, <em>x0</em>, <em>y0</em><span class="sig-paren">)</span><a class="headerlink" href="#pyPLUTO.Image.field_line" title="Permalink to this definition">¶</a></dt>
 <dd><p>This method is used to obtain field lines (same as fieldline.pro in PLUTO IDL tools).</p>
 <p><strong>Inputs:</strong></p>
 <blockquote>
@@ -110,7 +94,7 @@ qy &#8211; list of the field points along the &#8216;y&#8217; direction.</p>
 
 <dl class="method">
 <dt id="pyPLUTO.Image.getPolarData">
-<tt class="descname">getPolarData</tt><big>(</big><em>Data</em>, <em>ang_coord</em>, <em>rphi=False</em><big>)</big><a class="headerlink" href="#pyPLUTO.Image.getPolarData" title="Permalink to this definition">¶</a></dt>
+<code class="descname">getPolarData</code><span class="sig-paren">(</span><em>Data</em>, <em>ang_coord</em>, <em>rphi=False</em><span class="sig-paren">)</span><a class="headerlink" href="#pyPLUTO.Image.getPolarData" title="Permalink to this definition">¶</a></dt>
 <dd><p>To get the Cartesian Co-ordinates from Polar.</p>
 <p><strong>Inputs:</strong></p>
 <blockquote>
@@ -130,7 +114,7 @@ Set TRUE for R-PHI data.</div></blockquote>
 
 <dl class="method">
 <dt id="pyPLUTO.Image.getSphData">
-<tt class="descname">getSphData</tt><big>(</big><em>Data</em>, <em>w_dir=None</em>, <em>datatype=None</em>, <em>**kwargs</em><big>)</big><a class="headerlink" href="#pyPLUTO.Image.getSphData" title="Permalink to this definition">¶</a></dt>
+<code class="descname">getSphData</code><span class="sig-paren">(</span><em>Data</em>, <em>w_dir=None</em>, <em>datatype=None</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#pyPLUTO.Image.getSphData" title="Permalink to this definition">¶</a></dt>
 <dd><p>This method transforms the vector and scalar  fields from Spherical co-ordinates to Cylindrical.</p>
 <p><strong>Inputs</strong>:</p>
 <blockquote>
@@ -148,7 +132,7 @@ Set TRUE for R-PHI data.</div></blockquote>
 
 <dl class="method">
 <dt id="pyPLUTO.Image.myfieldlines">
-<tt class="descname">myfieldlines</tt><big>(</big><em>Data</em>, <em>x0arr</em>, <em>y0arr</em>, <em>stream=False</em>, <em>**kwargs</em><big>)</big><a class="headerlink" href="#pyPLUTO.Image.myfieldlines" title="Permalink to this definition">¶</a></dt>
+<code class="descname">myfieldlines</code><span class="sig-paren">(</span><em>Data</em>, <em>x0arr</em>, <em>y0arr</em>, <em>stream=False</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#pyPLUTO.Image.myfieldlines" title="Permalink to this definition">¶</a></dt>
 <dd><p>This method overplots the magnetic field lines at the footpoints given by (x0arr[i],y0arr[i]).</p>
 <p><strong>Inputs:</strong></p>
 <blockquote>
@@ -169,18 +153,18 @@ Set TRUE for R-PHI data.</div></blockquote>
 <blockquote>
 <div><p>Assume that the magnetic field is a given as <strong>B</strong> = B0$hat{y}$. 
 Then to show this field lines we have to define the x and y arrays of field foot points.</p>
-<p><tt class="docutils literal"><span class="pre">x0arr</span> <span class="pre">=</span> <span class="pre">linspace(0.0,10.0,20)</span></tt></p>
-<p><tt class="docutils literal"><span class="pre">y0arr</span> <span class="pre">=</span> <span class="pre">linspace(0.0,0.0,20)</span></tt></p>
-<p><tt class="docutils literal"><span class="pre">import</span> <span class="pre">pyPLUTO</span> <span class="pre">as</span> <span class="pre">pp</span></tt></p>
-<p><tt class="docutils literal"><span class="pre">D</span> <span class="pre">=</span> <span class="pre">pp.pload(45)</span></tt></p>
-<p><tt class="docutils literal"><span class="pre">I</span> <span class="pre">=</span> <span class="pre">pp.Image()</span></tt></p>
-<p><tt class="docutils literal"><span class="pre">I.myfieldlines(D,x0arr,y0arr,colors='k',ls='--',lw=1.0)</span></tt></p>
+<p><code class="docutils literal"><span class="pre">x0arr</span> <span class="pre">=</span> <span class="pre">linspace(0.0,10.0,20)</span></code></p>
+<p><code class="docutils literal"><span class="pre">y0arr</span> <span class="pre">=</span> <span class="pre">linspace(0.0,0.0,20)</span></code></p>
+<p><code class="docutils literal"><span class="pre">import</span> <span class="pre">pyPLUTO</span> <span class="pre">as</span> <span class="pre">pp</span></code></p>
+<p><code class="docutils literal"><span class="pre">D</span> <span class="pre">=</span> <span class="pre">pp.pload(45)</span></code></p>
+<p><code class="docutils literal"><span class="pre">I</span> <span class="pre">=</span> <span class="pre">pp.Image()</span></code></p>
+<p><code class="docutils literal"><span class="pre">I.myfieldlines(D,x0arr,y0arr,colors='k',ls='--',lw=1.0)</span></code></p>
 </div></blockquote>
 </dd></dl>
 
 <dl class="method">
 <dt id="pyPLUTO.Image.oplotbox">
-<tt class="descname">oplotbox</tt><big>(</big><em>AMRLevel, lrange=[0, 0], cval=['b', 'r', 'g', 'm', 'w', 'k'], islice=-1, jslice=-1, kslice=-1, geom='CARTESIAN'</em><big>)</big><a class="headerlink" href="#pyPLUTO.Image.oplotbox" title="Permalink to this definition">¶</a></dt>
+<code class="descname">oplotbox</code><span class="sig-paren">(</span><em>AMRLevel, lrange=[0, 0], cval=['b', 'r', 'g', 'm', 'w', 'k'], islice=-1, jslice=-1, kslice=-1, geom='CARTESIAN'</em><span class="sig-paren">)</span><a class="headerlink" href="#pyPLUTO.Image.oplotbox" title="Permalink to this definition">¶</a></dt>
 <dd><p>This method overplots the AMR boxes up to the specified level.</p>
 <p><strong>Input:</strong></p>
 <blockquote>
@@ -199,7 +183,7 @@ Then to show this field lines we have to define the x and y arrays of field foot
 
 <dl class="method">
 <dt id="pyPLUTO.Image.pldisplay">
-<tt class="descname">pldisplay</tt><big>(</big><em>D</em>, <em>var</em>, <em>**kwargs</em><big>)</big><a class="headerlink" href="#pyPLUTO.Image.pldisplay" title="Permalink to this definition">¶</a></dt>
+<code class="descname">pldisplay</code><span class="sig-paren">(</span><em>D</em>, <em>var</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#pyPLUTO.Image.pldisplay" title="Permalink to this definition">¶</a></dt>
 <dd><p>This method allows the user to display a 2D data using the 
 matplotlib&#8217;s pcolormesh.</p>
 <p><strong>Inputs:</strong></p>
@@ -234,17 +218,17 @@ matplotlib&#8217;s pcolormesh.</p>
 </div></blockquote>
 <p><strong>Usage:</strong></p>
 <blockquote>
-<div><p><tt class="docutils literal"><span class="pre">import</span> <span class="pre">pyPLUTO</span> <span class="pre">as</span> <span class="pre">pp</span></tt></p>
-<p><tt class="docutils literal"><span class="pre">wdir</span> <span class="pre">=</span> <span class="pre">'/path/to/the</span> <span class="pre">data</span> <span class="pre">files/'</span></tt></p>
-<p><tt class="docutils literal"><span class="pre">D</span> <span class="pre">=</span> <span class="pre">pp.pload(1,w_dir=wdir)</span></tt></p>
-<p><tt class="docutils literal"><span class="pre">I</span> <span class="pre">=</span> <span class="pre">pp.Image()</span></tt></p>
-<p><tt class="docutils literal"><span class="pre">I.pldisplay(D,</span> <span class="pre">D.v2,</span> <span class="pre">x1=D.x1,</span> <span class="pre">x2=D.x2,</span> <span class="pre">cbar=(True,'vertical'),</span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span class="pre">title='Velocity',label1='Radius',label2='Height')</span></tt></p>
+<div><p><code class="docutils literal"><span class="pre">import</span> <span class="pre">pyPLUTO</span> <span class="pre">as</span> <span class="pre">pp</span></code></p>
+<p><code class="docutils literal"><span class="pre">wdir</span> <span class="pre">=</span> <span class="pre">'/path/to/the</span> <span class="pre">data</span> <span class="pre">files/'</span></code></p>
+<p><code class="docutils literal"><span class="pre">D</span> <span class="pre">=</span> <span class="pre">pp.pload(1,w_dir=wdir)</span></code></p>
+<p><code class="docutils literal"><span class="pre">I</span> <span class="pre">=</span> <span class="pre">pp.Image()</span></code></p>
+<p><code class="docutils literal"><span class="pre">I.pldisplay(D,</span> <span class="pre">D.v2,</span> <span class="pre">x1=D.x1,</span> <span class="pre">x2=D.x2,</span> <span class="pre">cbar=(True,'vertical'),</span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span class="pre">title='Velocity',label1='Radius',label2='Height')</span></code></p>
 </div></blockquote>
 </dd></dl>
 
 <dl class="method">
 <dt id="pyPLUTO.Image.pltSphData">
-<tt class="descname">pltSphData</tt><big>(</big><em>Data</em>, <em>w_dir=None</em>, <em>datatype=None</em>, <em>**kwargs</em><big>)</big><a class="headerlink" href="#pyPLUTO.Image.pltSphData" title="Permalink to this definition">¶</a></dt>
+<code class="descname">pltSphData</code><span class="sig-paren">(</span><em>Data</em>, <em>w_dir=None</em>, <em>datatype=None</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#pyPLUTO.Image.pltSphData" title="Permalink to this definition">¶</a></dt>
 <dd><p>This method plots the transformed data obtained from getSphData using the matplotlib&#8217;s imshow</p>
 <p><strong>Inputs:</strong></p>
 <blockquote>
@@ -270,20 +254,22 @@ matplotlib&#8217;s pcolormesh.</p>
           </div>
         </div>
       </div>
-      <div class="sphinxsidebar">
-        <div class="sphinxsidebarwrapper">
-  <h4>Previous topic</h4>
-  <p class="topless"><a href="pload.html"
-                        title="previous chapter">Loading the Data</a></p>
-  <h4>Next topic</h4>
-  <p class="topless"><a href="tools.html"
-                        title="next chapter">Additional tools</a></p>
-  <h3>This Page</h3>
-  <ul class="this-page-menu">
-    <li><a href="_sources/image.txt"
-           rel="nofollow">Show Source</a></li>
-  </ul>
-<div id="searchbox" style="display: none">
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper"><div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="index.html">Documentation overview</a><ul>
+  </ul></li>
+</ul>
+</div>
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="_sources/image.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div>
+<div id="searchbox" style="display: none" role="search">
   <h3>Quick search</h3>
     <form class="search" action="search.html" method="get">
       <input type="text" name="q" />
@@ -300,27 +286,20 @@ matplotlib&#8217;s pcolormesh.</p>
       </div>
       <div class="clearer"></div>
     </div>
-    <div class="related">
-      <h3>Navigation</h3>
-      <ul>
-        <li class="right" style="margin-right: 10px">
-          <a href="genindex.html" title="General Index"
-             >index</a></li>
-        <li class="right" >
-          <a href="py-modindex.html" title="Python Module Index"
-             >modules</a> |</li>
-        <li class="right" >
-          <a href="tools.html" title="Additional tools"
-             >next</a> |</li>
-        <li class="right" >
-          <a href="pload.html" title="Loading the Data"
-             >previous</a> |</li>
-        <li><a href="index.html">pyPLUTO 4-2.0 documentation</a> &raquo;</li> 
-      </ul>
-    </div>
     <div class="footer">
-        &copy; Copyright 2014, Bhargav Vaidya.
-      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.2.2.
+      &copy;2015, Bhargav Vaidya.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.3.1</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.6</a>
+      
+      |
+      <a href="_sources/image.txt"
+          rel="nofollow">Page source</a>
     </div>
+
+    
+
+    
   </body>
 </html>

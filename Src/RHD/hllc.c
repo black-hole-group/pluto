@@ -21,7 +21,8 @@
   \authors A. Mignone (mignone@ph.unito.it)
   \date    Dec 10, 2013
 */
-/* ///////////////////////////////////////////////////////////////////// */#include"pluto.h"
+/* ///////////////////////////////////////////////////////////////////// */
+#include"pluto.h"
 
 /* ********************************************************************* */
 void HLLC_Solver (const State_1D *state, int beg, int end, 
@@ -122,37 +123,22 @@ void HLLC_Solver (const State_1D *state, int beg, int end,
       vL = state->vL[i]; uL = state->uL[i];
       vR = state->vR[i]; uR = state->uR[i];
 
-      #if SHOCK_FLATTENING == MULTID   
-
-      /* ---------------------------------------------
-          Switch to HLL in proximity of strong shocks.
-         --------------------------------------------- */
-
-       if (CheckZone(i, FLAG_HLL) || CheckZone(i+1, FLAG_HLL)){
-         scrh  = 1.0/(SR[i] - SL[i]);
-         for (nv = NFLX; nv--; ){
-           state->flux[i][nv]  = SL[i]*SR[i]*(uR[nv] - uL[nv])
-                              +  SR[i]*fL[i][nv] - SL[i]*fR[i][nv];
-           state->flux[i][nv] *= scrh;
-         }
-         state->press[i] = (SR[i]*pL[i] - SL[i]*pR[i])*scrh;
-         continue;
-       }
-      #endif
+#if SHOCK_FLATTENING == MULTID   
+      if ((state->flag[i] & FLAG_HLL) || (state->flag[i+1] & FLAG_HLL)){        
+        scrh  = 1.0/(SR[i] - SL[i]);
+        for (nv = NFLX; nv--; ){
+          state->flux[i][nv]  = SL[i]*SR[i]*(uR[nv] - uL[nv])
+                             +  SR[i]*fL[i][nv] - SL[i]*fR[i][nv];
+          state->flux[i][nv] *= scrh;
+        }
+        state->press[i] = (SR[i]*pL[i] - SL[i]*pR[i])*scrh;
+        continue;
+      }
+#endif
 
       vxl = vL[VXn];
       vxr = vR[VXn];
     
-      #if USE_FOUR_VELOCITY == YES
-       scrh  = EXPAND(vL[VX1]*vL[VX1], + vL[VX2]*vL[VX2], + vL[VX3]*vL[VX3]);
-       scrh  = sqrt(1.0 + scrh);
-       vxl  /= scrh;
-     
-       scrh = EXPAND(vR[VX1]*vR[VX1], + vR[VX2]*vR[VX2], + vR[VX3]*vR[VX3]);
-       scrh = sqrt(1.0 + scrh);
-       vxr /= scrh;
-      #endif
-           
 /* ---------------------------------------
                    get u* 
    --------------------------------------- */    

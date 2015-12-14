@@ -4,12 +4,11 @@
 #define  GEOMETRY                CARTESIAN
 #define  BODY_FORCE              NO
 #define  COOLING                 NO
-#define  INTERPOLATION           LINEAR
+#define  RECONSTRUCTION          LINEAR
 #define  TIME_STEPPING           RK2
 #define  DIMENSIONAL_SPLITTING   NO
 #define  NTRACER                 0
 #define  USER_DEF_PARAMETERS     6
-#define  USER_DEF_CONSTANTS      3
 
 /* -- physics dependent declarations -- */
 
@@ -28,20 +27,20 @@
 #define  RHO_IN                  4
 #define  RHO_OUT                 5
 
-/* -- user-defined symbolic constants -- */
+/* [Beg] user-defined constants (do not change this line) */
 
 #define  UNIT_DENSITY            (1.26*CONST_mH)
 #define  UNIT_LENGTH             (CONST_pc)
 #define  UNIT_VELOCITY           sqrt(g_gamma*CONST_kB*1.e6/(1.26*CONST_mH))
 
+/* [End] user-defined constants (do not change this line) */
+
 /* -- supplementary constants (user editable) -- */ 
 
-#define  INITIAL_SMOOTHING      NO
-#define  WARNING_MESSAGES       YES
-#define  PRINT_TO_FILE          YES
-#define  INTERNAL_BOUNDARY      NO
-#define  SHOCK_FLATTENING       NO
-#define  ARTIFICIAL_VISCOSITY   NO
-#define  CHAR_LIMITING          NO
-#define  LIMITER                VANLEER_LIM
-#define  STS_nu                 0.01
+#define  INITIAL_SMOOTHING   NO
+#define  WARNING_MESSAGES    YES
+#define  PRINT_TO_FILE       YES
+#define  INTERNAL_BOUNDARY   NO
+#define  SHOCK_FLATTENING    NO
+#define  CHAR_LIMITING       NO
+#define  LIMITER             VANLEER_LIM

@@ -54,12 +54,23 @@ int PressureFix(Map_param *par)
     return (1);
   }
 
-/* -----------------------------------------------------
-                 redefine energy
-   ----------------------------------------------------- */
+/* -- Redefine energy, density and entropy -- */
   
   par->E   = par->W - par->prs;
   par->rho = par->D/par->lor;
+
+#if ENTROPY_SWITCH
+{
+  double rho = par->rho;
+  double th  = par->prs/rho; 
+  #if EOS == IDEAL
+  par->sigma_c = par->prs*par->lor/pow(rho,g_gamma-1);
+  #elif EOS == TAUB
+  th = par->prs/rho;  
+  par->sigma_c = par->prs*par->lor/pow(rho,2.0/3.0)*(1.5*th + sqrt(2.25*th*th + 1.0);
+  #endif
+}
+#endif
 
   return(0);  /* -- success -- */
 } 

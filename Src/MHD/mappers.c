@@ -16,7 +16,7 @@
       else                       --> p = p(E)
   
   \author A. Mignone (mignone@ph.unito.it)
-  \date   Oct 4, 2012
+  \date   June 24, 2015
 */
 /* ///////////////////////////////////////////////////////////////////// */
 #include "pluto.h"
@@ -35,11 +35,11 @@ void PrimToCons (double **uprim, double **ucons, int ibeg, int iend)
 {
   int  i, nv, status;
   double *v, *u;
-  double rhoe, kin, T, gmm1;
+  double rhoe, kinb2, T, gmm1;
 
-  #if EOS == IDEAL
-   gmm1 = g_gamma - 1.0;
-  #endif
+#if EOS == IDEAL
+  gmm1 = g_gamma - 1.0;
+#endif
   for (i = ibeg; i <= iend; i++) {
   
     v = uprim[i];
@@ -55,32 +55,33 @@ void PrimToCons (double **uprim, double **ucons, int ibeg, int iend)
             u[BX2] = v[BX2];  ,
             u[BX3] = v[BX3];)
 
-    kin   = EXPAND(v[VX1]*v[VX1], + v[VX2]*v[VX2], + v[VX3]*v[VX3]);
-    kin   = v[RHO]*kin + EXPAND(v[BX1]*v[BX1], + v[BX2]*v[BX2], + v[BX3]*v[BX3]);
-    kin  *= 0.5;
+    kinb2   = EXPAND(v[VX1]*v[VX1], + v[VX2]*v[VX2], + v[VX3]*v[VX3]);
+    kinb2   = v[RHO]*kinb2 + EXPAND(v[BX1]*v[BX1], + v[BX2]*v[BX2], + v[BX3]*v[BX3]);
+    kinb2  *= 0.5;
 
-    #if EOS == IDEAL
-     u[ENG] = kin + v[PRS]/gmm1;
-    #elif EOS == PVTE_LAW
-     status = GetPV_Temperature(v, &T);
-     if (status != 0){
-       T      = T_CUT_RHOE;
-       v[PRS] = Pressure(v, T);
-     }
-     rhoe   = InternalEnergy(v, T);
-     u[ENG] = rhoe + kin;
+#if EOS == IDEAL
+    u[ENG] = kinb2 + v[PRS]/gmm1;
+#elif EOS == PVTE_LAW
+    status = GetPV_Temperature(v, &T);
+    if (status != 0){
+      T      = T_CUT_RHOE;
+      v[PRS] = Pressure(v, T);
+    }
+    rhoe   = InternalEnergy(v, T);
+    u[ENG] = rhoe + kinb2;
 
-     if (u[ENG] != u[ENG]){
-       print("! PrimToCons: KE:%12.6e uRHO : %12.6e, m2 : %12.6e \n",rhoe,v[RHO],u[ENG]);
-       QUIT_PLUTO(1);
-     }
-    #endif
+    if (u[ENG] != u[ENG]){
+      print("! PrimToCons: KE:%12.6e uRHO : %12.6e, m2 : %12.6e \n",rhoe,v[RHO],u[ENG]);
+      QUIT_PLUTO(1);
+    }
+#endif
     
-    #ifdef GLM_MHD
-     u[PSI_GLM] = v[PSI_GLM]; 
-    #endif
-
-    for (nv = NFLX; nv < (NFLX + NSCL); nv++) u[nv] = v[RHO]*v[nv];
+#ifdef GLM_MHD
+    u[PSI_GLM] = v[PSI_GLM]; 
+#endif
+#if NSCL > 0 
+    NSCL_LOOP(nv) u[nv] = v[RHO]*v[nv];
+#endif    
   }
 }
 /* ********************************************************************* */
@@ -89,60 +90,53 @@ int ConsToPrim (double **ucons, double **uprim, int ibeg, int iend,
 /*!
  * Convert from conservative to primitive variables.
  *
- * \param [in]  ucons  array of conservative variables
- * \param [out] uprim  array of primitive variables
- * \param [in]  beg    starting index of computation
- * \param [in]  end    final index of computation
- * \param [out] flag   array of flags tagging zones where conversion
- *                     went wrong.
+ * \param [in]     ucons   array of conservative variables
+ * \param [out]    uprim   array of primitive variables
+ * \param [in]     beg     starting index of computation
+ * \param [in]     end     final index of computation
+ * \param [in,out] flag    array of flags tagging, in input, zones
+ *                         where entropy must be used to recover pressure
+ *                         and, on output, zones where conversion was
+ *                         not successful.
  * 
- * \return Return (0) if conversion was succesful in every zone 
- *         [ibeg,iend]. 
- *         Otherwise, return a non-zero integer number giving the bit 
- *         flag(s) turned on during the conversion process.
- *         In this case, flag contains the failure codes of those
- *         zones where where conversion did not go through.
+ * \return Return 0 if conversion was successful in all zones in the 
+ *         range [ibeg,iend].
+ *         Return 1 if one or more zones could not be converted correctly
+ *         and either pressure, density or energy took non-physical values. 
  *
  *********************************************************************** */
 {
-  int  i, nv, status=0, use_energy;
+  int  i, nv, err, ifail;
+  int  use_entropy, use_energy=1;
   double tau, rho, gmm1, rhoe, T;
-  double b2, m2, kin, rhog1;
+  double b2, m2, kinb2, rhog1;
   double *u, *v;
 
-  #if EOS == IDEAL
+#if EOS == IDEAL
    gmm1 = g_gamma - 1.0;
-  #endif
+#endif
 
+  ifail = 0;
   for (i = ibeg; i <= iend; i++) {
 
-    flag[i] = 0;
     u = ucons[i];
     v = uprim[i];
 
     m2 = EXPAND(u[MX1]*u[MX1], + u[MX2]*u[MX2], + u[MX3]*u[MX3]);
     b2 = EXPAND(u[BX1]*u[BX1], + u[BX2]*u[BX2], + u[BX3]*u[BX3]);
 
-  /* -------------------------------------------
-           Check density positivity 
-     ------------------------------------------- */
+  /* -- Check density positivity -- */
   
     if (u[RHO] < 0.0) {
       print("! ConsToPrim: negative density (%8.2e), ", u[RHO]);
       Where (i, NULL);
       u[RHO]   = g_smallDensity;
-      flag[i] |= RHO_FAIL;
+      flag[i] |= FLAG_CONS2PRIM_FAIL;
+      ifail    = 1;
     }
-/*
-   #if COOLING != NO
-    if (u[X_HI] < 0.0) {
-      print("! ConsToPrim: negative fractions (%8.2e), ", u[X_HI]);
-      Where (i, NULL);
-      Show(ucons,i);
-      QUIT_PLUTO(1);
-    }
-  #endif
-*/
+
+  /* -- Compute density, velocity, mag. field and scalars -- */
+
     v[RHO] = rho = u[RHO];
     tau = 1.0/u[RHO];
     EXPAND(v[VX1] = u[MX1]*tau;  ,
@@ -153,102 +147,109 @@ int ConsToPrim (double **ucons, double **uprim, int ibeg, int iend,
            v[BX2] = u[BX2];  ,
            v[BX3] = u[BX3];)
 
-  /* --------------------------------------------
-       now try to recover pressure from 
-       total energy or entropy
-     -------------------------------------------- */
+    kinb2 = 0.5*(m2*tau + b2);    
 
-    #if EOS == IDEAL
-     kin = 0.5*(m2*tau + b2);
-     use_energy = 1;     
-    
-     #if ENTROPY_SWITCH == YES
-      #ifdef CH_SPACEDIM
-       if (g_intStage > 0)   /* -- HOT FIX used with Chombo: avoid calling 
-                              CheckZone when writing file to disk          -- */
-      #endif
-       if (CheckZone(i,FLAG_ENTROPY)){
-         use_energy = 0;
-         rhog1 = pow(rho, g_gamma - 1.0);
-         v[PRS] = u[ENTR]*rhog1; 
-         if (v[PRS] < 0.0){
-            WARNING(
-              print("! ConsToPrim: negative p(S) (%8.2e, %8.2e), ", v[PRS], u[ENTR]);
-              Where (i, NULL);
-            )
-          v[PRS]   = g_smallPressure;
-          flag[i] |= PRS_FAIL;
-         }
-         u[ENG] = v[PRS]/gmm1 + kin; /* -- redefine energy -- */
-       }
-     #endif  /* ENTROPY_SWITCH == YES */
+  /* -- Check energy positivity -- */
 
-     if (use_energy){
-       if (u[ENG] < 0.0) {
-         WARNING(
-           print("! ConsToPrim: negative energy (%8.2e), ", u[ENG]);
-           Where (i, NULL);
-         )
-         v[PRS]    = g_smallPressure;
-         u[ENG]    = v[PRS]/gmm1 + kin;
-         flag[i] |= ENG_FAIL;
-       }else{
-         v[PRS] = gmm1*(u[ENG] - kin);
-         if (v[PRS] < 0.0){
-           WARNING(
-             print("! ConsToPrim: negative p(E) (%8.2e), ", v[PRS]);
+#if HAVE_ENERGY
+    if (u[ENG] < 0.0) {
+      WARNING(
+        print("! ConsToPrim: negative energy (%8.2e), ", u[ENG]);
+        Where (i, NULL);
+      )
+      u[ENG]    = g_smallPressure/gmm1 + kinb2;
+      flag[i] |= FLAG_CONS2PRIM_FAIL;
+      ifail    = 1;
+    }
+#endif
+
+  /* -- Compute pressure from total energy or entropy -- */
+
+#if EOS == IDEAL
+  #if ENTROPY_SWITCH
+    use_entropy = (flag[i] & FLAG_ENTROPY);
+    use_energy  = !use_entropy;
+    if (use_entropy){
+      rhog1 = pow(rho, gmm1);
+      v[PRS] = u[ENTR]*rhog1; 
+      if (v[PRS] < 0.0){
+        WARNING(
+               print("! ConsToPrim: negative p(S) (%8.2e, %8.2e), ", v[PRS], u[ENTR]);
              Where (i, NULL);
            )
-           v[PRS]    = g_smallPressure;
-           flag[i] |= PRS_FAIL;
-           u[ENG]    = v[PRS]/gmm1 + kin; /* -- redefine energy -- */
-         }
-       }
-     }
+        v[PRS]   = g_smallPressure;
+        flag[i] |= FLAG_CONS2PRIM_FAIL;
+        ifail    = 1;
+      }
+      u[ENG] = v[PRS]/gmm1 + kinb2; /* -- recompute energy -- */
+    }
+  #endif  /* ENTROPY_SWITCH */
 
-    #endif  /* EOS == IDEAL */
+    if (use_energy){
+      v[PRS] = gmm1*(u[ENG] - kinb2);
+      if (v[PRS] < 0.0){
+        WARNING(
+          print("! ConsToPrim: negative p(E) (%8.2e), ", v[PRS]);
+          Where (i, NULL);
+        )
+        v[PRS]    = g_smallPressure;
+        u[ENG]    = v[PRS]/gmm1 + kinb2; /* -- recompute energy -- */
+        flag[i] |= FLAG_CONS2PRIM_FAIL;
+        ifail    = 1;
+      }
+      #if ENTROPY_SWITCH
+      u[ENTR] = v[PRS]/pow(rho,gmm1);  /* -- Recompute entropy -- */
+      #endif
+    }
 
-  /* -- do remaning variables -- */
+    #if NSCL > 0
+    NSCL_LOOP(nv) v[nv] = u[nv]*tau;
+    #endif    
 
-    for (nv = NFLX; nv < NVAR; nv++) v[nv] = u[nv]*tau;
+#elif EOS == PVTE_LAW
 
-/* --------------------------------------------
-      Recover pressure from energy or entropy:
-      2. PVTE_LAW Equation of state
-     -------------------------------------------- */
+  /* -- Convert scalars here since EoS may need ion fractions -- */
 
-    #if EOS == PVTE_LAW
-     if (u[ENG] != u[ENG]){
-       print("! ConsToPrim: NaN found\n");
-       Show(ucons,i);
-       QUIT_PLUTO(1);
-     }
-     kin  = 0.5*(m2*tau + b2);      
-     rhoe = u[ENG] - kin; 
+    #if NSCL > 0                       
+    NSCL_LOOP(nv) v[nv] = u[nv]*tau;
+    #endif    
 
-     status = GetEV_Temperature (rhoe, v, &T);
-     if (status != 0){  /* If something went wrong while retrieving the  */
-                        /* temperature, we floor \c T to \c T_CUT_RHOE,  */
-                        /* recompute internal and total energies.        */
-       T = T_CUT_RHOE;
-       WARNING(  
-         print ("! ConsToPrim: rhoe < 0 or T < T_CUT_RHOE; ");
-         Where(i,NULL);
-       )
-       rhoe     = InternalEnergy(v, T);
-       u[ENG]   = rhoe + kin; /* -- redefine total energy -- */
-       flag[i] |= PRS_FAIL;
-     }
+    if (u[ENG] != u[ENG]){
+      print("! ConsToPrim: NaN found\n");
+      Show(ucons,i);
+      QUIT_PLUTO(1);
+    }
+    rhoe  = u[ENG] - kinb2; 
 
-     v[PRS] = Pressure(v, T);
-    #endif  /* EOS == PVTE_LAW */
+    err = GetEV_Temperature (rhoe, v, &T);
+    if (err){  /* If something went wrong while retrieving the  */
+               /* temperature, we floor \c T to \c T_CUT_RHOE,  */
+               /* recompute internal and total energies.        */
+      T = T_CUT_RHOE;
+      WARNING(  
+        print ("! ConsToPrim: rhoe < 0 or T < T_CUT_RHOE; ");
+        Where(i,NULL);
+      )
+      rhoe     = InternalEnergy(v, T);
+      u[ENG]   = rhoe + kinb2; /* -- redefine total energy -- */
+      flag[i] |= FLAG_CONS2PRIM_FAIL;
+      ifail    = 1;
+    }
+    v[PRS] = Pressure(v, T);
 
-    #ifdef GLM_MHD
-     v[PSI_GLM] = u[PSI_GLM]; 
-    #endif
+#endif  /* EOS  */
 
-    status |= flag[i];
+#if DUST == YES
+    u[RHO_D] = MAX(u[RHO_D], 1.e-20);
+    v[RHO_D] = u[RHO_D];
+    EXPAND(v[MX1_D] = u[MX1_D]/v[RHO_D];  ,
+           v[MX2_D] = u[MX2_D]/v[RHO_D];  ,
+           v[MX3_D] = u[MX3_D]/v[RHO_D];)
+#endif
+
+#ifdef GLM_MHD
+    v[PSI_GLM] = u[PSI_GLM]; 
+#endif
   }
-
-  return(status);
+  return ifail;
 }

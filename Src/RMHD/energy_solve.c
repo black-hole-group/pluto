@@ -6,17 +6,19 @@
   Try to recover gas pressure from conserved variables {D, m, E, B}
   using the algorithm outlined in Section A3 of Mignone \& McKinney (2007). 
   Specifically, we solve Eq. (A4) or (A6) (depending on the value of
-  \c ::SUBTRACT_DENSITY) using a Newton-Raphson scheme.
+  \c ::RMHD_REDUCED_ENERGY) using a Newton-Raphson scheme.
   Here W = rho*h*lorentz^2, E, D, etc... have the same meaning
   as in the mentioned paper.
+
+  \author A. Mignone (mignone@ph.unito.it)
+
+  \date   June 25, 2015
 
   \b References
      - "Equation of state in relativistic magnetohydrodynamics: variable versus
         constant adiabatic index"\n
-        Mignone \& Mc Kinney, MNRAS (2007) 378, 1118.
- 
-  \author A. Mignone (mignone@ph.unito.it)
-  \date   Oct 4, 2012
+        Mignone \& Mc Kinney, MNRAS (2007) 378, 1118. 
+
 */
 /* ///////////////////////////////////////////////////////////////////// */
 #include "pluto.h"
@@ -33,13 +35,13 @@ int EnergySolve (Map_param *par)
 {
   int  k;
   int  done;
-  double Y1, Y2, scrh;
+  double Y1, Y2, scrh, th;
   double W, W2, S2_W2, fW, dfW, dW;
   double dv2_dW, chi, chi_p_rho;
   double rho, p, lor, lor2;
   double dp, dp_drho, dp_dchi;
   double dchi_dW, drho_dW;
-  double acc = 1.e-13;
+  double acc = 1.e-11;
   double one_m_v2, vel2, Wp;
   double m2, B2, S, S2;
   double D, E;
@@ -58,7 +60,7 @@ int EnergySolve (Map_param *par)
     positive root of Eq. (A27).
    ------------------------------------------- */
 
-  #if SUBTRACT_DENSITY == YES
+  #if RMHD_REDUCED_ENERGY == YES
    Y1 = -4.0*(E + D - B2);
    Y2 = m2 - 2.0*(E + D)*B2 + B2*B2;
   #else
@@ -70,14 +72,14 @@ int EnergySolve (Map_param *par)
   W = ( - Y1 + sqrt(chi))/6.0;
   W = MAX(D, W);
 
-  #if SUBTRACT_DENSITY == YES
+  #if RMHD_REDUCED_ENERGY == YES
    Wp = W - D;
   #endif
  
   done = 0; p = -1.0;
   for (k = 1; k < MAX_ITER; k++) {
 
-    #if SUBTRACT_DENSITY == YES
+    #if RMHD_REDUCED_ENERGY == YES
      W = Wp + D;
     #endif
   
@@ -97,7 +99,7 @@ int EnergySolve (Map_param *par)
       )
       return (1);
     }
-    #if SUBTRACT_DENSITY == YES
+    #if RMHD_REDUCED_ENERGY == YES
      chi = Wp/lor2 - D*vel2/(lor + 1.0);
     #else
      chi = (W - D*lor)*one_m_v2;
@@ -135,7 +137,7 @@ int EnergySolve (Map_param *par)
     if (done) break;
 
     dp  = dp_dchi*dchi_dW + dp_drho*drho_dW;
-    #if SUBTRACT_DENSITY == YES
+    #if RMHD_REDUCED_ENERGY == YES
      fW  = Wp + 0.5*(B2 + (B2*m2 - S2)*Y2) - (E + p);   /* Eq. (A25) */
      dfW = 1.0 - dp - (B2*m2 - S2)*Y2*Y1;               /* Eq. (A8)  */
      dW  = fW/dfW;
@@ -153,21 +155,21 @@ int EnergySolve (Map_param *par)
 
   if (k == MAX_ITER) {
     WARNING(
-      print ("! EnergySolve: too many iterations, %12.6e %12.6e %12.6e, ", 
+      print ("! EnergySolve(): too many iterations, %12.6e %12.6e %12.6e, ", 
               W, dW, fW); 
     )
     return(1);
   }
   if (p < 0.0) {
     WARNING(
-      print ("! EnergySolve: negative pressure, p = %12.6e, ",p);
+      print ("! EnergySolve(): negative pressure, p = %12.6e, ",p);
     )
     return(1);
   }
 
 /* -- set output parameters -- */
 
-  #if SUBTRACT_DENSITY == YES
+  #if RMHD_REDUCED_ENERGY == YES
    par->W = Wp + D;
   #else
    par->W = W;
@@ -176,6 +178,17 @@ int EnergySolve (Map_param *par)
   par->rho = rho;
   par->lor = lor;
   par->prs = p;
+
+/* -- Recompute entropy consistently -- */
+
+#if ENTROPY_SWITCH
+  #if EOS == IDEAL
+  par->sigma_c = par->prs*lor/pow(rho,g_gamma-1);
+  #elif EOS == TAUB
+  th = p/rho;  
+  par->sigma_c = par->prs*lor/pow(rho,2.0/3.0)*(1.5*th + sqrt(2.25*th*th + 1.0));
+  #endif
+#endif
 
   return(0);  /* -- normal exit -- */
 }

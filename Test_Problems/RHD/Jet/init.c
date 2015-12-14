@@ -28,8 +28,8 @@
   defined in \c pluto.ini.
   The \c TAUB equation of state is used.
 
-  - Configuration #01 and #02 use \c CYLINDRICAL coordinates;
-  - Configurations #03 employs \c SPHERICAL coordinates (see snapshot below)"
+  - Configurations #01 and #02 use \c CYLINDRICAL coordinates;
+  - Configuration #03 employs \c SPHERICAL coordinates (see snapshot below)
 
   \image html rhd_jet.03.jpg "Density (log) for configuration #03 at t=200"
 
@@ -50,6 +50,7 @@ void Init (double *v, double x1, double x2, double x3)
  *
  *********************************************************************** */
 {
+  double scrh;
   #if EOS == IDEAL
    g_gamma = 5.0/3.0;
   #endif
@@ -58,12 +59,6 @@ void Init (double *v, double x1, double x2, double x3)
   v[VX1] = 0.0;
   v[VX2] = 0.0;
   v[PRS] = g_inputParam[PRESS_IN];
-
-  #if USE_FOUR_VELOCITY == YES
-   scrh = 1.0/sqrt(1.0 - v[VX1]*v[VX1] - v[VX2]*v[VX2]);
-   v[VX1] *= scrh;
-   v[VX2] *= scrh;
-  #endif
 
   g_smallPressure = v[PRS]/500.0;
 }
@@ -100,7 +95,7 @@ void UserDefBoundary (const Data *d, RBox *box, int side, Grid *grid)
   }
   #endif
 
-  #if GEOMETRY == CYLINDRICAL
+  #if GEOMETRY == CYLINDRICAL || GEOMETRY == CARTESIAN
   if (side == X2_BEG){
     GetJetValues(vjet);
     X2_BEG_LOOP(k,j,i){
@@ -123,16 +118,12 @@ void GetJetValues (double *vjet)
  *********************************************************************** */
 {
   vjet[RHO] = g_inputParam[RHO_IN];
-  #if GEOMETRY == CYLINDRICAL
+  #if GEOMETRY == CYLINDRICAL || GEOMETRY == CARTESIAN
    vjet[VX1] = 0.0;
    vjet[VX2] = g_inputParam[BETA];
   #elif GEOMETRY == SPHERICAL
    vjet[VX1] = g_inputParam[BETA];
    vjet[VX2] = 0.0;
-  #endif
-  #if USE_FOUR_VELOCITY == YES
-   vjet[VX1] /= sqrt(1.0 - g_inputParam[BETA]*g_inputParam[BETA]);
-   vjet[VX2] /= sqrt(1.0 - g_inputParam[BETA]*g_inputParam[BETA]);
   #endif
   vjet[PRS] = g_inputParam[PRESS_IN];
 }
@@ -147,7 +138,7 @@ double Profile(double r, int nv)
   int xn = 14;
   double r0 = 1.0;
 
-  if (nv == DN) r0 = 1.1;
+  if (nv == RHO) r0 = 1.1;
 
   #if GEOMETRY == SPHERICAL
    r0 = 5.0/180.0*CONST_PI;

@@ -17,7 +17,7 @@ void Init (double *us, double x, double y, double z)
   us[VX1] = 0.0;
   us[VX2] = 0.0;
   us[VX3] = 0.0;
-  us[TR] = 0.0;
+  us[TRC] = 0.0;
 
   if (x<0.1){
     us[PRS] = 1.e3;
@@ -26,12 +26,6 @@ void Init (double *us, double x, double y, double z)
   }else {
     us[PRS] = 1.e2;
   }
-
-  #if USE_FOUR_VELOCITY == YES
-   scrh = 1.0/sqrt(1.0 - us[VX1]*us[VX1] - us[VX2]*us[VX2]);
-   us[VX1] *= scrh;
-   us[VX2] *= scrh;
-  #endif
 
 }
 

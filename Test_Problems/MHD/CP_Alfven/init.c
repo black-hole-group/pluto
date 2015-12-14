@@ -135,7 +135,7 @@ void Init (double *us, double x1, double x2, double x3)
   us[VX1] =  vx*cg*ca - vy*sa - vz*sg*ca;
   us[VX2] =  vx*cg*sa + vy*ca - vz*sg*sa;
   us[VX3] =  vx*sg            + vz*cg;
-  us[TR] = 0.0;
+  us[TRC] = 0.0;
 
   us[BX1] =  Bx*cg*ca - By*sa - Bz*sg*ca;
   us[BX2] =  Bx*cg*sa + By*ca - Bz*sg*sa;

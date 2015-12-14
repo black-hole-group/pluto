@@ -147,22 +147,17 @@ void HLLC_Solver (const State_1D *state, int beg, int end,
       Uhll[i][MXn] += (pL[i] - pR[i])*scrh;
       Fhll[MXn] += (SR[i]*pL[i] - SL[i]*pR[i])*scrh;
 
-      #if SHOCK_FLATTENING == MULTID   
-
-      /* ---------------------------------------------
-         Switch to HLL in proximity of strong shocks.
-        --------------------------------------------- */
-
-       if (CheckZone(i, FLAG_HLL) || CheckZone(i+1, FLAG_HLL)){
-         for (nv = NFLX; nv--; ){
-           state->flux[i][nv]  = SL[i]*SR[i]*(uR[nv] - uL[nv])
-                              +  SR[i]*fL[i][nv] - SL[i]*fR[i][nv];
-           state->flux[i][nv] *= scrh;
-         }
-         state->press[i] = (SR[i]*pL[i] - SL[i]*pR[i])*scrh;
-         continue;
-       }
-      #endif
+#if SHOCK_FLATTENING == MULTID   
+      if ((state->flag[i] & FLAG_HLL) || (state->flag[i+1] & FLAG_HLL)){
+        for (nv = NFLX; nv--; ){
+          state->flux[i][nv]  = SL[i]*SR[i]*(uR[nv] - uL[nv])
+                             +  SR[i]*fL[i][nv] - SL[i]*fR[i][nv];
+          state->flux[i][nv] *= scrh;
+        }
+        state->press[i] = (SR[i]*pL[i] - SL[i]*pR[i])*scrh;
+        continue;
+      }
+#endif
 
    /* ---- define total pressure, vB in left and right states ---- */
 
@@ -244,7 +239,7 @@ void HLLC_Solver (const State_1D *state, int beg, int end,
                initialize source term
    ----------------------------------------------------- */
 
-  #if MHD_FORMULATION == EIGHT_WAVES
+  #if DIVB_CONTROL == EIGHT_WAVES
    HLL_DivBSource (state, Uhll, beg + 1, end, grid);
   #endif
 }

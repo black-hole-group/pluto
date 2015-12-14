@@ -30,8 +30,19 @@ class PlutoFiles(object):
         strlist = []
         scrh = self.File2List()
         for item in scrh:
-            if string in item.split():
-                strlist.append([scrh.index(item), item])
+            if len(string.split()) == 1 and string.split()[0] == string: # Look for 1 word
+                if string in item.split():
+                    strlist.append([scrh.index(item), item])
+            
+            # Look for the whole string... Careful with \n matches thats why 1 word match is better
+            elif len(string.split()) > 1: 
+                if string == item:
+                    strlist.append([scrh.index(item), item])
+
+            else:
+                print "Invalid String in LocateString"
+                sys.exit()
+                
         return strlist
 
     def DeleteLines(self, lbeg, lend):
@@ -54,7 +65,7 @@ class PlutoFiles(object):
         try:
             scrh[0]
         except IndexError:
-            print 'Word %s not found in file %s'%(oldword, self.fname)
+            #print 'Word %s not found in file %s'%(oldword, self.fname)
             pass
         else:
             l = scrh[0][1].split(' ')

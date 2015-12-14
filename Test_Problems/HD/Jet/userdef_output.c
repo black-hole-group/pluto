@@ -12,7 +12,7 @@ void ComputeUserVar (const Data *d, Grid *grid)
  *
  ***************************************************************** */
 {
-  #if EOS == PVTE_LAW
+  #if EOS == PVTE_LAW 
    int i, j, k, nv;  
    double ***tmp, T, v[NVAR];
 

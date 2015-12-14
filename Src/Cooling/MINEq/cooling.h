@@ -106,17 +106,6 @@
      Hydrogen and Helium are always included.
    ********************************************************************** */
 
-/*   Old nomenclature 
-enum {
-  HI = NFLX, HeI, HeII
-  C_EXPAND(CI, CII, CIII, CIV, CV)
-  N_EXPAND(NI, NII, NIII, NIV, NV)
-  O_EXPAND(OI, OII, OIII, OIV, OV)
-  Ne_EXPAND(NeI, NeII, NeIII, NeIV, NeV)
-  S_EXPAND(SI, SII, SIII, SIV, SV)
-  Fe_EXPAND(FeI, FeII, FeIII)
-};
-*/
 enum {
   X_HI = NFLX, X_HeI, X_HeII
   C_EXPAND(X_CI, X_CII, X_CIII, X_CIV, X_CV)
@@ -130,7 +119,6 @@ enum {
 #define NIONS  (3+C_IONS+N_IONS+O_IONS+Ne_IONS+S_IONS+Fe_IONS)
 
 double GetMaxRate (double *, double *, double);
-double MeanMolecularWeight (double *);
 double H_MassFrac (void);
 double CompEquil  (double, double, double *);
 double find_N_rho ();

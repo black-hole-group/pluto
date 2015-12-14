@@ -21,24 +21,24 @@
 /* ///////////////////////////////////////////////////////////////////// */
 #include "pluto.h"
 
-#if INTERPOLATION == PARABOLIC || INTERPOLATION == WENO3 || INTERPOLATION == LimO3
+#if RECONSTRUCTION == PARABOLIC || RECONSTRUCTION == WENO3 || RECONSTRUCTION == LimO3
 
 /* -------------------------------------------------------- */
 /*! Flag to control the choice of the reference state in 
     the upwind selection rule.
-    Set CH_TRACING_REF_STATE to 1,2,3 to use 
+    Set CHTR_REF_STATE to 1,2,3 to use 
     - cell centered value (1),
     - interpolated states (2),
     - fastest wave (3, the usual PPM rescription).          */
 /*  ------------------------------------------------------- */
 
 #if CHAR_LIMITING == YES   
- #ifndef CH_TRACING_REF_STATE
-  #define CH_TRACING_REF_STATE  2
+ #ifndef CHTR_REF_STATE
+  #define CHTR_REF_STATE  2
  #endif
 #else
- #ifndef CH_TRACING_REF_STATE
-  #define CH_TRACING_REF_STATE  3
+ #ifndef CHTR_REF_STATE
+  #define CHTR_REF_STATE  3
  #endif
 #endif
 
@@ -110,22 +110,22 @@ void CharTracingStep(const State_1D *state, int beg, int end, Grid *grid)
   /* ------------------------------------------------------------- */
   /*! 3) Initialize vp and vm to the reference state.
          Since this is somewhat arbitrary we use the value of 
-         ::CH_TRACING_REF_STATE to select one of the following cases:
+         ::CHTR_REF_STATE to select one of the following cases:
          
-         - CH_TRACING_REF_STATE==1: use cell-center value;
+         - CHTR_REF_STATE==1: use cell-center value;
            
-         - CH_TRACING_REF_STATE==2: interpolated value at base 
+         - CHTR_REF_STATE==2: interpolated value at base 
                                     time level 
-         - CH_TRACING_REF_STATE==3: 
+         - CHTR_REF_STATE==3: 
            traditional PPM reference state (fastest wave), minimize 
            the size of the term subject to characteristic limiting. 
 
-        Passive scalars use always CH_TRACING_REF_STATE == 2.      */
+        Passive scalars use always CHTR_REF_STATE == 2.      */
   /* ------------------------------------------------------------- */
 
-    #if CH_TRACING_REF_STATE == 1
+    #if CHTR_REF_STATE == 1
      for (nv = NFLX; nv--;   ) vp[nv] = vm[nv] = vc[nv];
-    #elif CH_TRACING_REF_STATE == 3
+    #elif CHTR_REF_STATE == 3
      nup = MAX(nu[1], 0.0); num = MIN(nu[0], 0.0);
      for (nv = NFLX; nv--;   ){
        dwh = vp[nv] - vm[nv];
@@ -138,7 +138,7 @@ void CharTracingStep(const State_1D *state, int beg, int end, Grid *grid)
   /* ------------------------------------------------------------- */
   /*! 4) Compute left and right states in primitive variables. 
          This step also depends on the value of 
-         ::CH_TRACING_REF_STATE and include:
+         ::CHTR_REF_STATE and include:
 
          - evolve characteristic variable increments by dt/2;
          - discard contributions from waves not reaching the 
@@ -151,20 +151,20 @@ void CharTracingStep(const State_1D *state, int beg, int end, Grid *grid)
       dwh = dwp[k] - dwm[k];
       d2w = dwp[k] + dwm[k]; 
       if (nu[k] >= 0.0) {
-        #if CH_TRACING_REF_STATE == 1
+        #if CHTR_REF_STATE == 1
          Spp = dwp[k] - 0.5*nu[k]*(dwh + d2w*(3.0 - 2.0*nu[k]));
-        #elif CH_TRACING_REF_STATE == 2
+        #elif CHTR_REF_STATE == 2
          Spp =        - 0.5*nu[k]*(dwh + d2w*(3.0 - 2.0*nu[k]));
-        #elif CH_TRACING_REF_STATE == 3
+        #elif CHTR_REF_STATE == 3
          Spp = -0.5*(nu[k]-nup)*(dwh + 3.0*d2w) + (nu[k]*nu[k] - nup*nup)*d2w;
         #endif
         for (nv = NFLX; nv--;   ) vp[nv] += Spp*R[nv][k];
       } else {
-        #if CH_TRACING_REF_STATE == 1
+        #if CHTR_REF_STATE == 1
          Smm = dwm[k] - 0.5*nu[k]*(dwh - d2w*(3.0 + 2.0*nu[k]));
-        #elif CH_TRACING_REF_STATE == 2
+        #elif CHTR_REF_STATE == 2
          Smm =        - 0.5*nu[k]*(dwh - d2w*(3.0 + 2.0*nu[k]));
-        #elif CH_TRACING_REF_STATE == 3
+        #elif CHTR_REF_STATE == 3
          Smm = -0.5*(nu[k]-num)*(dwh - 3.0*d2w) + (nu[k]*nu[k] - num*num)*d2w;
         #endif
         for (nv = NFLX; nv--;   ) vm[nv] += Smm*R[nv][k];
@@ -218,14 +218,15 @@ void CharTracingStep(const State_1D *state, int beg, int end, Grid *grid)
   for (i = beg; i <= end; i++) {
     vp = state->vp[i];
     vm = state->vm[i];
-    for (nv = NVAR; nv--; ) {
-      state->vh[i][nv] = 0.5*(vp[nv] + vm[nv]);
-    }
+    NVAR_LOOP(nv) state->vh[i][nv] = 0.5*(vp[nv] + vm[nv]);
   }
+#if RECONSTRUCT_4VEL
+  ConvertTo3vel (state->vh, beg, end);
+#endif    
 }
-#undef CH_TRACING_REF_STATE
+#undef CHTR_REF_STATE
 
-#else /* if INTERPOLATION == LINEAR */
+#else /* if RECONSTRUCTION == LINEAR */
 
 /* ------------------------------------------------------------
     Set REF_STATE to 1,2,3 to use cell centered value (1), 
@@ -233,8 +234,8 @@ void CharTracingStep(const State_1D *state, int beg, int end, Grid *grid)
     PPM prescription). Default is 3.
    ------------------------------------------------------------ */
 
-#ifndef CH_TRACING_REF_STATE
- #define CH_TRACING_REF_STATE     3
+#ifndef CHTR_REF_STATE
+ #define CHTR_REF_STATE     3
 #endif
 
 /* ********************************************************************* */
@@ -330,22 +331,22 @@ void CharTracingStep(const State_1D *state, int beg, int end, Grid *grid)
 
   /* ----------------------------------------------------------------
          Since this is somewhat arbitrary we use the value of 
-         ::CH_TRACING_REF_STATE to select one of the following cases:
+         ::CHTR_REF_STATE to select one of the following cases:
          
-         - CH_TRACING_REF_STATE==1: use cell-center value;
+         - CHTR_REF_STATE==1: use cell-center value;
            
-         - CH_TRACING_REF_STATE==2: interpolated value at base 
+         - CHTR_REF_STATE==2: interpolated value at base 
                                     time level 
-         - CH_TRACING_REF_STATE==3: 
+         - CHTR_REF_STATE==3: 
            traditional PPM reference state (fastest wave), minimize 
            the size of the term subject to characteristic limiting. 
 
-        Passive scalars use always CH_TRACING_REF_STATE == 2.      
+        Passive scalars use always CHTR_REF_STATE == 2.      
      ---------------------------------------------------------------- */
 
-    #if CH_TRACING_REF_STATE == 1
+    #if CHTR_REF_STATE == 1
      for (nv = NFLX; nv--; ) vp[nv] = vm[nv] = vc[nv];
-    #elif CH_TRACING_REF_STATE == 3
+    #elif CHTR_REF_STATE == 3
      for (nv = NFLX; nv--; ) {
        #if GEOMETRY == CARTESIAN
         vp[nv] = vc[nv] + 0.5*dv[nv]*(1.0 - nu_max);
@@ -384,11 +385,11 @@ void CharTracingStep(const State_1D *state, int beg, int end, Grid *grid)
         #if GEOMETRY != CARTESIAN
          nu[k] *= (1.0 - betaR[k]);
         #endif
-        #if CH_TRACING_REF_STATE == 1
+        #if CHTR_REF_STATE == 1
          dw[k] *= 0.5*(1.0 - nu[k]);
-        #elif CH_TRACING_REF_STATE == 2
+        #elif CHTR_REF_STATE == 2
          dw[k] *= -0.5*nu[k];
-        #elif CH_TRACING_REF_STATE == 3
+        #elif CHTR_REF_STATE == 3
          dw[k] *= 0.5*(nu_max - nu[k]);
         #endif
         for (nv = 0; nv < NFLX; nv++) vp[nv] += dw[k]*R[nv][k];
@@ -396,11 +397,11 @@ void CharTracingStep(const State_1D *state, int beg, int end, Grid *grid)
         #if GEOMETRY != CARTESIAN
          nu[k] *= (1.0 + betaL[k]);
         #endif
-        #if CH_TRACING_REF_STATE == 1
+        #if CHTR_REF_STATE == 1
          dw[k] *= -0.5*(1.0 + nu[k]);
-        #elif CH_TRACING_REF_STATE == 2
+        #elif CHTR_REF_STATE == 2
          dw[k] *= -0.5*nu[k];
-        #elif CH_TRACING_REF_STATE == 3
+        #elif CHTR_REF_STATE == 3
          dw[k] *= 0.5*(nu_min - nu[k]);
         #endif
         for (nv = 0; nv < NFLX; nv++) vm[nv] += dw[k]*R[nv][k];
@@ -488,10 +489,11 @@ void CharTracingStep(const State_1D *state, int beg, int end, Grid *grid)
   for (i = beg; i <= end; i++){ 
     vp = state->vp[i];
     vm = state->vm[i];
-    for (nv = NVAR; nv--; ) {
-      state->vh[i][nv] = 0.5*(vp[nv] + vm[nv]);
-    }
+    NVAR_LOOP(nv) state->vh[i][nv] = 0.5*(vp[nv] + vm[nv]);
   }
+#if RECONSTRUCT_4VEL
+  ConvertTo3vel (state->vh, beg, end);
+#endif  
 }
-#undef CH_TRACING_REF_STATE 
-#endif  /* INTERPOLATION == LINEAR */
+#undef CHTR_REF_STATE 
+#endif  /* RECONSTRUCTION == LINEAR */

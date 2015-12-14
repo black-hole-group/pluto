@@ -3,17 +3,12 @@
   \file
   \brief Shock finding algorithm.
   
-  Search for computational zones lying in a shock wave.
-  This function may be called if either ::SHOCK_FLATTENING has been 
-  set to \c MULTID or when ::ENTROPY_SWITCH has been turned on.
-  Depending on the action to be taken, several flags may be switched
-  on or off to control the update strategy in these critical regions.
-  
-  The criterion used to search for shocked regions involves checking 
-  the divergence of the velocity and the pressure gradient:
+  Search and flag computational zones lying in a shock wave.
+  The flagging strategy is based on two switches designed to detect 
+  the presence of compressive motion or shock waves in the fluid:
   \f[
      \nabla\cdot\vec{v} < 0 \qquad{\rm and}\qquad
-     \frac{\nabla p}{p} > \epsilon_p\Delta l
+     \Delta x\frac{|\nabla p|}{p} > \epsilon_p
   \f]  
   where \f$\epsilon_p\f$ sets the shock strength.
   At the discrete level we replace the two conditions by 
@@ -31,9 +26,42 @@
   giving the position of a computational zone, while \f$\hvec{e}_d =
   (\delta_{1d},\delta_{2d},\delta_{3d})\f$ is a unit vector in the direction
   given by \c d.
+  Once a zone has been tagged as lying in a shock, different flags may be
+  switched on or off to control the update strategy in these critical regions.
 
+  This function can be called called when:
+  - \c SHOCK_FLATTENING has been set to \c MULTID: in this case shocked zones
+    are tagged with \c FLAG_MINMOD and \c FLAG_HLL that will later
+    be used to force the reconstruction with the minmod limiter
+    and the Riemann solver to HLL.
+  - \c ENTROPY_SWITCH has been turned on: this flag will be checked later in
+    the ConsToPrim() functions in order to recover pressure from the
+    entropy density rather than from the total energy density.
+    The update process is:
+ 
+    - start with a vector of primitive variables  <tt> {V,s} </tt>
+      where \c s is the entropy;
+    - set boundary condition on \c {V}; 
+    -  compute \c {s} from \c {V};
+    - flag zones where entropy may be used (flag = 1);
+    - evolve equations for one time step;
+    - convert <tt> {U,S} </tt> to primitive:
+      \code
+        if (flag == 0) {  // Use energy
+          p = p(E)
+          s = s(p)
+        }else{            // use entropy
+          p = p(S)
+          E = E(p)
+        }  
+        \endcode
+
+  \b Reference
+     - "Maintaining Pressure Positivity in Magnetohydrodynamics Simulations"
+       Balsara \& Spicer, JCP (1999) 148, 133
+  
   \authors A. Mignone (mignone@ph.unito.it)
-  \date    May 7, 2014
+  \date    July 28, 2015
 */
 /* ///////////////////////////////////////////////////////////////////// */
 #include"pluto.h"
@@ -46,7 +74,7 @@
  #define EPS_PSHOCK_ENTROPY  0.05
 #endif
 
-#if SHOCK_FLATTENING == MULTID || ENTROPY_SWITCH == YES
+#if (SHOCK_FLATTENING == MULTID) || ENTROPY_SWITCH
 /* *************************************************************** */
 void FlagShock (const Data *d, Grid *grid)
 /*!
@@ -64,45 +92,10 @@ void FlagShock (const Data *d, Grid *grid)
   double *dVx, *dVy, *dVz;
   double *Ar, *Ath, *r, *th, s;
   static double ***pt;
-  
-/* -------------------------------------------------
-   1. Define pointers to variables, total pressure
-      array and geometrical factors.
-   ------------------------------------------------- */
 
-  EXPAND(vx1 = d->Vc[VX1];  ,
-         vx2 = d->Vc[VX2];  ,
-         vx3 = d->Vc[VX3];)
-         
-  #if PHYSICS == HD || PHYSICS == RHD
-  
-   #if EOS == ISOTHERMAL
-    pt = d->Vc[RHO];
-   #else
-    pt = d->Vc[PRS];
-   #endif
-   
-  #elif PHYSICS == MHD || PHYSICS == RMHD 
-  
-   if (pt == NULL) pt = ARRAY_3D(NX3_MAX, NX2_MAX, NX1_MAX, double);
-   TOT_LOOP(k,j,i){  
-     #if EOS == ISOTHERMAL
-      pt[k][j][i] = d->Vc[RHO][k][j][i]*g_isoSoundSpeed*g_isoSoundSpeed;
-     #else
-      pt[k][j][i] = d->Vc[PRS][k][j][i];
-     #endif
-   /* -- Add magnetic pressure. This section is commented since
-         for strongly magnetized medium, the ratio |\Delta ptot|/ptot|
-         will decrease with stronger fields thus underestimating the
-         pressure jump.  
-
-     EXPAND(pt[k][j][i] += 0.5*d->Vc[BX1][k][j][i]*d->Vc[BX1][k][j][i];  ,
-            pt[k][j][i] += 0.5*d->Vc[BX2][k][j][i]*d->Vc[BX2][k][j][i];  ,
-            pt[k][j][i] += 0.5*d->Vc[BX3][k][j][i]*d->Vc[BX3][k][j][i];)
-   */
-   }
-   
-  #endif
+/* ----------------------------------------------------
+   0. Define pointers to variables and allocate memory
+   ---------------------------------------------------- */
 
   dx1 = grid[IDIR].dx; dV1 = grid[IDIR].dV;
   dx2 = grid[JDIR].dx; dV2 = grid[JDIR].dV; 
@@ -113,12 +106,31 @@ void FlagShock (const Data *d, Grid *grid)
   Ath = grid[JDIR].A;
   th  = grid[JDIR].x;
 
-/* -- By default, all zones are flagged for entropy -- */
+  EXPAND(vx1 = d->Vc[VX1];  ,
+         vx2 = d->Vc[VX2];  ,
+         vx3 = d->Vc[VX3];)
 
-  #if ENTROPY_SWITCH == YES
-   TOT_LOOP(k,j,i)  d->flag[k][j][i] |= FLAG_ENTROPY;
-  #endif
+  if (pt == NULL) pt = ARRAY_3D(NX3_MAX, NX2_MAX, NX1_MAX, double);
+    
+/* --------------------------------------------------------
+   1. Compute total pressure and flag, initially all zones
+      with ENTROPY_SWITCH.
+   -------------------------------------------------------- */
 
+  TOT_LOOP(k,j,i){  
+#if EOS == ISOTHERMAL
+    pt[k][j][i] = d->Vc[RHO][k][j][i]*g_isoSoundSpeed*g_isoSoundSpeed;
+#else
+  #if HAVE_ENERGY 
+     pt[k][j][i] = d->Vc[PRS][k][j][i];
+  #endif    
+#endif
+
+#if (ENTROPY_SWITCH == SELECTIVE) || (ENTROPY_SWITCH == ALWAYS)
+    d->flag[k][j][i] |= FLAG_ENTROPY;
+#endif
+  }
+ 
 /* ----------------------------------------------
    2. Track zones lying in a shock
    ---------------------------------------------- */
@@ -139,7 +151,7 @@ void FlagShock (const Data *d, Grid *grid)
 
      D_EXPAND(dvx1 =   Ar[i]  *(vx1[k][j][i + 1] + vx1[k][j][i])
                      - Ar[i-1]*(vx1[k][j][i - 1] + vx1[k][j][i]);   ,
-              dvx2 = vx2[k][j + 1][i] - vx2[k][j - 1][i];               , 
+              dvx2 = vx2[k][j + 1][i] - vx2[k][j - 1][i];           , 
               dvx3 = vx3[k + 1][j][i] - vx3[k - 1][j][i];)
 
     #elif GEOMETRY == POLAR
@@ -205,7 +217,7 @@ void FlagShock (const Data *d, Grid *grid)
       and to the right for each dimension.
      ----------------------------------------------------- */
 
-      #if ENTROPY_SWITCH == YES
+      #if ENTROPY_SWITCH == SELECTIVE
        if (gradp > EPS_PSHOCK_ENTROPY*pt_min) { /* -- unflag zone -- */
          d->flag[k][j][i] &= ~(FLAG_ENTROPY);
          D_EXPAND(

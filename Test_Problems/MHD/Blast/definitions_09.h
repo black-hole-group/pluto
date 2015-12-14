@@ -4,20 +4,19 @@
 #define  GEOMETRY                CARTESIAN
 #define  BODY_FORCE              NO
 #define  COOLING                 NO
-#define  INTERPOLATION           LINEAR
+#define  RECONSTRUCTION          LINEAR
 #define  TIME_STEPPING           CHARACTERISTIC_TRACING
 #define  DIMENSIONAL_SPLITTING   NO
 #define  NTRACER                 0
 #define  USER_DEF_PARAMETERS     7
-#define  USER_DEF_CONSTANTS      0
 
 /* -- physics dependent declarations -- */
 
 #define  EOS                     IDEAL
 #define  ENTROPY_SWITCH          NO
-#define  MHD_FORMULATION         DIV_CLEANING
+#define  DIVB_CONTROL            DIV_CLEANING
 #define  BACKGROUND_FIELD        NO
-#define  RESISTIVE_MHD           NO
+#define  RESISTIVITY             NO
 #define  THERMAL_CONDUCTION      NO
 #define  VISCOSITY               NO
 #define  ROTATING_FRAME          NO
@@ -32,8 +31,10 @@
 #define  RADIUS                  5
 #define  GAMMA                   6
 
-/* -- user-defined symbolic constants -- */
+/* [Beg] user-defined constants (do not change this line) */
 
+
+/* [End] user-defined constants (do not change this line) */
 
 /* -- supplementary constants (user editable) -- */ 
 
@@ -42,7 +43,6 @@
 #define  PRINT_TO_FILE             YES
 #define  INTERNAL_BOUNDARY         NO
 #define  SHOCK_FLATTENING          MULTID
-#define  ARTIFICIAL_VISCOSITY      NO
 #define  CHAR_LIMITING             YES
 #define  LIMITER                   DEFAULT
 #define  ASSIGN_VECTOR_POTENTIAL   YES

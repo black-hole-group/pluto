@@ -14,7 +14,7 @@
     components (tangent \c "t" and bi-tangent \c "b").
 
  \author A. Mignone (mignone@ph.unito.it)
- \date   Aug 16, 2012
+ \date   Jan 16, 2014
 */
 /* ///////////////////////////////////////////////////////////////////// */
 #include "pluto.h"
@@ -48,14 +48,14 @@ void Flux (double **ucons, double **wprim, double *a2, double **bck,
     
     ptot  = 0.5*(EXPAND(w[BX1]*w[BX1] , + w[BX2]*w[BX2], + w[BX3]*w[BX3]));
 
-    #if HAVE_PRESSURE
+    #if HAVE_ENERGY
      ptot += w[PRS];
     #elif EOS == BAROTROPIC
      ptot += BAROTROPIC_PR(w[RHO]);
     #elif EOS == ISOTHERMAL
      ptot += a2[i]*w[RHO];
     #else
-     print ("! FLUX: not defined for this EoS\n");
+     print ("! Flux(): not defined for this EoS\n");
      QUIT_PLUTO(1);
     #endif
 

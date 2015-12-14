@@ -1,7 +1,7 @@
 /* ///////////////////////////////////////////////////////////////////// */
 /*!
   \file
-  \brief Torus in a dipole magnetic field.
+  \brief Magnetized accretion torus.
 
   Magnetized accretion torus in 2D spherical coordinates in a 
   radially stratified atmosphere. 

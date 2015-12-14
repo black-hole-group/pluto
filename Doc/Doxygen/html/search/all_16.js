@@ -1,6 +1,5 @@
 var searchData=
 [
-  ['what_27s_20new_20in_20pluto_204_2e0',['What&apos;s new in PLUTO 4.0',['../_changes.html',1,'']]],
   ['w',['W',['../struct_map__param.html#a5ec511930edd29ba1a84430964cf60cd',1,'Map_param']]],
   ['wa',['wA',['../fargo__velocity_8c.html#a6d9efcc11b231a1e49ed0ac7aff06cfe',1,'fargo_velocity.c']]],
   ['where',['Where',['../tools_8c.html#a1b655c8a42bca91b14660433919fba5c',1,'tools.c']]],

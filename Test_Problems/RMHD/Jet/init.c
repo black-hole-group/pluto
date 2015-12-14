@@ -168,6 +168,7 @@ void UserDefBoundary (const Data *d, RBox *box, int side, Grid *grid)
     }else if (box->vpos == X1FACE){  /* -- staggered fields -- */
       #ifdef STAGGERED_MHD
        x1 = grid[IDIR].xr;
+       vjet[BX1] = 0.0; 
        BOX_LOOP(box,k,j,i){
           vout[BX1] = -bxs[k][2*JBEG - j - 1][i];
           prof = (fabs(x1[i]) <= 1.0);
@@ -201,7 +202,7 @@ void GetJetValues (double x1, double x2, double x3, double *vj)
   vj[RHO] = g_inputParam[RHOJ];
 
   EXPAND(vj[VX1] = 0.0;                        ,
-         vj[VX2] = sqrt(1.0 - 1.0/(lor*lor));  ,
+         vj[VX2] = sqrt(1.0 - 1.0/(lor*lor));  , /* 3-vel */
          vj[VX3] = 0.0;)
 
   scrh = g_inputParam[MACH]/vj[VX2];
@@ -233,4 +234,5 @@ void GetJetValues (double x1, double x2, double x3, double *vj)
   #ifdef PSI_GLM 
    vj[PSI_GLM] = 0.0;
   #endif
+
 }
