@@ -11,7 +11,8 @@ except KeyError:
 else:
   pluto_directory = os.environ['PLUTO_DIR']
 
-sys.path.append(pluto_directory + '/Tools/Python/')
+#sys.path.append(pluto_directory + '/Tools/Python/')
+sys.path.insert(1, pluto_directory + '/Tools/Python/')	# otherwise if you already have a 'menu' module (like anaconda python) it will mess up
 import menu
 import configure
 from make_problem import MakeProblem
