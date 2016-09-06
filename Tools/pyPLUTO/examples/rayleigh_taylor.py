@@ -5,17 +5,21 @@ from matplotlib.pyplot import *
 import pyPLUTO as pp
 
 plutodir = os.environ['PLUTO_DIR']
-wdir = plutodir+'/Test_Problems/HD/Rayleigh_Taylor/'
+wdir = plutodir+'/Test_Problems/MHD/Rayleigh_Taylor/'
 
 D0 = pp.pload(0,w_dir=wdir)
 D1 = pp.pload(1,w_dir=wdir) # Loading the data into a pload object D.
-D2 = pp.pload(2,w_dir=wdir)
+#D2 = pp.pload(2,w_dir=wdir)
 
 ## SMART WAY##
 I = pp.Image()
-I.multi_disp(D0.rho,D1.rho,D2.rho,x1=D0.x1,x2=D0.x2,Ncols=3,label1=3*['x'],
-             label2=3*['y'],title=[r'$\tau=0$',r'$\tau=1$',r'$\tau=2$'],
+#I.multi_disp(D0.rho,D1.rho,D2.rho,x1=D0.x1,x2=D0.x2,Ncols=3,label1=3*['x'],
+#             label2=3*['y'],title=[r'$\tau=0$',r'$\tau=1$',r'$\tau=2$'],
+#             cbar=(True,'vertical','each'),figsize=[12,7])
+I.multi_disp(D0.rho,D1.rho,x1=D0.x1,x2=D0.x2,Ncols=2,label1=2*['x'],
+             label2=2*['y'],title=[r'$\tau=0$',r'$\tau=1$',r'$\tau=2$'],
              cbar=(True,'vertical','each'),figsize=[12,7])
+
 
 ##BRUTE FORCE WAY##
 ## f1 = figure(figsize=[12,7])
