@@ -1,12 +1,12 @@
-#define  PHYSICS                 MHD
+#define  PHYSICS                 HD
 #define  DIMENSIONS              2
 #define  COMPONENTS              3
-#define  GEOMETRY                CYLINDRICAL
+#define  GEOMETRY                SPHERICAL
 #define  BODY_FORCE              VECTOR
 #define  COOLING                 NO
-#define  RECONSTRUCTION          LINEAR
-#define  TIME_STEPPING           CHARACTERISTIC_TRACING
-#define  DIMENSIONAL_SPLITTING   YES
+#define  RECONSTRUCTION          PARABOLIC
+#define  TIME_STEPPING           RK3
+#define  DIMENSIONAL_SPLITTING   NO
 #define  NTRACER                 1
 #define  USER_DEF_PARAMETERS     6
 
@@ -14,11 +14,8 @@
 
 #define  EOS                     IDEAL
 #define  ENTROPY_SWITCH          NO
-#define  DIVB_CONTROL            DIV_CLEANING
-#define  BACKGROUND_FIELD        NO
-#define  RESISTIVITY             NO
 #define  THERMAL_CONDUCTION      NO
-#define  VISCOSITY               NO
+#define  VISCOSITY               EXPLICIT
 #define  ROTATING_FRAME          NO
 
 /* -- user-defined parameters (labels) -- */
@@ -38,12 +35,10 @@
 
 /* -- supplementary constants (user editable) -- */ 
 
-#define  INITIAL_SMOOTHING         NO
-#define  WARNING_MESSAGES          YES
-#define  PRINT_TO_FILE             YES
-#define  INTERNAL_BOUNDARY         NO
-#define  SHOCK_FLATTENING          NO
-#define  CHAR_LIMITING             YES
-#define  LIMITER                   DEFAULT
-#define  ASSIGN_VECTOR_POTENTIAL   YES
-#define  UPDATE_VECTOR_POTENTIAL   NO
+#define  INITIAL_SMOOTHING   NO
+#define  WARNING_MESSAGES    YES
+#define  PRINT_TO_FILE       YES
+#define  INTERNAL_BOUNDARY   NO
+#define  SHOCK_FLATTENING    NO
+#define  CHAR_LIMITING       NO
+#define  LIMITER             MC_LIM
