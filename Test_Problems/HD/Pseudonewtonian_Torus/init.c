@@ -66,7 +66,7 @@
   -# <tt>g_inputParam[BETA]</tt>: plasma beta
   -# <tt>g_inputParam[ETA]</tt>   density contrast between atmosphere and Torus
   -# <tt>g_inputParam[SCALE_HEIGHT]</tt>:  atmosphere scale height \f$ H=GM/a^2\f$
-
+-------------------------------------- MHD -----------------------------------------
   The magnetic field can be specified to be inside the torus or as a
   large-scale dipole field.
   In the first case, we give the vector potential:
@@ -107,15 +107,12 @@ void Init (double *v, double x1, double x2, double x3)
  *********************************************************************** */
 {
   double rmin, rmax, beta;
-  double r, R, z, A_phi, gmmr, H;
+  double r, R, z, A_phi, gmmr, H, Rsch;
   double a,c, l_k, l_k2;
   double Bo, Vo;
-  double B, A,n,d=1.125;
   double prt, pra, phi;
   double rhot, rhoa, rhocut;
 
-  gmmr = g_gamma/(g_gamma - 1.0);
-  n = 1/(g_gamma-1);
   #if GEOMETRY == CYLINDRICAL
    r  = x1;   /* cylindrical radius */
    z  = x2;
@@ -126,8 +123,6 @@ void Init (double *v, double x1, double x2, double x3)
    R  = x1;           /* spherical radius */
   #endif
 
-  phi  = 0.0;
-
   rmax    = g_inputParam[RMAX];
   rmin    = g_inputParam[RMIN];
   beta    = g_inputParam[BETA];
@@ -135,6 +130,9 @@ void Init (double *v, double x1, double x2, double x3)
   H       = g_inputParam[SCALE_HEIGHT];
   g_gamma = g_inputParam[GAMMA];
 
+  phi  = 0.0;
+  gmmr = g_gamma/(g_gamma - 1.0);
+  Rsch = 2.0;
   l_k     = sqrt(rmax);
   l_k2    = l_k*l_k;
   Vo      = l_k;
@@ -143,28 +141,29 @@ void Init (double *v, double x1, double x2, double x3)
    Solve for kappa and c assuming pra=0
    ---------------------------------------- */
 
-  a    = 0.0;
-  B = -1./rmin - 1./(2*a -2) * rmax * pow(rmin/rmax,2*a-2);
-  A =(B + 1/rmax + rmax/(2*a-2))/(1+n);//*rho^{-1/n}
+  c     =    - 1.0/(rmin-Rsch) + 0.5*l_k2/(rmin*rmin);
+  kappa = (c + 1.0/(rmax-Rsch) - 0.5*l_k2/(rmax*rmax))/gmmr;
 
 /* ----------------------------
    Torus density + pressure
    ---------------------------- */
 
-  rhot = pow((B + 1/R + rmax*rmax *pow(r/rmax,2*(a-1))/(2*a-2) )/(A*(1+n)),n);
-  prt  =A*pow(rhot,g_gamma);
+  a    = c + 1.0/(R-Rsch) - 0.5*l_k2/(r*r);
+  a    = MAX(a, 0.0);
+  rhot = pow(a/(gmmr*kappa), 1.0/(g_gamma-1));
+  prt  = kappa*pow(rhot,g_gamma);
 
 /* -------------------------------------
     Atmospheric density + pressure
     (force equilibrium Fg and \nabla P)
    ------------------------------------- */
 
-  rhoa = g_inputParam[ETA];
-  pra  = rhoa/R;
+  rhoa = g_inputParam[ETA]*exp((1./(R-Rsch) - 1./rmin-Rsch)/H);
+  pra  = rhoa*H;
 
   Bo = sqrt(2.0*kappa/beta);
 
-  if (prt > pra) {    /* Torus */
+  if (prt > pra && r > 2.0) {    /* Torus */ //* Why this r > 2.0?
     v[RHO] = rhot;
     v[PRS] = prt;
     v[VX1] = 0.0;
@@ -187,7 +186,7 @@ void Init (double *v, double x1, double x2, double x3)
 
    A_phi  = 0.0;
    #if USE_DIPOLE == NO
-    if (rhot > rhocut) A_phi = Bo*(rhot - rhocut);
+    if (rhot > rhocut && r > 2.0) A_phi = Bo*(rhot - rhocut);
    #endif
 
    v[AX1] = 0.0;
@@ -270,16 +269,16 @@ void BodyForceVector(double *v, double *g, double x1, double x2, double x3)
  *
  *********************************************************************** */
 {
-  double  R;
-
+  double  R, Rsch;
+  Rsch = 2.0;
   #if GEOMETRY == CYLINDRICAL
-   R = sqrt(x1*x1 + x2*x2);
+   R = sqrt(x1*x1 + x2*x2); //* Put here pseudonewtonian setup too
    g[IDIR] = -1.0/(R*R*R)*x1;
    g[JDIR] = -1.0/(R*R*R)*x2;
    g[KDIR] =  0.0;
   #elif GEOMETRY == SPHERICAL
    R = x1;
-   g[IDIR] = -1.0/(R*R);
+   g[IDIR] = -1.0/((R-Rsch)*(R-Rsch));
    g[JDIR] =  0.0;
    g[KDIR] =  0.0;
   #endif

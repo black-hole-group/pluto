@@ -81,6 +81,17 @@ void Init (double *us, double x1, double x2, double x3)
 
   }
   #endif
+  double r
+  g_gamma = g_inputParam[GAMMA]; /* calls the auxiliary parameter GAMMA */
+  r = x1*x1 + x2*x2;
+  r = sqrt(r);
+  v[RHO] = 1.0;
+  v[VX1] = 0.0;
+  v[VX2] = 0.0;
+  v[VX3] = 0.0;
+  v[PRS] = g_inputParam[P_OUT];
+
+  if (r<=0.3) v[PRS] = g_inputParam[P_IN];
 }
 /* ********************************************************************* */
 void Analysis (const Data *d, Grid *grid)
