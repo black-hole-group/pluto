@@ -33,17 +33,17 @@ There's no `configure.sh`; once you've unpacked the distribution,
    main PLUTO directory, e.g., 
    if you are using tcsh:
 
-    > setenv PLUTO_DIR "/home/user/PLUTO"
+    setenv PLUTO_DIR "/home/user/PLUTO"
 
    if you're using bash:
 
-    > export PLUTO_DIR="/Users/ovidiu/PLUTO"
+    export PLUTO_DIR="/Users/ovidiu/PLUTO"
 
 
 2) select a working dir anywhere on your hard disk;
    at the command prompt, just type 
 
-    > python $PLUTO_DIR/setup.py 
+    python $PLUTO_DIR/setup.py 
 
    configure your problem and select makefile;
 
@@ -52,13 +52,13 @@ There's no `configure.sh`; once you've unpacked the distribution,
 
 4) compile with
 
-    > make 
+    make 
 
    or `gmake`;
 
 4) run with 
 
-    > ./pluto
+    ./pluto
 
 See the documentation in `Doc/` for more information.
 Have fun!
