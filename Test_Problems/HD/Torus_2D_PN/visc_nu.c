@@ -18,7 +18,18 @@ void Visc_nu(double *v, double x1, double x2, double x3,
  *  \return This function has no return value.
  * ************************************************************************** */
 {
-  double alpha = 0.01;
-  *nu1 = alpha * v[RHO] * v[RHO] ;// *sqrt(x1);
-  *nu2 = 0.0;
+/*
+Here we adopt the alpha prescription to mimic the MRI-driven viscosity.
+Our implementation follows Stone et al. (1999); Yuan et al. (2012). 
+Stone+1999 proposed two different prescriptions for the kinematic 
+viscosity (second paragraph of page 1004):
+1) nu = alpha * rho => C: *nu1 = alpha * v[RHO] * v[RHO]
+2) nu = alpha * sqrt(r) => C: *nu1 = alpha * v[RHO] * sqrt(x1)
+
+To allow a more direct comparison with Yuan+2012, we will adopt the
+second viscosity prescription.
+*/
+  double alpha = 0.01; // Shakura-Sunyaev alpha parameter
+  *nu1 = alpha * v[RHO] * sqrt(x1) // coefficient of shear viscosity = (kinematic viscosity)*rho
+  *nu2 = 0.0; // coefficient of bulk viscosity
 }
