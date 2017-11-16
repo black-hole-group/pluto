@@ -1,7 +1,7 @@
 /* ///////////////////////////////////////////////////////////////////// */
 /*!
   \file
-  \brief Magnetized accretion torus.
+  \brief Magnetized accretion torus with Paczynski-Wiita potential.
 
   Magnetized accretion torus in 2D spherical coordinates in a
   radially stratified atmosphere.
