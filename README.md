@@ -1,10 +1,11 @@
 PLUTO v4.2
 ====================
 
+![](http://astrologynewsservice.com/wp-content/uploads/2014/08/1240-305x260.png =300x) 
+
 Copyright (C) 2002-2015 Andrea Mignone. See [CONTRIBUTORS](./CONTRIBUTORS).
 
-PLUTO is Godunov-type code for astrophysical fluid dynamics supporting several
-modules and algorithms. This is [version 4.2 (August 2015)](http://plutocode.ph.unito.it) of the code, with a few updates and bug fixes by the [Black Hole Group](https://blackholegroup.org).
+PLUTO is Godunov-type code for astrophysical fluid dynamics supporting several modules and algorithms. This is [version 4.2 (August 2015)](http://plutocode.ph.unito.it) of the code, with a few updates and bug fixes by the [Black Hole Group](https://blackholegroup.org).
 
 This program is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
