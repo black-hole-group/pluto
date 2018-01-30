@@ -1,7 +1,7 @@
 PLUTO v4.2
 ====================
 
-![](http://astrologynewsservice.com/wp-content/uploads/2014/08/1240-305x260.png =300x) 
+![](http://astrologynewsservice.com/wp-content/uploads/2014/08/1240-305x260.png "Pluto" =300x) 
 
 Copyright (C) 2002-2015 Andrea Mignone. See [CONTRIBUTORS](./CONTRIBUTORS).
 
