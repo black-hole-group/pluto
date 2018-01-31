@@ -62,7 +62,7 @@ make
 
 or `gmake`;
 
-4) run with 
+5) run with 
 
 ```
 ./pluto
