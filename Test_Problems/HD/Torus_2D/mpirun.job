@@ -1,10 +1,9 @@
 #PBS -S /bin/bash
-#PBS -N torus_visc
-#PBS -l walltime=03:00:00:00
-#PBS -l nodes=256:ppn=1
-#PBS -e error.txt
-#PBS -o saida.txt
-# execute program
-cd /sto/home/hgubolin/runs/stoneB_vm/
-time mpirun -n 256 ./pluto -restart 1794
-# t = 41.1 * n1*n2 * texec /(nproc.500.500) (em segundos)
+#PBS -l walltime=48:00:00
+#PBS -l nodes=5:ppn=24
+#PBS -e pluto.err
+#PBS -o pluto.out
+
+cd $HOME/pluto
+
+mpirun -n 120 -machinefile $PBS_NODEFILE ./pluto
