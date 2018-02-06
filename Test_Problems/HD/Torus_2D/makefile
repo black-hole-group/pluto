@@ -13,7 +13,7 @@ SRC          = $(PLUTO_DIR)/Src
 INCLUDE_DIRS = -I. -I$(SRC)
 VPATH        = ./:$(SRC)/New:$(SRC):$(SRC)/Time_Stepping:$(SRC)/States
 
-include $(PLUTO_DIR)/Config/$(ARCH)
+include $(PLUTO_DIR)/config/$(ARCH)
 
 # ---------------------------------------------------------
 #         Set headers and object files 

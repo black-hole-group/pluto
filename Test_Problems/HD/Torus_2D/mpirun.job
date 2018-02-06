@@ -4,6 +4,6 @@
 #PBS -e pluto.err
 #PBS -o pluto.out
 
-cd $HOME/pluto
+cd $HOME/pluto/Test_Problems/HD/Torus_2D
 
 mpirun -n 120 -machinefile $PBS_NODEFILE ./pluto
