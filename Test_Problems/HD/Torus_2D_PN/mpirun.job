@@ -1,10 +1,9 @@
 #PBS -S /bin/bash
-#PBS -N torus_visc
-#PBS -l walltime=00:03:00:00
-#PBS -l nodes=1:ppn=24
+#PBS -l walltime=48:00:00
+#PBS -l nodes=4:ppn=24
 #PBS -e error.txt
-#PBS -o out.txt
-# execute program
-cd /sto/home/nemmen/pluto/Test_Problems/HD/Torus_2D_PN
-time mpirun -n 24 ./pluto 
-# t = 41.1 * n1*n2 * texec /(nproc.500.500) (em segundos)
+#PBS -o output.txt
+
+cd $HOME/pluto/Test_Problems/HD/Torus_2D_PN
+
+mpirun -n 96 -machinefile $PBS_NODEFILE ./pluto

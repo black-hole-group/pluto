@@ -8,7 +8,7 @@
 #define  TIME_STEPPING           RK3
 #define  DIMENSIONAL_SPLITTING   NO
 #define  NTRACER                 1
-#define  USER_DEF_PARAMETERS     7
+#define  USER_DEF_PARAMETERS     8
 
 /* -- physics dependent declarations -- */
 
@@ -27,6 +27,7 @@
 #define  ETA                     4
 #define  SCALE_HEIGHT            5
 #define  GAMMA                   6
+#define  RSCH                    7
 
 /* [Beg] user-defined constants (do not change this line) */
 

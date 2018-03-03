@@ -107,7 +107,7 @@ void Init (double *v, double x1, double x2, double x3)
  *********************************************************************** */
 {
   double rmin, rmax, beta;
-  double r, R, z, A_phi, gmmr, H, Rsch;
+  double r, R, z, A_phi, gmmr, H, rsch;
   double a,c, l_k, l_k2;
   double Bo, Vo;
   double prt, pra, phi;
@@ -129,10 +129,10 @@ void Init (double *v, double x1, double x2, double x3)
   rhocut  = g_inputParam[RHO_CUT];
   H       = g_inputParam[SCALE_HEIGHT];
   g_gamma = g_inputParam[GAMMA];
+  rsch    = g_inputParam[RSCH]; // Schwarzschild radius
 
   phi  = 0.0;
   gmmr = g_gamma/(g_gamma - 1.0);
-  Rsch = 2.0;
   l_k     = sqrt(rmax);
   l_k2    = l_k*l_k;
   Vo      = l_k;
@@ -141,14 +141,14 @@ void Init (double *v, double x1, double x2, double x3)
    Solve for kappa and c assuming pra=0
    ---------------------------------------- */
 
-  c     =    - 1.0/(rmin-Rsch) + 0.5*l_k2/(rmin*rmin);
-  kappa = (c + 1.0/(rmax-Rsch) - 0.5*l_k2/(rmax*rmax))/gmmr;
+  c     =    - 1.0/rmin + 0.5*l_k2/(rmin*rmin);
+  kappa = (c + 1.0/rmax - 0.5*l_k2/(rmax*rmax))/gmmr;
 
 /* ----------------------------
    Torus density + pressure
    ---------------------------- */
 
-  a    = c + 1.0/(R-Rsch) - 0.5*l_k2/(r*r);
+  a    = c + 1.0/R - 0.5*l_k2/(r*r);
   a    = MAX(a, 0.0);
   rhot = pow(a/(gmmr*kappa), 1.0/(g_gamma-1));
   prt  = kappa*pow(rhot,g_gamma);
@@ -158,12 +158,12 @@ void Init (double *v, double x1, double x2, double x3)
     (force equilibrium Fg and \nabla P)
    ------------------------------------- */
 
-  rhoa = g_inputParam[ETA]*exp((1./(R-Rsch) - 1./rmin-Rsch)/H);
+  rhoa = g_inputParam[ETA]*exp((1./r - 1./rmin)/H);
   pra  = rhoa*H;
 
   Bo = sqrt(2.0*kappa/beta);
 
-  if (prt > pra && r > 2.0) {    /* Torus */ //* Why this r > 2.0?
+  if (prt > pra) {    /* Torus */
     v[RHO] = rhot;
     v[PRS] = prt;
     v[VX1] = 0.0;
@@ -186,7 +186,7 @@ void Init (double *v, double x1, double x2, double x3)
 
    A_phi  = 0.0;
    #if USE_DIPOLE == NO
-    if (rhot > rhocut && r > 2.0) A_phi = Bo*(rhot - rhocut);
+    if (rhot > rhocut) A_phi = Bo*(rhot - rhocut);
    #endif
 
    v[AX1] = 0.0;
@@ -270,7 +270,7 @@ void BodyForceVector(double *v, double *g, double x1, double x2, double x3)
  *********************************************************************** */
 {
   double  R, Rsch;
-  Rsch = 2.0;
+  Rsch = g_inputParam[Rsch];
   #if GEOMETRY == CYLINDRICAL
    R = sqrt(x1*x1 + x2*x2); //* Put here pseudonewtonian setup too
    g[IDIR] = -1.0/(R*R*R)*x1;
