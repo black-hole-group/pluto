@@ -31,7 +31,7 @@ viscosity (second paragraph of page 1004):
 To allow a more direct comparison with Yuan+2012, we will adopt the
 second viscosity prescription.
 */
-  double alpha = 0.3; // Shakura-Sunyaev alpha parameter
+  const double alpha = 0.3; // Shakura-Sunyaev alpha parameter
   *nu1 = alpha * v[RHO] * sqrt(x1); // coefficient of shear viscosity = (kinematic viscosity)*rho
   *nu2 = 0.0; // coefficient of bulk viscosity
 }
