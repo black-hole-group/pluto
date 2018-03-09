@@ -4,7 +4,7 @@
 #PBS -l nodes=5:ppn=24
 
 #PBS -V
-#PBS -M <your email>
+#PBS -M j0r9v5q2e2p2b2r6@blackholehq.slack.com
 #PBS -m abe
 #PBS -N pn-300-200-a0.3-r1.5-1000
 
