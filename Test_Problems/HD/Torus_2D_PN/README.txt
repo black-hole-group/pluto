@@ -13,13 +13,23 @@ We usually parametrize time in units of the orbital time at the radius of maximu
 $$t_{\rm orb} (r_0) = \frac{2 \pi r_0}{v_\phi(r0)} $$
 where $v_\phi(r0)$ is the Keplerian velocity for the appropriate potential at $r_0$. 
 
-# Viscous stress tensor
+# Torus parameters
+
+The torus extends from $r_{\min}=10$ to $r_{\max} \approx 100$. To achieve the desired torus, we set $r_0 = 18.6$. 
+
+The maximum density is $\rho_{\rm max}=1$ and the minimum density in the atmosphere is $10^{-4}$. 
+
+The adiabatic index is $\gamma = 5/3$.
+
+# Physics
+
+## Viscous stress tensor
 
 Parametrized following Stone et al. (1999) with the kinematic viscosity given by 
 $$\nu = \alpha \frac{c_s^2}{\Omega_k} \approx \alpha r^{-1/2}$$
 as appropriate for a RIAF. The shear stress is defined in file `visc_nu.c`.
 
-# Gravity
+## Gravity
 
 GR effects are incorporated via the Paczynski-Wiita potential,
 $$\Phi = - \frac{GM}{r-r_S}$$ 
