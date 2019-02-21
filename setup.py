@@ -5,7 +5,7 @@ import shutil
 try:
   os.environ['PLUTO_DIR']
 except KeyError:
-  print 'PLUTO_DIR not defined. Setting it to the Current Directory'
+  print "PLUTO_DIR not defined. Setting it to the Current Directory"
   pluto_directory = os.getcwd()
   pass
 else:

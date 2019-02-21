@@ -31,6 +31,9 @@
 
 /* [Beg] user-defined constants (do not change this line) */
 
+#define	 UNIT_DENSITY		 0.77e-6
+#define	 UNIT_LENGTH		 2 * CONST_G * 10 * CONST_Msun / (CONST_c * CONST_c)
+#define	 UNIT_VELOCITY		 CONST_c / sqrt(2)
 #define  USE_DIPOLE              NO
 
 /* [End] user-defined constants (do not change this line) */

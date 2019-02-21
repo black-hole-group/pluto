@@ -161,11 +161,11 @@ void Init (double *v, double x1, double x2, double x3)
   rhoa = g_inputParam[ETA]*exp((1./(R-Rsch) - 1./rmin-Rsch)/H);
   pra  = rhoa*H;
 
-  Bo = sqrt(2.0*kappa/beta);
+  /*Bo = sqrt(2.0*kappa/beta);*/
 
   if (prt > pra) {    /* Torus */
     v[RHO] = rhot;
-    v[PRS] = prt;
+    v[PRS] = (beta + 1.0) / beta * prt;			/* beta = Pgas/Pmag, v[PRS] = Ptotal = Pmag + Pgas = (beta + 1) / beta * Pgas */
     v[VX1] = 0.0;
     v[VX2] = 0.0;
     v[VX3] = Vo/r;
@@ -178,7 +178,7 @@ void Init (double *v, double x1, double x2, double x3)
     v[VX3] = 0.0;
     v[TRC] = 0.0;
   }
-
+/*
   #if PHYSICS == MHD || PHYSICS == RMHD
    v[BX1] = 0.0;
    v[BX2] = 0.0;
@@ -197,7 +197,7 @@ void Init (double *v, double x1, double x2, double x3)
   #if (USE_DIPOLE == YES) && (BACKGROUND_FIELD == NO)
    DipoleField (x1,x2,x3,v+BX1, v+BX2, v+AX3);
   #endif
-
+*/
   g_smallPressure = 1.e-8;
 }
 /* ********************************************************************* */
